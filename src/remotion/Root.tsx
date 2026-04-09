@@ -1,4 +1,4 @@
-import { Composition } from 'remotion';
+import { Composition, staticFile } from 'remotion';
 import { SelfImprovementReel } from './compositions/SelfImprovementReel';
 import { SubtitleReel } from './compositions/SubtitleReel';
 import { Post01MorningHabits, TOTAL_FRAMES as POST01_FRAMES } from './compositions/Post01MorningHabits';
@@ -24,6 +24,9 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         width={720}
         height={1280}
+        defaultProps={{
+          audioSrc: staticFile('audio/post01_narration.mp3'),
+        }}
       />
 
       {/* ── 汎用リール（AI画像背景 + 字幕） ── */}

@@ -1,8 +1,10 @@
 import {
   AbsoluteFill,
+  Audio,
   interpolate,
   Sequence,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
@@ -44,7 +46,7 @@ const S = {
 const TOTAL_FRAMES = 930; // 31秒
 
 // ─────────────────────────────────────────────────────────────
-export const Post01MorningHabits: React.FC = () => {
+export const Post01MorningHabits: React.FC<{ audioSrc?: string }> = ({ audioSrc }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -56,6 +58,9 @@ export const Post01MorningHabits: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: BG, opacity: globalOpacity, fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif' }}>
+
+      {/* ── ナレーション音声 ──────────────────────────── */}
+      {audioSrc && <Audio src={audioSrc} />}
 
       {/* ── 背景グラデーション（シーンごとに色変え） ─── */}
       <BackgroundGlow frame={frame} />
