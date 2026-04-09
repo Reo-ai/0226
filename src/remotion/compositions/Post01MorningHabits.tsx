@@ -1,0 +1,392 @@
+import {
+  AbsoluteFill,
+  interpolate,
+  Sequence,
+  spring,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
+import { PointCard, CompactPointCard } from '../components/PointCard';
+import { CtaBanner } from '../components/CtaBanner';
+import { ProgressBar } from '../components/ProgressBar';
+import { FadeIn } from '../components/SceneTransition';
+
+// ── テーマカラー ──────────────────────────────────────────────
+const GOLD   = '#FFD700';
+const ORANGE = '#FF6B35';
+const BG     = '#0A0A0A';
+
+// ── 字幕データ（ナレーションに合わせた表示タイミング）─────────
+const SUBTITLES = [
+  { text: '成功者と普通の人の朝、何が違うか知ってる？', start: 0,   end: 90  },
+  { text: '一つ目。起きてすぐスマホを見ない。',         start: 90,  end: 180 },
+  { text: '5分間「今日やること」を頭の中で整理する。',  start: 180, end: 270 },
+  { text: 'これだけで集中力が全然変わる。',             start: 270, end: 330 },
+  { text: '二つ目。必ず体を動かす。10分で十分。',       start: 330, end: 420 },
+  { text: '朝の運動で脳の覚醒スイッチが入る。',         start: 420, end: 510 },
+  { text: '三つ目。起きてすぐ水を500ml飲む。',          start: 510, end: 600 },
+  { text: '頭のもやがスッと消える。',                   start: 600, end: 660 },
+  { text: 'この3つ、めちゃくちゃ地味でしょ？',          start: 660, end: 720 },
+  { text: '習慣が積み重なると1年後が別人になってる。',  start: 720, end: 810 },
+  { text: '成功の哲学って、結局これなんです。',         start: 810, end: 870 },
+  { text: '明日の朝から一個だけ試してみて。',           start: 870, end: 930 },
+];
+
+// ── シーン境界（フレーム）────────────────────────────────────
+const S = {
+  hook:       { from: 0,   to: 90  }, // 0〜3s
+  point1:     { from: 90,  to: 330 }, // 3〜11s
+  point23:    { from: 330, to: 600 }, // 11〜20s
+  philosophy: { from: 600, to: 780 }, // 20〜26s
+  cta:        { from: 780, to: 930 }, // 26〜31s
+};
+
+const TOTAL_FRAMES = 930; // 31秒
+
+// ─────────────────────────────────────────────────────────────
+export const Post01MorningHabits: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // 現在表示すべき字幕
+  const currentSub = SUBTITLES.find(s => frame >= s.start && frame < s.end);
+
+  // 全体フェードイン
+  const globalOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{ background: BG, opacity: globalOpacity, fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif' }}>
+
+      {/* ── 背景グラデーション（シーンごとに色変え） ─── */}
+      <BackgroundGlow frame={frame} />
+
+      {/* ── Scene 1: HOOK (0-90f) ─────────────────────── */}
+      <Sequence from={S.hook.from} durationInFrames={S.hook.to - S.hook.from}>
+        <HookScene />
+      </Sequence>
+
+      {/* ── Scene 2: POINT 1 (90-330f) ───────────────── */}
+      <Sequence from={S.point1.from} durationInFrames={S.point1.to - S.point1.from}>
+        <Point1Scene />
+      </Sequence>
+
+      {/* ── Scene 3: POINT 2 & 3 (330-600f) ─────────── */}
+      <Sequence from={S.point23.from} durationInFrames={S.point23.to - S.point23.from}>
+        <Point23Scene />
+      </Sequence>
+
+      {/* ── Scene 4: PHILOSOPHY (600-780f) ───────────── */}
+      <Sequence from={S.philosophy.from} durationInFrames={S.philosophy.to - S.philosophy.from}>
+        <PhilosophyScene />
+      </Sequence>
+
+      {/* ── Scene 5: CTA (780-930f) ───────────────────── */}
+      <Sequence from={S.cta.from} durationInFrames={S.cta.to - S.cta.from}>
+        <CtaBanner
+          text="🔖 保存して毎朝見返してね"
+          color={GOLD}
+        />
+      </Sequence>
+
+      {/* ── 字幕（全シーン共通） ──────────────────────── */}
+      {currentSub && (
+        <SubtitleOverlay text={currentSub.text} startFrame={currentSub.start} />
+      )}
+
+      {/* ── プログレスバー ─────────────────────────────── */}
+      <ProgressBar color={GOLD} />
+
+      {/* ── アカウント名（右下固定） ───────────────────── */}
+      <AccountBadge />
+
+    </AbsoluteFill>
+  );
+};
+
+// ── 背景グロー ────────────────────────────────────────────────
+const BackgroundGlow: React.FC<{ frame: number }> = ({ frame }) => {
+  const glowOpacity = interpolate(
+    frame % 60, [0, 30, 60], [0.08, 0.18, 0.08],
+    { extrapolateRight: 'clamp' }
+  );
+  return (
+    <AbsoluteFill style={{ pointerEvents: 'none' }}>
+      <div style={{
+        position: 'absolute',
+        top: '-10%',
+        left: '-20%',
+        width: '80%',
+        height: '60%',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${GOLD}${Math.round(glowOpacity * 255).toString(16).padStart(2, '0')} 0%, transparent 70%)`,
+        filter: 'blur(60px)',
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '-10%',
+        right: '-20%',
+        width: '70%',
+        height: '50%',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${ORANGE}22 0%, transparent 70%)`,
+        filter: 'blur(60px)',
+      }} />
+    </AbsoluteFill>
+  );
+};
+
+// ── Scene 1: HOOK ──────────────────────────────────────────────
+const HookScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const scale = spring({ frame, fps, config: { damping: 10, stiffness: 120 }, from: 0.7, to: 1 });
+  const opacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', padding: '0 48px' }}>
+      <div style={{ transform: `scale(${scale})`, opacity, textAlign: 'center' }}>
+
+        {/* サブタイトル */}
+        <FadeIn durationFrames={20} delayFrames={5}>
+          <div style={{ color: GOLD, fontSize: 32, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 16 }}>
+            成功の哲学
+          </div>
+        </FadeIn>
+
+        {/* メインタイトル */}
+        <div style={{
+          color: '#fff',
+          fontSize: 72,
+          fontWeight: 900,
+          lineHeight: 1.25,
+          textShadow: `0 0 40px ${GOLD}66`,
+          marginBottom: 20,
+        }}>
+          成功者と普通の人の<br />
+          <span style={{ color: GOLD }}>朝の違い</span>
+        </div>
+
+        {/* バッジ */}
+        <FadeIn durationFrames={15} delayFrames={20}>
+          <div style={{
+            display: 'inline-block',
+            background: GOLD,
+            color: '#000',
+            fontSize: 44,
+            fontWeight: 900,
+            padding: '10px 36px',
+            borderRadius: 50,
+            letterSpacing: '0.05em',
+          }}>
+            たった 3 つ
+          </div>
+        </FadeIn>
+
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── Scene 2: POINT 1 ───────────────────────────────────────────
+const Point1Scene: React.FC = () => {
+  const frame = useCurrentFrame();
+
+  return (
+    <AbsoluteFill style={{ padding: '80px 48px', justifyContent: 'center' }}>
+
+      {/* セクションヘッダー */}
+      <FadeIn durationFrames={12}>
+        <div style={{
+          color: GOLD,
+          fontSize: 30,
+          fontWeight: 700,
+          marginBottom: 32,
+          letterSpacing: '0.12em',
+        }}>
+          ── POINT 01 ──
+        </div>
+      </FadeIn>
+
+      <PointCard
+        number="01"
+        badLabel="起きてすぐスマホ"
+        goodLabel="5分間マインドセット"
+        resultLabel="午前中の集中力が別物に"
+        accentColor={GOLD}
+        delayFrames={10}
+      />
+
+      {/* 補足テキスト */}
+      {frame > 120 && (
+        <FadeIn durationFrames={20}>
+          <div style={{
+            marginTop: 28,
+            padding: '20px 24px',
+            background: 'rgba(255,215,0,0.08)',
+            borderLeft: `4px solid ${GOLD}`,
+            borderRadius: 8,
+            color: '#ddd',
+            fontSize: 32,
+            fontWeight: 500,
+            lineHeight: 1.6,
+          }}>
+            今日やることを<br />
+            頭の中で整理する<br />
+            <span style={{ color: GOLD, fontWeight: 700 }}>たった5分</span>でOK
+          </div>
+        </FadeIn>
+      )}
+
+    </AbsoluteFill>
+  );
+};
+
+// ── Scene 3: POINT 2 & 3 ──────────────────────────────────────
+const Point23Scene: React.FC = () => {
+  return (
+    <AbsoluteFill style={{ padding: '80px 40px', justifyContent: 'center' }}>
+
+      <FadeIn durationFrames={12}>
+        <div style={{ color: GOLD, fontSize: 30, fontWeight: 700, marginBottom: 32, letterSpacing: '0.12em' }}>
+          ── POINT 02 & 03 ──
+        </div>
+      </FadeIn>
+
+      <div style={{ display: 'flex', gap: 20, marginBottom: 32 }}>
+        <CompactPointCard
+          icon="🏋️"
+          label="朝10分"
+          sublabel="体を動かす"
+          accentColor={GOLD}
+          delayFrames={8}
+        />
+        <CompactPointCard
+          icon="💧"
+          label="水500ml"
+          sublabel="起床直後に飲む"
+          accentColor={ORANGE}
+          delayFrames={20}
+        />
+      </div>
+
+      <FadeIn durationFrames={20} delayFrames={40}>
+        <div style={{
+          textAlign: 'center',
+          padding: '20px',
+          background: `linear-gradient(135deg, ${GOLD}18, ${ORANGE}18)`,
+          border: `2px solid ${GOLD}44`,
+          borderRadius: 16,
+          color: '#fff',
+          fontSize: 38,
+          fontWeight: 900,
+        }}>
+          🧠 脳のスイッチON
+        </div>
+      </FadeIn>
+
+    </AbsoluteFill>
+  );
+};
+
+// ── Scene 4: PHILOSOPHY ────────────────────────────────────────
+const PhilosophyScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const lines = [
+    { text: 'この3つ、地味でしょ？',        delay: 0,  gold: false },
+    { text: 'でも積み重なると…',            delay: 20, gold: false },
+    { text: '1年後の自分が別人になってる。', delay: 50, gold: true  },
+    { text: '成功の哲学って',               delay: 90, gold: false },
+    { text: '結局、習慣なんです。',         delay: 110, gold: true  },
+  ];
+
+  return (
+    <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', padding: '0 48px' }}>
+      <div style={{ textAlign: 'center' }}>
+        {lines.map((line, i) => {
+          const opacity = interpolate(frame - line.delay, [0, 12], [0, 1], {
+            extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+          });
+          const translateY = interpolate(frame - line.delay, [0, 12], [20, 0], {
+            extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+          });
+          return (
+            <div key={i} style={{
+              opacity,
+              transform: `translateY(${translateY}px)`,
+              color: line.gold ? GOLD : '#fff',
+              fontSize: line.gold ? 56 : 44,
+              fontWeight: 900,
+              lineHeight: 1.5,
+              textShadow: line.gold ? `0 0 30px ${GOLD}88` : 'none',
+              marginBottom: 8,
+            }}>
+              {line.text}
+            </div>
+          );
+        })}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── 字幕オーバーレイ ───────────────────────────────────────────
+const SubtitleOverlay: React.FC<{ text: string; startFrame: number }> = ({ text, startFrame }) => {
+  const frame = useCurrentFrame();
+  const globalFrame = frame; // Sequenceの中ではないのでそのまま使える
+
+  const opacity = interpolate(globalFrame - startFrame, [0, 6, /* duration-6 */ 9999, 9999], [0, 1, 1, 0], {
+    extrapolateRight: 'clamp', extrapolateLeft: 'clamp',
+  });
+  const translateY = interpolate(globalFrame - startFrame, [0, 6], [12, 0], { extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 140, paddingLeft: 32, paddingRight: 32 }}>
+      <div style={{
+        opacity,
+        transform: `translateY(${translateY}px)`,
+        background: 'rgba(0,0,0,0.78)',
+        borderRadius: 12,
+        padding: '16px 22px',
+        color: '#fff',
+        fontSize: 38,
+        fontWeight: 700,
+        textAlign: 'center',
+        borderLeft: `4px solid ${GOLD}`,
+        maxWidth: '100%',
+        lineHeight: 1.5,
+      }}>
+        {text}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── アカウントバッジ（右下固定） ──────────────────────────────
+const AccountBadge: React.FC = () => (
+  <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'flex-end', padding: '0 28px 48px 0' }}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      background: 'rgba(0,0,0,0.6)',
+      border: `1px solid ${GOLD}66`,
+      borderRadius: 50,
+      padding: '8px 16px 8px 12px',
+    }}>
+      <div style={{
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        background: `linear-gradient(135deg, ${GOLD}, ${ORANGE})`,
+      }} />
+      <span style={{ color: '#fff', fontSize: 24, fontWeight: 700 }}>
+        @seiko_no_tetsugaku
+      </span>
+    </div>
+  </AbsoluteFill>
+);
+
+export { TOTAL_FRAMES };
