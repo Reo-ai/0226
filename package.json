@@ -1,0 +1,20 @@
+{
+  "name": "tiktok-auto-pipeline",
+  "version": "1.0.0",
+  "description": "TikTok Auto Pipeline: analyze → generate images → generate videos",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^0.7.0",
+    "@runwayml/sdk": "^0.1.0",
+    "axios": "^1.6.0",
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.5",
+    "fluent-ffmpeg": "^2.1.3",
+    "jose": "^5.2.3",
+    "openai": "^4.67.0"
+  }
+}
