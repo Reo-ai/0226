@@ -341,4 +341,70 @@ program
     }
   });
 
+// ─── generate-vrew-script ────────────────────────────────────────────────────
+program
+  .command('generate-vrew-script <theme>')
+  .description(`Generate Vrew-ready narration script + SRT subtitles (${THEME_IDS.join('|')})`)
+  .option('--type <type>', 'Content type: educational, hook, story, review', 'educational')
+  .option('--product <product>', 'Affiliate product to feature')
+  .option('--duration <n>', 'Target duration in seconds', parseInt, 60)
+  .option('--voice <style>', 'Voice style: friendly, energetic, calm, professional', 'friendly')
+  .action(async (theme, opts) => {
+    const { generateVideoConcept } = await import('./pipeline/contentStrategy.js');
+    const { generateVrewScript } = await import('./pipeline/vrewExporter.js');
+    try {
+      logger.section(`VREW SCRIPT: ${theme}`);
+      const concept = await generateVideoConcept(theme, {
+        hookType: opts.type,
+        affiliateProduct: opts.product,
+      });
+      await generateVrewScript(theme, concept, {
+        durationSec: opts.duration,
+        voiceStyle: opts.voice,
+      });
+    } catch (err) {
+      logger.error(err.message);
+      process.exit(1);
+    }
+  });
+
+// ─── remotion-render ─────────────────────────────────────────────────────────
+program
+  .command('remotion-render <theme>')
+  .description('Render a self-improvement reel video using Remotion (requires npm install)')
+  .option('--hook <text>', 'Hook text for the video')
+  .option('--image <path>', 'Background image path (output/images/xxx.jpg)')
+  .option('--duration <n>', 'Duration in seconds', parseInt, 30)
+  .option('--cta <text>', 'CTA text', 'プロフリンクから詳しくチェック！')
+  .option('--composition <id>', 'Composition ID: SelfImprovementReel or SubtitleReel', 'SelfImprovementReel')
+  .action(async (theme, opts) => {
+    const { renderReel } = await import('./video/remotionRenderer.js');
+    const { getTheme } = await import('./config/themes.js');
+    try {
+      const themeConfig = getTheme(theme);
+      logger.section(`REMOTION RENDER: ${themeConfig.emoji} ${themeConfig.label}`);
+
+      const props = {
+        theme,
+        hook: opts.hook || themeConfig.hooks[0],
+        narrationLines: [],   // populate from Vrew script or generate-vrew-script
+        imagePath: opts.image ? require('path').resolve(opts.image) : '',
+        ctaText: opts.cta,
+        showCta: true,
+      };
+
+      const outPath = await renderReel(props, {
+        composition: opts.composition,
+        durationSec: opts.duration,
+        fps: 30,
+      });
+
+      logger.success(`Rendered: ${outPath}`);
+    } catch (err) {
+      logger.error(err.message);
+      if (process.env.DEBUG) console.error(err.stack);
+      process.exit(1);
+    }
+  });
+
 program.parse(process.argv);
