@@ -113,7 +113,7 @@ export const Post01MorningHabits: React.FC<{ audioSrc?: string }> = ({ audioSrc 
 
       {/* ── 字幕（全シーン共通） ──────────────────────── */}
       {currentSub && (
-        <SubtitleOverlay text={currentSub.text} startFrame={currentSub.start} />
+        <SubtitleOverlay text={currentSub.text} startFrame={currentSub.start} endFrame={currentSub.end} />
       )}
 
       {/* ── プログレスバー ─────────────────────────────── */}
@@ -439,14 +439,15 @@ const PhilosophyScene: React.FC = () => {
 };
 
 // ── 字幕オーバーレイ ───────────────────────────────────────────
-const SubtitleOverlay: React.FC<{ text: string; startFrame: number }> = ({ text, startFrame }) => {
+const SubtitleOverlay: React.FC<{ text: string; startFrame: number; endFrame: number }> = ({ text, startFrame, endFrame }) => {
   const frame = useCurrentFrame();
-  const globalFrame = frame; // Sequenceの中ではないのでそのまま使える
+  const elapsed  = frame - startFrame;
+  const duration = endFrame - startFrame;
 
-  const opacity = interpolate(globalFrame - startFrame, [0, 6, /* duration-6 */ 9999, 9999], [0, 1, 1, 0], {
+  const opacity = interpolate(elapsed, [0, 6, Math.max(7, duration - 6), duration], [0, 1, 1, 0], {
     extrapolateRight: 'clamp', extrapolateLeft: 'clamp',
   });
-  const translateY = interpolate(globalFrame - startFrame, [0, 6], [12, 0], { extrapolateRight: 'clamp' });
+  const translateY = interpolate(elapsed, [0, 6], [12, 0], { extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 140, paddingLeft: 32, paddingRight: 32 }}>

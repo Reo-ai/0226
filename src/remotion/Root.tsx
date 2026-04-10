@@ -25,7 +25,9 @@ export const RemotionRoot: React.FC = () => {
         width={720}
         height={1280}
         defaultProps={{
-          audioSrc: staticFile('audio/post01_narration.mp3'),
+          // OpenAI APIキーがある場合は scripts/generate-narration.js で生成後にここを有効化
+          // audioSrc: staticFile('audio/post01_narration.mp3'),
+          audioSrc: undefined,
         }}
       />
 
