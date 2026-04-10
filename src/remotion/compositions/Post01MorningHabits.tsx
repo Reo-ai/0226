@@ -20,30 +20,32 @@ const BG     = '#0A0A0A';
 
 // ── 字幕データ（ナレーションに合わせた表示タイミング）─────────
 const SUBTITLES = [
-  { text: '成功者と普通の人の朝、何が違うか知ってる？', start: 0,   end: 90  },
-  { text: '一つ目。起きてすぐスマホを見ない。',         start: 90,  end: 180 },
-  { text: '5分間「今日やること」を頭の中で整理する。',  start: 180, end: 270 },
-  { text: 'これだけで集中力が全然変わる。',             start: 270, end: 330 },
-  { text: '二つ目。必ず体を動かす。10分で十分。',       start: 330, end: 420 },
-  { text: '朝の運動で脳の覚醒スイッチが入る。',         start: 420, end: 510 },
-  { text: '三つ目。起きてすぐ水を500ml飲む。',          start: 510, end: 600 },
-  { text: '頭のもやがスッと消える。',                   start: 600, end: 660 },
-  { text: 'この3つ、めちゃくちゃ地味でしょ？',          start: 660, end: 720 },
-  { text: '習慣が積み重なると1年後が別人になってる。',  start: 720, end: 810 },
-  { text: '成功の哲学って、結局これなんです。',         start: 810, end: 870 },
-  { text: '明日の朝から一個だけ試してみて。',           start: 870, end: 930 },
+  { text: '成功者と普通の人の朝、何が違うか知ってる？',         start: 0,    end: 90   },
+  { text: '一つ目。起きてすぐスマホを見ない。',                 start: 90,   end: 180  },
+  { text: 'スマホを見た瞬間、他人のペースで一日が始まる。',     start: 180,  end: 330  },
+  { text: '5分間「今日やること」を頭の中で整理する。',          start: 330,  end: 450  },
+  { text: 'これだけで集中力が全然変わる。',                     start: 450,  end: 510  },
+  { text: '二つ目。必ず体を動かす。10分で十分。',               start: 510,  end: 600  },
+  { text: '朝の運動で脳の覚醒スイッチが入る。',                 start: 600,  end: 690  },
+  { text: '三つ目。起きてすぐ水を500ml飲む。',                  start: 690,  end: 780  },
+  { text: '頭のもやがスッと消える。',                           start: 780,  end: 840  },
+  { text: 'この3つ、めちゃくちゃ地味でしょ？',                  start: 840,  end: 930  },
+  { text: '成功者って例外なくこういう地味なことを続けてる。',   start: 930,  end: 1050 },
+  { text: '習慣が積み重なると1年後が別人になってる。',          start: 1050, end: 1140 },
+  { text: '成功の哲学って、結局これなんです。',                 start: 1140, end: 1200 },
+  { text: '明日の朝から一個だけ試してみて。',                   start: 1200, end: 1260 },
 ];
 
 // ── シーン境界（フレーム）────────────────────────────────────
 const S = {
-  hook:       { from: 0,   to: 90  }, // 0〜3s
-  point1:     { from: 90,  to: 330 }, // 3〜11s
-  point23:    { from: 330, to: 600 }, // 11〜20s
-  philosophy: { from: 600, to: 780 }, // 20〜26s
-  cta:        { from: 780, to: 930 }, // 26〜31s
+  hook:       { from: 0,    to: 90   }, // 0〜3s
+  point1:     { from: 90,   to: 510  }, // 3〜17s
+  point23:    { from: 510,  to: 840  }, // 17〜28s
+  philosophy: { from: 840,  to: 1110 }, // 28〜37s
+  cta:        { from: 1110, to: 1260 }, // 37〜42s
 };
 
-const TOTAL_FRAMES = 930; // 31秒
+const TOTAL_FRAMES = 1260; // 42秒
 
 // ─────────────────────────────────────────────────────────────
 export const Post01MorningHabits: React.FC<{ audioSrc?: string }> = ({ audioSrc }) => {
@@ -88,7 +90,7 @@ export const Post01MorningHabits: React.FC<{ audioSrc?: string }> = ({ audioSrc 
       {/* ── Scene 5: CTA (780-930f) ───────────────────── */}
       <Sequence from={S.cta.from} durationInFrames={S.cta.to - S.cta.from}>
         <CtaBanner
-          text="🔖 保存して毎朝見返してね"
+          text="👆 フォローで毎日こういう情報流すから"
           color={GOLD}
         />
       </Sequence>
@@ -223,7 +225,7 @@ const Point1Scene: React.FC = () => {
       />
 
       {/* 補足テキスト */}
-      {frame > 120 && (
+      {frame > 180 && (
         <FadeIn durationFrames={20}>
           <div style={{
             marginTop: 28,
@@ -236,8 +238,10 @@ const Point1Scene: React.FC = () => {
             fontWeight: 500,
             lineHeight: 1.6,
           }}>
-            今日やることを<br />
-            頭の中で整理する<br />
+            スマホを見た瞬間<br />
+            <span style={{ color: '#FF4444', fontWeight: 700 }}>他人のペース</span>で一日が始まる<br />
+            <br />
+            今日やることを整理する<br />
             <span style={{ color: GOLD, fontWeight: 700 }}>たった5分</span>でOK
           </div>
         </FadeIn>
@@ -300,11 +304,12 @@ const PhilosophyScene: React.FC = () => {
   const { fps } = useVideoConfig();
 
   const lines = [
-    { text: 'この3つ、地味でしょ？',        delay: 0,  gold: false },
-    { text: 'でも積み重なると…',            delay: 20, gold: false },
-    { text: '1年後の自分が別人になってる。', delay: 50, gold: true  },
-    { text: '成功の哲学って',               delay: 90, gold: false },
-    { text: '結局、習慣なんです。',         delay: 110, gold: true  },
+    { text: 'この3つ、地味でしょ？',                    delay: 0,   gold: false },
+    { text: '成功者って例外なく',                       delay: 25,  gold: false },
+    { text: 'こういう地味なことを続けてる。',           delay: 50,  gold: true  },
+    { text: '積み重なると…',                            delay: 90,  gold: false },
+    { text: '1年後の自分が別人になってる。',            delay: 115, gold: true  },
+    { text: '成功の哲学って、結局習慣なんです。',       delay: 155, gold: true  },
   ];
 
   return (
