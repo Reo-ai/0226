@@ -18,6 +18,16 @@ const GOLD   = '#FFD700';
 const ORANGE = '#FF6B35';
 const BG     = '#0A0A0A';
 
+// ── パーティクル定義（疑似乱数で固定配置）───────────────────
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+  id:      i,
+  x:       (i * 37 + 13) % 100,          // X位置 (%)
+  size:    2 + (i % 3),                   // 2〜4px
+  speed:   0.25 + (i % 5) * 0.08,        // 上昇速度
+  opacity: 0.15 + (i % 4) * 0.07,        // 透明度
+  delay:   (i * 11) % 80,                // 出現ずらし（フレーム）
+}));
+
 // ── 字幕データ（ナレーションに合わせた表示タイミング）─────────
 const SUBTITLES = [
   { text: '成功者と普通の人の朝、何が違うか知ってる？',         start: 0,    end: 90   },
@@ -64,30 +74,36 @@ export const Post01MorningHabits: React.FC<{ audioSrc?: string }> = ({ audioSrc 
       {/* ── ナレーション音声 ──────────────────────────── */}
       {audioSrc && <Audio src={audioSrc} />}
 
-      {/* ── 背景グラデーション（シーンごとに色変え） ─── */}
+      {/* ── 背景グラデーション ────────────────────────── */}
       <BackgroundGlow frame={frame} />
 
-      {/* ── Scene 1: HOOK (0-90f) ─────────────────────── */}
+      {/* ── 浮遊パーティクル（全シーン共通）────────────── */}
+      <Particles frame={frame} />
+
+      {/* ── Scene 1: HOOK ────────────────────────────── */}
       <Sequence from={S.hook.from} durationInFrames={S.hook.to - S.hook.from}>
         <HookScene />
       </Sequence>
 
-      {/* ── Scene 2: POINT 1 (90-330f) ───────────────── */}
+      {/* ── Scene 2: POINT 1（スマホ背景アイコン）─────── */}
       <Sequence from={S.point1.from} durationInFrames={S.point1.to - S.point1.from}>
+        <SceneBgIcon icon="📵" />
         <Point1Scene />
       </Sequence>
 
-      {/* ── Scene 3: POINT 2 & 3 (330-600f) ─────────── */}
+      {/* ── Scene 3: POINT 2 & 3（運動・水 背景アイコン）*/}
       <Sequence from={S.point23.from} durationInFrames={S.point23.to - S.point23.from}>
+        <SceneBgIcon icon="⚡" />
         <Point23Scene />
       </Sequence>
 
-      {/* ── Scene 4: PHILOSOPHY (600-780f) ───────────── */}
+      {/* ── Scene 4: PHILOSOPHY（デイカウンター付き）──── */}
       <Sequence from={S.philosophy.from} durationInFrames={S.philosophy.to - S.philosophy.from}>
+        <SceneBgIcon icon="🧠" />
         <PhilosophyScene />
       </Sequence>
 
-      {/* ── Scene 5: CTA (780-930f) ───────────────────── */}
+      {/* ── Scene 5: CTA ─────────────────────────────── */}
       <Sequence from={S.cta.from} durationInFrames={S.cta.to - S.cta.from}>
         <CtaBanner
           text="👆 フォローで毎日こういう情報流すから"
@@ -106,6 +122,58 @@ export const Post01MorningHabits: React.FC<{ audioSrc?: string }> = ({ audioSrc 
       {/* ── アカウント名（右下固定） ───────────────────── */}
       <AccountBadge />
 
+    </AbsoluteFill>
+  );
+};
+
+// ── 浮遊パーティクル ──────────────────────────────────────────
+const Particles: React.FC<{ frame: number }> = ({ frame }) => (
+  <AbsoluteFill style={{ pointerEvents: 'none', overflow: 'hidden' }}>
+    {PARTICLES.map(p => {
+      // 画面下から上へ流れ、画面外に出たらループ
+      const rawY = 105 - ((frame * p.speed + p.delay) % 115);
+      const y = Math.max(-5, rawY);
+      const fadeIn = interpolate(frame - p.delay, [0, 10], [0, 1], {
+        extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+      });
+      return (
+        <div key={p.id} style={{
+          position: 'absolute',
+          left:     `${p.x}%`,
+          top:      `${y}%`,
+          width:    p.size,
+          height:   p.size,
+          borderRadius: '50%',
+          background: GOLD,
+          opacity:  p.opacity * fadeIn,
+          boxShadow: `0 0 ${p.size * 2}px ${GOLD}88`,
+        }} />
+      );
+    })}
+  </AbsoluteFill>
+);
+
+// ── シーン別 巨大背景アイコン ─────────────────────────────────
+const SceneBgIcon: React.FC<{ icon: string }> = ({ icon }) => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame, [0, 25], [0, 0.06], {
+    extrapolateRight: 'clamp',
+  });
+  const scale = interpolate(frame, [0, 40], [0.85, 1.0], {
+    extrapolateRight: 'clamp',
+  });
+  return (
+    <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', pointerEvents: 'none' }}>
+      <div style={{
+        fontSize:   420,
+        opacity,
+        transform:  `scale(${scale})`,
+        filter:     'blur(6px)',
+        lineHeight: 1,
+        userSelect: 'none',
+      }}>
+        {icon}
+      </div>
     </AbsoluteFill>
   );
 };
@@ -312,8 +380,36 @@ const PhilosophyScene: React.FC = () => {
     { text: '成功の哲学って、結局習慣なんです。',       delay: 155, gold: true  },
   ];
 
+  // 「1日→365日」カウントアップ（delay:90〜200fで動く）
+  const days = Math.round(
+    interpolate(frame, [90, 200], [1, 365], {
+      extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+    })
+  );
+  const counterOpacity = interpolate(frame, [85, 100], [0, 1], {
+    extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+  });
+
   return (
     <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', padding: '0 48px' }}>
+
+      {/* デイカウンター（背景に薄く表示） */}
+      <div style={{
+        position: 'absolute',
+        bottom: 180,
+        right: 40,
+        opacity: counterOpacity * 0.35,
+        textAlign: 'right',
+        pointerEvents: 'none',
+      }}>
+        <div style={{ color: GOLD, fontSize: 100, fontWeight: 900, lineHeight: 1 }}>
+          {days}
+        </div>
+        <div style={{ color: '#fff', fontSize: 32, fontWeight: 700, letterSpacing: '0.1em' }}>
+          日目
+        </div>
+      </div>
+
       <div style={{ textAlign: 'center' }}>
         {lines.map((line, i) => {
           const opacity = interpolate(frame - line.delay, [0, 12], [0, 1], {
