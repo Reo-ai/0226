@@ -16,6 +16,7 @@ import { ProgressBar } from '../components/ProgressBar';
 // ── テーマカラー ──────────────────────────────────────────────
 const GOLD   = '#FFD700';
 const ORANGE = '#FF6B35';
+const NAVY   = '#0A1628';
 
 // ── 字幕データ ────────────────────────────────────────────────
 const SUBTITLES = [
@@ -61,7 +62,7 @@ export const Post01MorningHabits: React.FC<{
 
   return (
     <AbsoluteFill style={{
-      background: '#0A0A0A',
+      background: NAVY,
       opacity: globalOpacity,
       fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif',
     }}>
@@ -159,7 +160,7 @@ const PlaceholderBg: React.FC<{ frame: number }> = ({ frame }) => {
     { extrapolateRight: 'clamp' }
   );
   return (
-    <AbsoluteFill style={{ background: '#0d1117' }}>
+    <AbsoluteFill style={{ background: NAVY }}>
       <div style={{
         position: 'absolute', top: '-20%', left: '-20%',
         width: '80%', height: '80%', borderRadius: '50%',
