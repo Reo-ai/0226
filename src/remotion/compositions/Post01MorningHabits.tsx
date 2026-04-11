@@ -1,6 +1,7 @@
 import {
   AbsoluteFill,
   Audio,
+  Img,
   interpolate,
   OffthreadVideo,
   Sequence,
@@ -49,7 +50,8 @@ const TOTAL_FRAMES = 1260; // 42秒
 export const Post01MorningHabits: React.FC<{
   audioSrc?: string;
   videoSrc?: string;
-}> = ({ audioSrc, videoSrc }) => {
+  imageSrc?: string;
+}> = ({ audioSrc, videoSrc, imageSrc }) => {
   const frame = useCurrentFrame();
 
   const currentSub     = SUBTITLES.find(s => frame >= s.start && frame < s.end);
@@ -67,14 +69,15 @@ export const Post01MorningHabits: React.FC<{
       {/* ── 音声 ────────────────────────────────────────── */}
       {audioSrc && <Audio src={audioSrc} />}
 
-      {/* ── 背景動画（人物など）─────────────────────────── */}
+      {/* ── 背景（動画 > AI画像アニメ > プレースホルダー）── */}
       {videoSrc ? (
         <OffthreadVideo
           src={videoSrc}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
+      ) : imageSrc ? (
+        <AnimatedImage src={imageSrc} frame={frame} />
       ) : (
-        // 動画がない場合のプレースホルダー背景
         <PlaceholderBg frame={frame} />
       )}
 
@@ -118,6 +121,33 @@ export const Post01MorningHabits: React.FC<{
       {/* ── アカウントバッジ ───────────────────────────────── */}
       <AccountBadge />
 
+    </AbsoluteFill>
+  );
+};
+
+// ── AI生成画像をゆっくり動かして「喋っているように見せる」──────
+const AnimatedImage: React.FC<{ src: string; frame: number }> = ({ src, frame }) => {
+  // 呼吸するような微妙なスケールアップダウン（1.0〜1.03）
+  const breathe = interpolate(
+    Math.sin(frame * 0.04), [-1, 1], [1.0, 1.03]
+  );
+  // 少しだけ左右に揺れる
+  const sway = interpolate(
+    Math.sin(frame * 0.025), [-1, 1], [-4, 4]
+  );
+  return (
+    <AbsoluteFill style={{ overflow: 'hidden' }}>
+      <Img
+        src={src}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center top',
+          transform: `scale(${breathe}) translateX(${sway}px)`,
+          transformOrigin: 'center center',
+        }}
+      />
     </AbsoluteFill>
   );
 };

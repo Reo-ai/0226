@@ -25,11 +25,12 @@ export const RemotionRoot: React.FC = () => {
         width={720}
         height={1280}
         defaultProps={{
-          // 動画背景: 自分の動画を public/video/ に入れて指定
-          videoSrc: staticFile('video/sample_bg.mp4'),
-          // ナレーション音声: scripts/generate-narration.js で生成後に有効化
-          // audioSrc: staticFile('audio/post01_narration.mp3'),
-          audioSrc: undefined,
+          // AI生成画像: node scripts/generate-avatar-image.js で生成後に自動で使われる
+          imageSrc:  staticFile('images/avatar.png'),
+          // 動画背景（画像より優先）: 自分の動画を public/video/ に置く場合
+          videoSrc:  undefined,
+          // ナレーション音声: node scripts/generate-narration.js で生成後に有効化
+          audioSrc:  undefined,
         }}
       />
 
