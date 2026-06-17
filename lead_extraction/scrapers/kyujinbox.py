@@ -1,13 +1,13 @@
 """
 求人ボックス scraper
-Target: https://kyujinbox.com/
+Target: https://xn--pckua2a7gp15o89zb.com/ (求人ボックス)
 Search for 営業 at 制作会社 / 開発会社 with small employee count
 """
 import re
 from urllib.parse import urljoin, urlencode, quote
 from .base import fetch, parse, polite_sleep
 
-BASE_URL = "https://kyujinbox.com"
+BASE_URL = "https://xn--pckua2a7gp15o89zb.com"
 
 SEARCH_QUERIES = [
     "営業 制作会社 ホームページ",
@@ -18,6 +18,8 @@ SEARCH_QUERIES = [
     "営業 IT開発 ベンチャー",
     "営業 グラフィックデザイン制作",
     "営業 ウェブ制作会社",
+    "法人営業 制作会社",
+    "法人営業 開発会社",
 ]
 
 SMALL_COMPANY_KEYWORDS = [
@@ -35,20 +37,16 @@ COMPANY_TYPE_KEYWORDS = [
 
 
 def _is_small_company(text):
-    """Check if text suggests a small company (≤10 employees)."""
-    text_lower = text
     for kw in SMALL_COMPANY_KEYWORDS:
-        if kw in text_lower:
+        if kw in text:
             return True
-    # Also check for numeric patterns like "従業員数：5名"
-    m = re.search(r'従業員[数]?[：:]\s*(\d+)', text_lower)
+    m = re.search(r'従業員[数]?[：:]\s*(\d+)', text)
     if m and int(m.group(1)) <= 10:
         return True
     return False
 
 
 def _is_target_company(text):
-    """Check if company is a creative/development company."""
     for kw in COMPANY_TYPE_KEYWORDS:
         if kw in text:
             return True
@@ -56,27 +54,22 @@ def _is_target_company(text):
 
 
 def _parse_job_card(card, base_url):
-    """Extract job info from a listing card."""
     result = {}
     try:
-        # Title / job link
-        title_el = card.select_one("h2 a, h3 a, .job-title a, a.job-link")
+        title_el = card.select_one("h2 a, h3 a, .job-title a, a.job-link, [class*='title'] a")
         if title_el:
             result["job_title"] = title_el.get_text(strip=True)
             href = title_el.get("href", "")
             result["job_url"] = urljoin(base_url, href)
 
-        # Company name
         company_el = card.select_one(".company-name, .corp-name, [class*='company']")
         if company_el:
             result["company_name"] = company_el.get_text(strip=True)
 
-        # Location
         loc_el = card.select_one(".location, [class*='location'], [class*='area']")
         if loc_el:
             result["location"] = loc_el.get_text(strip=True)
 
-        # Employee count / description snippet
         desc_el = card.select_one(".description, .summary, p")
         if desc_el:
             result["snippet"] = desc_el.get_text(strip=True)[:300]
@@ -85,35 +78,35 @@ def _parse_job_card(card, base_url):
         result["is_small"] = _is_small_company(card_text)
         result["is_target"] = _is_target_company(card_text)
 
-    except Exception as e:
+    except Exception:
         pass
     return result
 
 
 def scrape_kyujinbox(max_per_query=5):
-    """
-    Scrape 求人ボックス for relevant job listings.
-    Returns list of dicts with job/company info.
-    """
     results = []
     seen_companies = set()
 
     for query in SEARCH_QUERIES:
         encoded = quote(query)
         for page in range(1, max_per_query + 1):
-            url = f"{BASE_URL}/仕事?q={encoded}&p={page}"
+            url = f"{BASE_URL}/{encoded}の仕事?p={page}"
             print(f"  [求人BOX] {query} page={page} ...")
 
             html = fetch(url)
             if not html:
-                break
+                # Try alternate URL format
+                url2 = f"{BASE_URL}/?q={encoded}&p={page}"
+                html = fetch(url2)
+                if not html:
+                    break
 
             soup = parse(html)
-            cards = soup.select(".job-item, .job-card, article, [class*='job_item'], [class*='jobItem']")
-
-            if not cards:
-                # fallback: try to find any structured job listings
-                cards = soup.select("li.result, div.result, .search-result")
+            cards = soup.select(
+                ".job-item, .job-card, article.result, "
+                "[class*='job_item'], [class*='jobItem'], "
+                "li.result, div.result"
+            )
 
             if not cards:
                 break
@@ -124,8 +117,8 @@ def scrape_kyujinbox(max_per_query=5):
                 company = info.get("company_name", "")
                 if not company or company in seen_companies:
                     continue
-
                 seen_companies.add(company)
+                info["source"] = "kyujinbox"
                 results.append(info)
                 found_new = True
 

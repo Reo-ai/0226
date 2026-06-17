@@ -4,6 +4,7 @@ from .wantedly import scrape_wantedly
 from .google_search import scrape_via_search
 from .hellowork import scrape_hellowork
 from .green import scrape_green
+from .stanby import scrape_stanby
 
 __all__ = [
     "scrape_kyujinbox",
@@ -12,4 +13,5 @@ __all__ = [
     "scrape_via_search",
     "scrape_hellowork",
     "scrape_green",
+    "scrape_stanby",
 ]

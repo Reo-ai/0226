@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from scrapers import (
     scrape_kyujinbox, scrape_indeed, scrape_wantedly,
-    scrape_via_search, scrape_hellowork, scrape_green,
+    scrape_via_search, scrape_hellowork, scrape_green, scrape_stanby,
 )
 from enricher import enrich_company, enrich_from_job_url
 from scrapers.base import polite_sleep
@@ -103,17 +103,17 @@ def collect_raw_leads(cache):
     except Exception as e:
         print(f"  [ERROR] 求人ボックス: {e}")
 
-    # Source 2: Indeed Japan
-    print("\n[Source 2] Indeed Japan...")
+    # Source 2: スタンバイ (Indeed系だがブロックされにくい)
+    print("\n[Source 2] スタンバイ...")
     try:
-        results = scrape_indeed(max_pages=2)
+        results = scrape_stanby(max_pages=3)
         for r in results:
             if r.get("company_name") and r["company_name"] not in seen_companies:
                 seen_companies.add(r["company_name"])
                 raw.append(r)
         print(f"  -> {len(results)} found, total raw: {len(raw)}")
     except Exception as e:
-        print(f"  [ERROR] Indeed: {e}")
+        print(f"  [ERROR] スタンバイ: {e}")
 
     # Source 3: Wantedly
     print("\n[Source 3] Wantedly...")
