@@ -242,6 +242,28 @@ def enrich_leads(cache, raw_leads):
     return enriched
 
 
+def export_csv(enriched, output_path):
+    """Export to CSV (Google Sheets compatible, UTF-8 BOM for Excel compatibility)."""
+    rows = []
+    for i, e in enumerate(enriched, 1):
+        rows.append({
+            "No.": i,
+            "会社名": e.get("company_name", ""),
+            "代表者名": e.get("rep_name", ""),
+            "住所": e.get("address", ""),
+            "電話番号": e.get("phone", ""),
+            "ホームページURL": e.get("url", ""),
+            "従業員数": e.get("employee_count", ""),
+            "募集職種": e.get("job_title", ""),
+            "情報源": e.get("source", ""),
+        })
+    df = pd.DataFrame(rows)
+    # utf-8-sig adds BOM so Excel/Sheets reads Japanese correctly
+    df.to_csv(output_path, index=False, encoding="utf-8-sig")
+    print(f"  Exported CSV: {output_path}")
+    return output_path
+
+
 def export_excel(enriched, output_path):
     """Phase 3: Export to Excel."""
     print(f"\n=== Phase 3: Exporting to Excel ({len(enriched)} companies) ===")
@@ -304,15 +326,23 @@ def main():
         print("\n[ERROR] No enriched leads. Check scraper output.")
         return
 
-    # Phase 3: Export to Excel
+    # Phase 3: Export
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = os.path.join(OUTPUT_DIR, f"leads_{ts}.xlsx")
-    export_excel(enriched, output_path)
+    excel_path = os.path.join(OUTPUT_DIR, f"leads_{ts}.xlsx")
+    csv_path = os.path.join(OUTPUT_DIR, f"leads_{ts}.csv")
+    export_excel(enriched, excel_path)
+    export_csv(enriched, csv_path)
+    output_path = csv_path
 
     # Summary
     print(f"\n{'='*50}")
     print(f"Complete! {len(enriched)} companies extracted.")
-    print(f"Output: {output_path}")
+    print(f"Excel: {excel_path}")
+    print(f"CSV:   {csv_path}")
+    print(f"\n【Google Sheetsへのインポート方法】")
+    print(f"  1. Google Sheetsを開く → ファイル → インポート")
+    print(f"  2. 上記CSVファイルをアップロード")
+    print(f"  3. 区切り文字: カンマ → インポート完了")
     has_rep = sum(1 for e in enriched if e.get("rep_name"))
     has_addr = sum(1 for e in enriched if e.get("address"))
     has_phone = sum(1 for e in enriched if e.get("phone"))
