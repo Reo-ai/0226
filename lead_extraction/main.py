@@ -30,6 +30,7 @@ from scrapers import (
 )
 from enricher import enrich_company, enrich_from_job_url
 from scrapers.base import polite_sleep
+from sheets_export import export_to_sheets
 
 TARGET_COUNT = 300
 CACHE_FILE = os.path.join(os.path.dirname(__file__), "output", "cache.json")
@@ -332,17 +333,23 @@ def main():
     csv_path = os.path.join(OUTPUT_DIR, f"leads_{ts}.csv")
     export_excel(enriched, excel_path)
     export_csv(enriched, csv_path)
-    output_path = csv_path
+
+    # Google Sheets への直接出力
+    sheets_url = None
+    try:
+        sheets_url = export_to_sheets(enriched)
+    except FileNotFoundError as e:
+        print(e)
+    except Exception as e:
+        print(f"  [WARN] Google Sheets出力をスキップ: {e}")
 
     # Summary
     print(f"\n{'='*50}")
     print(f"Complete! {len(enriched)} companies extracted.")
     print(f"Excel: {excel_path}")
     print(f"CSV:   {csv_path}")
-    print(f"\n【Google Sheetsへのインポート方法】")
-    print(f"  1. Google Sheetsを開く → ファイル → インポート")
-    print(f"  2. 上記CSVファイルをアップロード")
-    print(f"  3. 区切り文字: カンマ → インポート完了")
+    if sheets_url:
+        print(f"Google Sheets: {sheets_url}")
     has_rep = sum(1 for e in enriched if e.get("rep_name"))
     has_addr = sum(1 for e in enriched if e.get("address"))
     has_phone = sum(1 for e in enriched if e.get("phone"))
