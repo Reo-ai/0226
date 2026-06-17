@@ -60,8 +60,23 @@ def scrape_green(max_pages=3):
     for query in SEARCH_QUERIES:
         q_enc = quote(query)
         for page in range(1, max_pages + 1):
-            url = f"{BASE_URL}/job?query={q_enc}&page={page}"
+            # Try multiple URL formats for Green Japan
+            urls_to_try = [
+                f"{BASE_URL}/job_ad_searches?keyword={q_enc}&page={page}",
+                f"{BASE_URL}/search?keyword={q_enc}&page={page}",
+                f"{BASE_URL}/jobs?keyword={q_enc}&page={page}",
+            ]
+            html = None
+            used_url = None
+            for try_url in urls_to_try:
+                html = fetch(try_url)
+                if html:
+                    used_url = try_url
+                    break
+
             print(f"  [Green] '{query}' page={page} ...")
+            if not html:
+                break
 
             html = fetch(url)
             if not html:
