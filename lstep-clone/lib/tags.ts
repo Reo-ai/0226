@@ -1,0 +1,22 @@
+import { run } from "./db";
+import { syncRichMenu } from "./richmenu";
+import { enrollByTag } from "./scenarios";
+
+/** タグ付与。新たに付いた場合はタグ起点シナリオ開始・リッチメニュー切替 */
+export async function addTag(friendId: number, tagId: number): Promise<boolean> {
+  const { changes } = await run(
+    "INSERT OR IGNORE INTO friend_tags (friend_id, tag_id, created_at) VALUES (?, ?, ?)",
+    friendId,
+    tagId,
+    Date.now(),
+  );
+  if (changes === 0) return false;
+  await enrollByTag(friendId, tagId);
+  await syncRichMenu(friendId);
+  return true;
+}
+
+export async function removeTag(friendId: number, tagId: number) {
+  await run("DELETE FROM friend_tags WHERE friend_id = ? AND tag_id = ?", friendId, tagId);
+  await syncRichMenu(friendId);
+}

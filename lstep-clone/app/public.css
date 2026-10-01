@@ -1,0 +1,7 @@
+.public { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+.public h1 { font-size: 20px; }
+.public label.q { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.public .req { color: var(--danger); font-size: 12px; margin-left: 4px; }
+.public input[type=text], .public input[type=email], .public input[type=tel], .public select, .public textarea { width: 100%; font-weight: 400; }
+.public .opts { display: flex; flex-direction: column; gap: 6px; font-weight: 400; }
+.public button { width: 100%; padding: 12px; font-size: 16px; }

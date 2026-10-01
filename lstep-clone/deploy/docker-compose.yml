@@ -1,0 +1,26 @@
+# Oracle Cloud Always Free 等のVMで動かす構成（アプリ + 自動HTTPS）
+services:
+  app:
+    build: ..
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: file:/data/app.db
+    volumes:
+      - app-data:/data
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - app
+volumes:
+  app-data:
+  caddy-data:

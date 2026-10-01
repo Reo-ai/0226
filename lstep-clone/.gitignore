@@ -1,0 +1,9 @@
+*.log
+*.tsbuildinfo
+.env
+.env.local
+.next
+data/*.db*
+deploy/.env
+next-env.d.ts
+node_modules
