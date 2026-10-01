@@ -1,3 +1,0 @@
-[ { id: 1, token: 'Vf4HBrCH6wPtCF39', blocked: 0 } ]
-[ { direction: 'in', source: 'user', content: '資料ください' } ]
-[]
