@@ -27,3 +27,13 @@ export function pct(n: number, d: number): string {
   if (!d) return "-";
   return `${((n / d) * 100).toFixed(1)}%`;
 }
+
+/** 今月1日0時(JST)のエポックms */
+export function jstMonthStart(now = Date.now()): number {
+  const d = new Date(now + 9 * 3600_000);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) - 9 * 3600_000;
+}
+
+export function yen(n: number): string {
+  return `¥${Math.round(n).toLocaleString("ja-JP")}`;
+}

@@ -1,8 +1,10 @@
 import { aiAvailable, generateAiReply } from "./ai";
-import { db } from "./db";
+import { all, run } from "./db";
+import { collectPending, logIncoming, Outbox } from "./delivery";
 import { getFriendByLineId, markUnfollowed, upsertFriend } from "./friends";
-import { logMessage, replyToFriend } from "./messaging";
-import { enrollByFollow } from "./scenarios";
+import { syncRichMenu } from "./richmenu";
+import { collectDueSteps, enrollByFollow } from "./scenarios";
+import { attributeOnFollow } from "./sources";
 import { addTag } from "./tags";
 import type { AutoReply, Friend } from "./types";
 
@@ -14,8 +16,8 @@ export interface LineEvent {
   postback?: { data: string };
 }
 
-function matchAutoReply(text: string): AutoReply | undefined {
-  const rules = db().prepare("SELECT * FROM auto_replies WHERE enabled = 1 ORDER BY id").all() as AutoReply[];
+async function matchAutoReply(text: string): Promise<AutoReply | undefined> {
+  const rules = await all<AutoReply>("SELECT * FROM auto_replies WHERE enabled = 1 ORDER BY id");
   const t = text.trim();
   return (
     rules.find((r) => r.match_type === "exact" && r.keyword === t) ??
@@ -24,55 +26,68 @@ function matchAutoReply(text: string): AutoReply | undefined {
 }
 
 async function ensureFriend(userId: string): Promise<Friend> {
-  return getFriendByLineId(userId) ?? (await upsertFriend(userId, false)).friend;
+  return (await getFriendByLineId(userId)) ?? (await upsertFriend(userId, false)).friend;
 }
 
-async function handleText(friend: Friend, text: string, replyToken?: string) {
-  logMessage(friend.id, "in", text, "user");
+async function handleText(box: Outbox, text: string) {
+  const friend = box.friend;
+  await logIncoming(friend.id, text);
 
-  const rule = matchAutoReply(text);
+  const rule = await matchAutoReply(text);
   if (rule) {
-    db().prepare("UPDATE auto_replies SET hit_count = hit_count + 1 WHERE id = ?").run(rule.id);
-    if (rule.add_tag_id) addTag(friend.id, rule.add_tag_id);
-    if (replyToken) await replyToFriend(friend, replyToken, rule.reply, "auto");
+    await run("UPDATE auto_replies SET hit_count = hit_count + 1 WHERE id = ?", rule.id);
+    box.add(rule.reply, "auto");
+    if (rule.add_tag_id) await addTag(friend.id, rule.add_tag_id);
     return;
   }
-
-  if (replyToken && friend.ai_enabled && aiAvailable()) {
+  if (friend.ai_enabled && (await aiAvailable())) {
     const answer = await generateAiReply(friend);
-    if (answer) await replyToFriend(friend, replyToken, answer, "ai");
+    if (answer) box.add(answer, "ai");
   }
 }
 
+async function handlePostback(box: Outbox, data: string) {
+  const params = new URLSearchParams(data);
+  const tagId = Number(params.get("tag"));
+  if (tagId) await addTag(box.friend.id, tagId);
+  const formId = Number(params.get("form"));
+  if (formId) box.add(`こちらからご回答ください\n{{form:${formId}}}`, "form", formId);
+}
+
+/**
+ * 1イベントを処理する。
+ * 相手からの反応（友だち追加・メッセージ・ボタン）には必ず replyToken が付くので、
+ * 返信・期限が来たステップ・保留中の配信をまとめて「応答メッセージ（無料）」で返す。
+ */
 export async function handleEvent(ev: LineEvent) {
   const userId = ev.source?.userId;
   if (!userId || ev.source?.type !== "user") return;
 
-  switch (ev.type) {
-    case "follow": {
-      const { friend } = await upsertFriend(userId, true);
-      enrollByFollow(friend.id);
-      break;
-    }
-    case "unfollow":
-      markUnfollowed(userId);
-      break;
-    case "message": {
-      const friend = await ensureFriend(userId);
-      if (ev.message?.type === "text" && ev.message.text) {
-        await handleText(friend, ev.message.text, ev.replyToken);
-      } else {
-        logMessage(friend.id, "in", `[${ev.message?.type ?? "unknown"}]`, "user");
-      }
-      break;
-    }
-    case "postback": {
-      // data 例: "tag=3"  → タグ付与
-      const friend = await ensureFriend(userId);
-      const params = new URLSearchParams(ev.postback?.data ?? "");
-      const tagId = Number(params.get("tag"));
-      if (tagId) addTag(friend.id, tagId);
-      break;
-    }
+  if (ev.type === "unfollow") {
+    await markUnfollowed(userId);
+    return;
   }
+
+  let friend: Friend;
+  if (ev.type === "follow") {
+    friend = (await upsertFriend(userId, true)).friend;
+    await attributeOnFollow(friend);
+    await enrollByFollow(friend.id);
+    await syncRichMenu(friend.id);
+  } else if (ev.type === "message" || ev.type === "postback") {
+    friend = await ensureFriend(userId);
+  } else {
+    return;
+  }
+
+  const box = new Outbox(friend, ev.replyToken);
+  if (ev.type === "message") {
+    if (ev.message?.type === "text" && ev.message.text) await handleText(box, ev.message.text);
+    else await logIncoming(friend.id, `[${ev.message?.type ?? "unknown"}]`);
+  } else if (ev.type === "postback") {
+    await handlePostback(box, ev.postback?.data ?? "");
+  }
+  await collectDueSteps(box);
+  await collectPending(box);
+  await box.flush();
 }

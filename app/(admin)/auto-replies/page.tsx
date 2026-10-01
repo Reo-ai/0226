@@ -1,18 +1,20 @@
 import { createAutoReply, deleteAutoReply, toggleAutoReply } from "@/lib/actions";
-import { db } from "@/lib/db";
+import { all } from "@/lib/db";
 import type { AutoReply, Tag } from "@/lib/types";
-import { TagSelect } from "@/lib/ui";
+import { ContentHelp, ErrorBox, TagSelect } from "@/lib/ui";
 
-export default function AutoRepliesPage() {
-  const rules = db().prepare("SELECT * FROM auto_replies ORDER BY id").all() as AutoReply[];
-  const tags = db().prepare("SELECT * FROM tags ORDER BY name").all() as Tag[];
+export default async function AutoRepliesPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
+  const rules = await all<AutoReply>("SELECT * FROM auto_replies ORDER BY id");
+  const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
   const tagName = new Map(tags.map((t) => [t.id, t.name]));
   return (
     <>
       <h1>キーワード自動応答</h1>
       <p className="muted">
-        キーワードに一致しないメッセージは、AI設定がONならAIが返信します。応答メッセージは配信数にカウントされません。
+        自動応答は「応答メッセージ」で送るため<b className="free">何通でも無料</b>です。キーワードに一致しないメッセージは、AI設定がONならAIが返信します。
       </p>
+      <ErrorBox error={error} />
       <form action={createAutoReply} className="panel stack">
         <div className="row">
           <input name="keyword" placeholder="キーワード" required />
@@ -23,6 +25,7 @@ export default function AutoRepliesPage() {
           付与タグ: <TagSelect tags={tags} name="addTagId" />
         </div>
         <textarea name="reply" placeholder="返信内容" required />
+        <ContentHelp />
         <div><button>追加</button></div>
       </form>
       <div className="panel">

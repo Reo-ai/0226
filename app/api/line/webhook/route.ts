@@ -1,5 +1,4 @@
 import { after } from "next/server";
-import { runDueJobs } from "@/lib/jobs";
 import { verifySignature } from "@/lib/line";
 import { handleEvent, type LineEvent } from "@/lib/webhook";
 
@@ -20,8 +19,6 @@ export async function POST(req: Request) {
         console.error("webhook event failed", e);
       }
     }
-    // 友だち追加・タグ付与で発生した即時ステップをすぐ送る
-    await runDueJobs();
   });
   return Response.json({ ok: true });
 }

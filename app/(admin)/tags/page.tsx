@@ -1,16 +1,14 @@
 import { createTag, deleteTag } from "@/lib/actions";
-import { db } from "@/lib/db";
+import { all } from "@/lib/db";
 import type { Tag } from "@/lib/types";
 import { TagChip } from "@/lib/ui";
 
-export default function TagsPage() {
-  const tags = db()
-    .prepare(
-      `SELECT t.*, (SELECT COUNT(*) FROM friend_tags ft JOIN friends f ON f.id = ft.friend_id
-                     WHERE ft.tag_id = t.id AND f.blocked = 0) n
-       FROM tags t ORDER BY t.name`,
-    )
-    .all() as (Tag & { n: number })[];
+export default async function TagsPage() {
+  const tags = await all<Tag & { n: number }>(
+    `SELECT t.*, (SELECT COUNT(*) FROM friend_tags ft JOIN friends f ON f.id = ft.friend_id
+                   WHERE ft.tag_id = t.id AND f.blocked = 0) n
+     FROM tags t ORDER BY t.name`,
+  );
   return (
     <>
       <h1>タグ</h1>
@@ -38,7 +36,7 @@ export default function TagsPage() {
             ))}
           </tbody>
         </table>
-        <p className="hint">リッチメニュー等のポストバック <code>tag=ID</code> でもタグを付与できます。</p>
+        <p className="hint">リッチメニューのボタン（ポストバック <code>tag=ID</code>）でもタグを付与できます。</p>
       </div>
     </>
   );

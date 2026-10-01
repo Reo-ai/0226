@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { all } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
 import type { Friend, Tag } from "@/lib/types";
 import { TagChip } from "@/lib/ui";
@@ -10,7 +10,7 @@ export default async function FriendsPage({
   searchParams: Promise<{ q?: string; tag?: string; status?: string }>;
 }) {
   const { q = "", tag = "", status = "active" } = await searchParams;
-  const tags = db().prepare("SELECT * FROM tags ORDER BY name").all() as Tag[];
+  const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
 
   const where: string[] = [];
   const args: (string | number)[] = [];
@@ -24,22 +24,24 @@ export default async function FriendsPage({
   }
   if (status === "active") where.push("blocked = 0");
   if (status === "blocked") where.push("blocked = 1");
-  const friends = db()
-    .prepare(
-      `SELECT * FROM friends ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-       ORDER BY COALESCE(last_message_at, followed_at) DESC LIMIT 300`,
-    )
-    .all(...args) as Friend[];
+  const friends = await all<Friend>(
+    `SELECT * FROM friends ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+     ORDER BY COALESCE(last_message_at, followed_at) DESC LIMIT 300`,
+    ...args,
+  );
 
-  const tagRows = db().prepare("SELECT ft.friend_id, t.* FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id").all() as (Tag & {
-    friend_id: number;
-  })[];
+  const tagRows = await all<Tag & { friend_id: number }>(
+    "SELECT ft.friend_id, t.* FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id",
+  );
   const tagsOf = new Map<number, Tag[]>();
   for (const r of tagRows) tagsOf.set(r.friend_id, [...(tagsOf.get(r.friend_id) ?? []), r]);
 
   return (
     <>
-      <h1>友だち</h1>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <h1>友だち</h1>
+        <a className="btn ghost" href="/api/export/friends">CSVダウンロード</a>
+      </div>
       <form className="panel row">
         <input name="q" defaultValue={q} placeholder="名前・メモで検索" />
         <select name="tag" defaultValue={tag}>

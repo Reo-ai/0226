@@ -1,16 +1,14 @@
 import { createLink, deleteLink } from "@/lib/actions";
-import { db } from "@/lib/db";
+import { all } from "@/lib/db";
 import type { Link, Tag } from "@/lib/types";
 import { TagSelect } from "@/lib/ui";
 
-export default function LinksPage() {
-  const links = db()
-    .prepare(
-      `SELECT l.*, COUNT(c.id) clicks, COUNT(DISTINCT c.friend_id) uniq
-       FROM links l LEFT JOIN link_clicks c ON c.link_id = l.id GROUP BY l.id ORDER BY l.created_at DESC`,
-    )
-    .all() as (Link & { clicks: number; uniq: number })[];
-  const tags = db().prepare("SELECT * FROM tags ORDER BY name").all() as Tag[];
+export default async function LinksPage() {
+  const links = await all<Link & { clicks: number; uniq: number }>(
+    `SELECT l.*, COUNT(c.id) clicks, COUNT(DISTINCT c.friend_id) uniq
+     FROM links l LEFT JOIN link_clicks c ON c.link_id = l.id GROUP BY l.id ORDER BY l.created_at DESC`,
+  );
+  const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
   const tagName = new Map(tags.map((t) => [t.id, t.name]));
   return (
     <>

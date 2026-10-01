@@ -1,28 +1,40 @@
-import { db } from "./db";
+import { all, run } from "./db";
+import { pushToMany, queuePending } from "./delivery";
 import { targetFriends } from "./friends";
-import { sendToMany } from "./messaging";
+import { QuotaError } from "./quota";
 import type { Broadcast } from "./types";
 
 export async function sendBroadcast(b: Broadcast) {
-  const claimed = db()
-    .prepare("UPDATE broadcasts SET status = 'sending' WHERE id = ? AND status = 'scheduled'")
-    .run(b.id);
+  const claimed = await run("UPDATE broadcasts SET status = 'sending' WHERE id = ? AND status = 'scheduled'", b.id);
   if (claimed.changes === 0) return; // 他プロセスが処理中
-  const friends = targetFriends(JSON.parse(b.tag_ids) as number[]);
+  const friends = await targetFriends(JSON.parse(b.tag_ids) as number[]);
   try {
-    await sendToMany(friends, b.content, "broadcast", b.id);
-    db()
-      .prepare("UPDATE broadcasts SET status = 'sent', sent_at = ?, recipient_count = ? WHERE id = ?")
-      .run(Date.now(), friends.length, b.id);
+    if (b.delivery === "reply") {
+      // 無料配信: 次に反応があった時に応答メッセージで届ける
+      await queuePending(
+        friends.map((f) => f.id),
+        [{ content: b.content, source: "broadcast", refId: b.id }],
+      );
+    } else {
+      await pushToMany(friends, b.content, "broadcast", b.id);
+    }
+    await run(
+      "UPDATE broadcasts SET status = 'sent', sent_at = ?, recipient_count = ? WHERE id = ?",
+      Date.now(),
+      friends.length,
+      b.id,
+    );
   } catch (e) {
     console.error(`broadcast ${b.id} failed`, e);
-    db().prepare("UPDATE broadcasts SET status = 'failed' WHERE id = ?").run(b.id);
+    await run(
+      "UPDATE broadcasts SET status = 'failed', error = ? WHERE id = ?",
+      e instanceof QuotaError ? e.message : String(e),
+      b.id,
+    );
   }
 }
 
 export async function processDueBroadcasts(now = Date.now()) {
-  const due = db()
-    .prepare("SELECT * FROM broadcasts WHERE status = 'scheduled' AND scheduled_at <= ?")
-    .all(now) as Broadcast[];
+  const due = await all<Broadcast>("SELECT * FROM broadcasts WHERE status = 'scheduled' AND scheduled_at <= ?", now);
   for (const b of due) await sendBroadcast(b);
 }

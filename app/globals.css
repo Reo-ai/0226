@@ -75,3 +75,16 @@ button.small { padding: 3px 8px; font-size: 12px; }
   .main { padding: 16px; }
   .grid2 { grid-template-columns: 1fr; }
 }
+.error { border-color: var(--danger); color: var(--danger); }
+.ok { border-color: var(--accent); }
+.meter { height: 10px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+.meter > span { display: block; height: 100%; background: var(--accent); }
+.meter.warn > span { background: #f5a524; }
+.meter.over > span { background: var(--danger); }
+.free { color: var(--accent); font-weight: 600; }
+fieldset { border: 1px solid var(--border); border-radius: 6px; }
+.menu-grid { display: grid; gap: 2px; background: var(--border); border-radius: 6px; overflow: hidden; }
+.menu-grid > div { background: var(--panel); padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.thumb { max-width: 240px; border-radius: 6px; border: 1px solid var(--border); display: block; }
+label.row { flex-wrap: nowrap; align-items: flex-start; }
+label.row input[type=radio], label.row input[type=checkbox] { margin-top: 3px; flex-shrink: 0; }

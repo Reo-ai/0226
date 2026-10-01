@@ -1,20 +1,18 @@
 import Link from "next/link";
 import { createScenario } from "@/lib/actions";
-import { db } from "@/lib/db";
+import { all } from "@/lib/db";
 import type { Scenario, Tag } from "@/lib/types";
 import { TagSelect } from "@/lib/ui";
 
 const TRIGGER_LABEL = { follow: "友だち追加時", tag: "タグ付与時", manual: "手動" } as const;
 
-export default function ScenariosPage() {
-  const list = db()
-    .prepare(
-      `SELECT s.*, (SELECT COUNT(*) FROM scenario_steps WHERE scenario_id = s.id) steps,
-              (SELECT COUNT(*) FROM enrollments WHERE scenario_id = s.id AND status = 'active') active
-       FROM scenarios s ORDER BY s.created_at DESC`,
-    )
-    .all() as (Scenario & { steps: number; active: number })[];
-  const tags = db().prepare("SELECT * FROM tags ORDER BY name").all() as Tag[];
+export default async function ScenariosPage() {
+  const list = await all<Scenario & { steps: number; active: number }>(
+    `SELECT s.*, (SELECT COUNT(*) FROM scenario_steps WHERE scenario_id = s.id) steps,
+            (SELECT COUNT(*) FROM enrollments WHERE scenario_id = s.id AND status = 'active') active
+     FROM scenarios s ORDER BY s.created_at DESC`,
+  );
+  const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
   const tagName = new Map(tags.map((t) => [t.id, t.name]));
   return (
     <>

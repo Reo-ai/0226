@@ -1,0 +1,4 @@
+# Let's Encrypt の証明書を自動取得（無料）
+{$DOMAIN} {
+	reverse_proxy app:3000
+}

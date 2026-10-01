@@ -10,9 +10,12 @@ const NAV = [
   ["/broadcasts", "一斉配信"],
   ["/scenarios", "ステップ配信"],
   ["/auto-replies", "自動応答"],
-  ["/tags", "タグ"],
+  ["/rich-menus", "リッチメニュー"],
+  ["/forms", "回答フォーム"],
+  ["/sources", "流入経路"],
   ["/links", "計測リンク"],
-  ["/settings", "AI設定"],
+  ["/tags", "タグ"],
+  ["/settings", "設定・AI"],
 ] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
