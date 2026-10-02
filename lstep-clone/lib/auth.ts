@@ -11,14 +11,6 @@ function sessionValue(): string {
   return crypto.createHmac("sha256", secret).update(`admin:${password}`).digest("base64url");
 }
 
-export function checkPassword(input: string): boolean {
-  const password = process.env.ADMIN_PASSWORD;
-  if (!password || !process.env.SESSION_SECRET) return false;
-  const a = Buffer.from(input);
-  const b = Buffer.from(password);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
 export async function setSession() {
   (await cookies()).set(COOKIE, sessionValue(), {
     httpOnly: true,
