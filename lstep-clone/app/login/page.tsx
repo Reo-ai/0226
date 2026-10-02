@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { login } from "@/lib/actions";
 
@@ -15,6 +16,9 @@ export default function LoginPage() {
           {error && <div style={{ color: "var(--danger)" }}>{error}</div>}
         </form>
       </div>
+      <Link href="/" className="hint">
+        ← トップへ戻る
+      </Link>
     </div>
   );
 }

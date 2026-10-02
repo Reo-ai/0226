@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const NAV = [
-  ["/", "ダッシュボード"],
+  ["/dashboard", "ダッシュボード"],
   ["/friends", "友だち"],
   ["/broadcasts", "一斉配信"],
   ["/scenarios", "ステップ配信"],

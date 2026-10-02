@@ -1,0 +1,17 @@
+/* トップページ（未ログインでも見られる通常画面） */
+.home { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.home-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.home-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; }
+.home-logo { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
+.home-hero { padding: 64px 0 40px; }
+.home-kicker { color: var(--accent); font-weight: 700; margin: 0 0 12px; }
+.home-hero h1 { font-size: 36px; line-height: 1.35; margin: 0 0 16px; }
+.home-lead { max-width: 640px; font-size: 15px; line-height: 1.8; color: var(--muted); margin: 0; }
+.home-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); padding-bottom: 40px; }
+.home-grid .panel { margin: 0; }
+.home-grid p { margin: 0; line-height: 1.7; }
+.home-foot { border-top: 1px solid var(--border); padding: 20px 0 32px; font-size: 12px; }
+@media (max-width: 760px) {
+  .home-hero { padding: 40px 0 28px; }
+  .home-hero h1 { font-size: 26px; }
+}

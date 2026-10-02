@@ -33,12 +33,12 @@ const enc = encodeURIComponent;
 export async function login(_: string | null, fd: FormData): Promise<string | null> {
   if (!checkPassword(str(fd, "password"))) return "パスワードが違います（または環境変数が未設定です）";
   await setSession();
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logout() {
   await clearSession();
-  redirect("/login");
+  redirect("/");
 }
 
 // ---- friends ----
