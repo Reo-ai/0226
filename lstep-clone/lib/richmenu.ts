@@ -29,7 +29,7 @@ export function imageSize(l: Layout) {
   return { width: 2500, height: l.size === "full" ? 1686 : 843 };
 }
 
-function action(a: RichMenuArea) {
+export function action(a: RichMenuArea) {
   switch (a.type) {
     case "message":
       return { type: "message", text: a.value };

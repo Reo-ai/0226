@@ -1,4 +1,4 @@
-import { createHabitMenu, createRichMenu, deleteRichMenu, setDefaultMenu } from "@/lib/actions";
+import { createHabitMenu, createRichMenu, createTabMenus, deleteRichMenu, setDefaultMenu } from "@/lib/actions";
 import { all } from "@/lib/db";
 import { LAYOUTS, layoutOf } from "@/lib/richmenu";
 import type { RichMenu, Tag } from "@/lib/types";
@@ -20,6 +20,13 @@ export default async function RichMenusPage({ searchParams }: { searchParams: Pr
         トーク画面下部のメニュー。タグを指定すると、そのタグが付いた人だけメニューが切り替わります（切替は通数を消費しません）。
       </p>
       <ErrorBox error={error} />
+      <form action={createTabMenus} className="panel row" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h2 style={{ margin: 0 }}>タブで切り替えるメニュー（冒険メニュー ⇄ 習慣メニュー）</h2>
+          <div className="hint">今の通常メニューの上にタブを付けた「冒険メニュー」と「習慣メニュー」を作り、冒険メニューを既定にします</div>
+        </div>
+        <button>ワンクリックで作成</button>
+      </form>
       <form action={createHabitMenu} className="panel row" style={{ justifyContent: "space-between" }}>
         <div>
           <h2 style={{ margin: 0 }}>習慣トラッカーのメニュー</h2>

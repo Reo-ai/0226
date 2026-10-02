@@ -160,6 +160,15 @@ export function deleteRichMenu(richMenuId: string) {
   return call(`/richmenu/${richMenuId}`, undefined, { method: "DELETE" });
 }
 
+/** タブ切り替え用の別名（エイリアス）を作る。既にあれば付け替える */
+export async function upsertRichMenuAlias(aliasId: string, richMenuId: string) {
+  try {
+    await call(`/richmenu/alias`, { richMenuAliasId: aliasId, richMenuId });
+  } catch {
+    await call(`/richmenu/alias/${aliasId}`, { richMenuId });
+  }
+}
+
 export function setDefaultRichMenu(richMenuId: string) {
   return call(`/user/all/richmenu/${richMenuId}`, undefined, { method: "POST" });
 }

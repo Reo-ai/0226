@@ -21,10 +21,11 @@ import {
   createRichMenu as lineCreateRichMenu,
   deleteRichMenu as lineDeleteRichMenu,
   setDefaultRichMenu,
+  upsertRichMenuAlias,
   uploadRichMenuImage,
 } from "./line";
 import { assertPushQuota, QuotaError } from "./quota";
-import { buildDefinition, layoutOf, syncRichMenuForTag } from "./richmenu";
+import { action as richAction, buildDefinition, layoutOf, syncRichMenuForTag } from "./richmenu";
 import { enroll } from "./scenarios";
 import { addTag, removeTag } from "./tags";
 import type { Broadcast, Form, FormField, RichMenu, RichMenuArea } from "./types";
@@ -559,6 +560,95 @@ export async function createHabitMenu() {
     lineId ?? `dry-run-${Date.now()}`,
     Date.now(),
   );
+  revalidatePath("/rich-menus");
+  redirect("/rich-menus");
+}
+
+// ---- タブで切り替える2つのメニュー（A：冒険メニュー＋できた／B：習慣メニュー） ----
+const TAB_H = 260;
+type Box = { x: number; y: number; width: number; height: number };
+const switchTo = (alias: string) => ({ type: "richmenuswitch", richMenuAliasId: alias, data: `switch=${alias}` });
+
+export async function createTabMenus() {
+  await requireAuth();
+  // A の下半分は、今の「通常メニュー（タグなし）」のボタンをそのまま使う
+  const base = await get<RichMenu>(
+    "SELECT * FROM rich_menus WHERE tag_id IS NULL AND layout = 'full-6' ORDER BY id LIMIT 1",
+  );
+  if (!base) redirect(`/rich-menus?error=${enc("元になる通常メニュー（大・6分割）が見つかりません")}`);
+  const baseAreas = JSON.parse(base.areas) as RichMenuArea[];
+
+  // 冒険メニュー：上のタブ（冒険／できた／習慣へ）＋ 元の6分割を縮小して中央に配置した画像
+  const unit = (2500 - 44 - 28) / 2.8;
+  const tabsA: [Box, object][] = [
+    [{ x: 0, y: 0, width: Math.round(22 + unit), height: TAB_H }, { type: "message", text: "講座" }],
+    [{ x: Math.round(22 + unit), y: 0, width: Math.round(14 + unit * 0.8), height: TAB_H }, { type: "message", text: "できた" }],
+    [{ x: Math.round(36 + unit * 1.8), y: 0, width: 2500 - Math.round(36 + unit * 1.8), height: TAB_H }, switchTo("habit")],
+  ];
+  const bodyW = Math.round((2500 * (1686 - TAB_H)) / 1686);
+  const offX = Math.round((2500 - bodyW) / 2);
+  const cellW = bodyW / 3;
+  const cellH = (1686 - TAB_H) / 2;
+  const bodyA: [Box, object][] = [];
+  baseAreas.forEach((a, i) => {
+    const act = richAction(a);
+    if (!act) return;
+    const c = i % 3;
+    const r = Math.floor(i / 3);
+    const x0 = c === 0 ? 0 : Math.round(offX + c * cellW);
+    const x1 = c === 2 ? 2500 : Math.round(offX + (c + 1) * cellW);
+    bodyA.push([{ x: x0, y: Math.round(TAB_H + r * cellH), width: x1 - x0, height: Math.round(cellH) }, act]);
+  });
+
+  // 習慣メニュー：上のタブ（冒険へ／習慣）＋ 3つの大きなボタン
+  const third = Math.round(2500 / 3);
+  const tabsB: [Box, object][] = [[{ x: 0, y: 0, width: 1250, height: TAB_H }, switchTo("adventure")]];
+  const bodyB: [Box, object][] = (["できた", "記録", "習慣"] as const).map((text, i) => [
+    { x: i * third, y: TAB_H, width: i === 2 ? 2500 - 2 * third : third, height: 1686 - TAB_H },
+    { type: "message", text },
+  ]);
+
+  const def = (name: string, areas: [Box, object][]) => ({
+    size: { width: 2500, height: 1686 },
+    selected: true,
+    name,
+    chatBarText: "メニュー",
+    areas: areas.map(([bounds, action]) => ({ bounds, action })),
+  });
+
+  const images: Record<string, Uint8Array> = {};
+  for (const f of ["tab-course", "tab-habit"]) {
+    const res = await fetch(`${baseUrl()}/richmenu/${f}.jpg`);
+    if (!res.ok) redirect(`/rich-menus?error=${enc("メニュー画像を読み込めませんでした")}`);
+    images[f] = new Uint8Array(await res.arrayBuffer());
+  }
+
+  let idA: string | null = null;
+  let idB: string | null = null;
+  try {
+    idA = await lineCreateRichMenu(def("冒険メニュー（タブ）", [...tabsA, ...bodyA]));
+    idB = await lineCreateRichMenu(def("習慣メニュー（タブ）", [...tabsB, ...bodyB]));
+    if (idA && idB) {
+      await uploadRichMenuImage(idA, images["tab-course"], "image/jpeg");
+      await uploadRichMenuImage(idB, images["tab-habit"], "image/jpeg");
+      await upsertRichMenuAlias("adventure", idA);
+      await upsertRichMenuAlias("habit", idB);
+      await setDefaultRichMenu(idA);
+    }
+  } catch (e) {
+    redirect(`/rich-menus?error=${enc(`LINEへの登録に失敗しました: ${String(e)}`)}`);
+  }
+  const now = Date.now();
+  const row = (name: string, img: Uint8Array, lineId: string | null, isDefault: number) => ({
+    sql: `INSERT INTO rich_menus (name, chat_bar_text, layout, areas, image_data, line_rich_menu_id, tag_id, is_default, created_at)
+          VALUES (?, 'メニュー', 'full-1', '[]', ?, ?, NULL, ?, ?)`,
+    args: [name, `data:image/jpeg;base64,${Buffer.from(img).toString("base64")}`, lineId ?? `dry-run-${now}`, isDefault, now],
+  });
+  await batch([
+    { sql: "UPDATE rich_menus SET is_default = 0", args: [] },
+    row("冒険メニュー（タブ・A）", images["tab-course"], idA, 1),
+    row("習慣メニュー（タブ・B）", images["tab-habit"], idB, 0),
+  ]);
   revalidatePath("/rich-menus");
   redirect("/rich-menus");
 }
