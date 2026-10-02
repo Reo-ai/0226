@@ -581,7 +581,8 @@ export async function createTabMenus() {
   // 冒険メニュー：上のタブ（冒険／できた／習慣へ）＋ 元の6分割を縮小して中央に配置した画像
   const unit = (2500 - 44 - 28) / 2.8;
   const tabsA: [Box, object][] = [
-    [{ x: 0, y: 0, width: Math.round(22 + unit), height: TAB_H }, { type: "message", text: "講座" }],
+    // 表示中のタブは押しても何も送らない（会話の邪魔をしない）
+    [{ x: 0, y: 0, width: Math.round(22 + unit), height: TAB_H }, { type: "postback", data: "tab=adventure" }],
     [{ x: Math.round(22 + unit), y: 0, width: Math.round(14 + unit * 0.8), height: TAB_H }, { type: "message", text: "できた" }],
     [{ x: Math.round(36 + unit * 1.8), y: 0, width: 2500 - Math.round(36 + unit * 1.8), height: TAB_H }, switchTo("habit")],
   ];

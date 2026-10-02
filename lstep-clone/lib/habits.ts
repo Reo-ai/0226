@@ -73,6 +73,14 @@ function nextBadgeLine(streak: number): string {
   return `次のバッジ「${next[1]}」まであと${next[0] - streak}日\n${"■".repeat(filled)}${"□".repeat(cells - filled)}`;
 }
 
+/** キーワード応答に登録された言葉か（完全一致、または部分一致のキーワードを含む） */
+async function isOtherKeyword(text: string): Promise<boolean> {
+  const rules = await all<{ keyword: string; match_type: string }>(
+    "SELECT keyword, match_type FROM auto_replies WHERE enabled = 1",
+  );
+  return rules.some((r) => (r.match_type === "exact" ? r.keyword === text : text.includes(r.keyword)));
+}
+
 function earned(h: Habit): string[] {
   return h.badges ? h.badges.split(",") : [];
 }
@@ -134,6 +142,11 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
   }
 
   const MENU_WORDS = [...DONE_WORDS, "記録"];
+
+  // 設定の途中でも、講座などのキーワード（購入しました・講座・特典…）はそちらの応答に任せる
+  if ((habit.state === "await_action" || habit.state === "await_time") && !MENU_WORDS.includes(text) && (await isOtherKeyword(text))) {
+    return false;
+  }
 
   // 行動を決める（メニューのボタンを押しただけの時は登録しない）
   if (habit.state === "await_action" && MENU_WORDS.includes(text)) {
