@@ -1,3 +1,4 @@
+import { baseUrl } from "./env";
 import { MAX_BUBBLES, type LineMessage } from "./line";
 import type { Friend, MessageSource } from "./types";
 
@@ -34,7 +35,7 @@ export function isPersonalized(content: string): boolean {
 }
 
 export function renderVars(content: string, friend: Friend | null, source: MessageSource): string {
-  const base = process.env.BASE_URL || "http://localhost:3000";
+  const base = baseUrl();
   return content
     .replace(/\{\{\s*name\s*\}\}/g, friend?.display_name || "")
     .replace(/\{\{\s*link:([\w-]+)\s*\}\}/g, (_, code: string) => {

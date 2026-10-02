@@ -1,3 +1,4 @@
+import { baseUrl } from "@/lib/env";
 import { saveSettings } from "@/lib/actions";
 import { AI_MODELS, aiConfig, aiMonthlyUsage } from "@/lib/ai";
 import { yen } from "@/lib/format";
@@ -9,7 +10,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const usage = await aiMonthlyUsage();
   const limit = await pushLimit();
   const hasKey = Boolean(process.env.ANTHROPIC_API_KEY);
-  const base = process.env.BASE_URL || "http://localhost:3000";
+  const base = baseUrl();
   const env = (k: string) => (process.env[k] ? "設定済み" : "未設定");
   return (
     <>

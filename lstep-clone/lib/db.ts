@@ -180,7 +180,7 @@ const g = globalThis as unknown as { __db?: Client; __dbReady?: Promise<void> };
 
 function client(): Client {
   if (!g.__db) {
-    const url = process.env.DATABASE_URL || "file:./data/app.db";
+    const url = process.env.DATABASE_URL || (process.env.VERCEL ? "file:/tmp/app.db" : "file:./data/app.db");
     if (url.startsWith("file:")) {
       fs.mkdirSync(path.dirname(url.slice(5)), { recursive: true });
     }

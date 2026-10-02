@@ -1,3 +1,4 @@
+import { baseUrl } from "@/lib/env";
 import QRCode from "qrcode";
 import { createSource, deleteSource } from "@/lib/actions";
 import { all } from "@/lib/db";
@@ -14,7 +15,7 @@ export default async function SourcesPage() {
   );
   const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
   const tagName = new Map(tags.map((t) => [t.id, t.name]));
-  const base = process.env.BASE_URL || "http://localhost:3000";
+  const base = baseUrl();
   const liff = Boolean(process.env.LIFF_ID && process.env.LINE_LOGIN_CHANNEL_ID);
   // LIFF設定時は LIFF URL（LINEアプリ内で開き、ユーザーを特定できる）
   const urlOf = (code: string) => (liff ? `https://liff.line.me/${process.env.LIFF_ID}/${code}` : `${base}/join/${code}`);

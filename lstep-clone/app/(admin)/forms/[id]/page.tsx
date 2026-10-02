@@ -1,3 +1,4 @@
+import { baseUrl } from "@/lib/env";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteForm, saveForm } from "@/lib/actions";
@@ -25,7 +26,7 @@ export default async function FormPage({
      WHERE r.form_id = ? ORDER BY r.created_at DESC LIMIT 500`,
     form.id,
   );
-  const base = process.env.BASE_URL || "http://localhost:3000";
+  const base = baseUrl();
   return (
     <>
       <div className="row" style={{ justifyContent: "space-between" }}>
