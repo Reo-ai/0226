@@ -88,3 +88,4 @@ fieldset { border: 1px solid var(--border); border-radius: 6px; }
 .thumb { max-width: 240px; border-radius: 6px; border: 1px solid var(--border); display: block; }
 label.row { flex-wrap: nowrap; align-items: flex-start; }
 label.row input[type=radio], label.row input[type=checkbox] { margin-top: 3px; flex-shrink: 0; }
+.guest-banner { border-color: #f5b041; background: rgba(245,176,65,.12); }

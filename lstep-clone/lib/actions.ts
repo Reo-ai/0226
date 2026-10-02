@@ -3,7 +3,7 @@
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { checkPassword, clearSession, requireAuth, setSession } from "./auth";
+import { checkPassword, clearSession, guestViewEnabled, requireAuth, setGuestSession, setSession } from "./auth";
 import { sendBroadcast } from "./broadcasts";
 import { validateContent } from "./content";
 import { batch, get, run, setSetting } from "./db";
@@ -33,6 +33,12 @@ const enc = encodeURIComponent;
 export async function login(_: string | null, fd: FormData): Promise<string | null> {
   if (!checkPassword(str(fd, "password"))) return "パスワードが違います（または環境変数が未設定です）";
   await setSession();
+  redirect("/dashboard");
+}
+
+export async function startGuestView() {
+  if (!guestViewEnabled()) redirect("/login");
+  await setGuestSession();
   redirect("/dashboard");
 }
 

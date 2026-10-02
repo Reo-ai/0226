@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { isAuthed } from "@/lib/auth";
+import { guestViewEnabled, isAuthed } from "@/lib/auth";
+import { startGuestView } from "@/lib/actions";
 import "./home.css";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +22,16 @@ export default async function Home() {
         <div className="home-brand">
           <span className="home-logo">S</span>スキルステップ
         </div>
-        <Link className="btn" href={authed ? "/dashboard" : "/login"}>
-          {authed ? "管理画面へ" : "ログイン"}
-        </Link>
+        <div className="row">
+          {!authed && guestViewEnabled() && (
+            <form action={startGuestView}>
+              <button className="ghost">ログインせずに見る</button>
+            </form>
+          )}
+          <Link className="btn" href={authed ? "/dashboard" : "/login"}>
+            {authed ? "管理画面へ" : "ログイン"}
+          </Link>
+        </div>
       </header>
 
       <section className="home-hero">
@@ -37,6 +45,11 @@ export default async function Home() {
           友だち追加から教育・案内・購入後のフォローまで、公式LINEの導線を自動で回すためのツールです。
           相手からの反応に返す「応答メッセージ」を最大限使い、無料の配信通数を節約します。
         </p>
+        {!authed && guestViewEnabled() && (
+          <form action={startGuestView} className="home-cta">
+            <button>ログインせずに管理画面を見てみる</button>
+          </form>
+        )}
       </section>
 
       <section className="home-grid">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { logout } from "@/lib/actions";
-import { requireAuth } from "@/lib/auth";
+import { requireViewer } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ const NAV = [
 ] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireAuth();
+  const { guest } = await requireViewer();
   return (
     <div className="shell">
       <nav className="side">
@@ -31,11 +31,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         ))}
         <form action={logout}>
           <button className="ghost small" style={{ color: "inherit" }}>
-            ログアウト
+            {guest ? "閲覧を終える" : "ログアウト"}
           </button>
         </form>
       </nav>
-      <main className="main">{children}</main>
+      <main className="main">
+        {guest && (
+          <div className="panel guest-banner">
+            ゲスト閲覧中（読み取り専用）です。保存・配信などの操作はできません。{" "}
+            <Link href="/login">ログインする</Link>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }
