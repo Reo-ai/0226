@@ -102,6 +102,14 @@ node scripts/seed-funnel.mjs funnels/claude-code-course/funnel.mjs             #
 
 LIFF未設定でも訪問数は計測できます。
 
+### 3'. 管理画面に「LINEでログイン」を付ける（任意・無料）
+
+1. 上の **LINEログインチャネル** の「LINEログイン設定」で、コールバックURLに `https://<あなたのドメイン>/api/auth/line/callback` を登録
+2. `LINE_LOGIN_CHANNEL_ID` と `LINE_LOGIN_CHANNEL_SECRET`（チャネル基本設定のチャネルシークレット）を設定
+3. ログイン画面の「LINEでログイン」を一度押すと、許可前は自分の LINE ユーザーIDが表示されるので、それを `ADMIN_LINE_USER_IDS` に設定（複数人はカンマ区切り）
+
+パスワードでのログインもそのまま使えます。
+
 ### 4. AI自動応答（任意・従量課金）
 
 1. [Anthropic Console](https://console.anthropic.com/) で APIキーを発行し `ANTHROPIC_API_KEY` に設定（Console側で月の支払い上限も設定しておくと安心）

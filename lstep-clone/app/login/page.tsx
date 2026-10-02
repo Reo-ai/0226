@@ -1,24 +1,18 @@
-"use client";
+import { cookies } from "next/headers";
+import { DENIED_COOKIE, lineLoginEnabled } from "@/lib/lineLogin";
+import LoginForm from "./LoginForm";
 
-import Link from "next/link";
-import { useActionState } from "react";
-import { login } from "@/lib/actions";
+export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
-  const [error, action, pending] = useActionState(login, null);
-  return (
-    <div style={{ maxWidth: 360, margin: "15vh auto", padding: 16 }}>
-      <div className="panel stack">
-        <h1>スキルステップ ログイン</h1>
-        <form action={action} className="stack">
-          <input type="password" name="password" placeholder="管理パスワード" required autoFocus />
-          <button disabled={pending}>ログイン</button>
-          {error && <div style={{ color: "var(--danger)" }}>{error}</div>}
-        </form>
-      </div>
-      <Link href="/" className="hint">
-        ← トップへ戻る
-      </Link>
-    </div>
-  );
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ line?: string }> }) {
+  const { line } = await searchParams;
+  let lineMessage: string | null = null;
+  if (line === "failed") lineMessage = "LINEログインに失敗しました。もう一度お試しください。";
+  if (line === "denied") {
+    const id = (await cookies()).get(DENIED_COOKIE)?.value;
+    lineMessage = `このLINEアカウントは管理画面への許可がありません。${
+      id ? `\nあなたのLINEユーザーID: ${id}\n管理者に ADMIN_LINE_USER_IDS へ追加してもらってください。` : ""
+    }`;
+  }
+  return <LoginForm lineEnabled={lineLoginEnabled()} lineMessage={lineMessage} />;
 }
