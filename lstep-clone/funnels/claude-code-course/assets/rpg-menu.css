@@ -1,19 +1,32 @@
-/* リッチメニュー画像（RPGのコマンドウィンドウ風）。2500×1686 で書き出す */
+/* リッチメニュー画像（リアル系RPG）。絵は richmenu-art/（falで生成）。2500×1686 で書き出す */
 *{box-sizing:border-box;margin:0}
-body{width:2500px;height:1686px;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
-  background:radial-gradient(circle at 20% 15%,#2b3f7a 0,transparent 40%),radial-gradient(circle at 85% 90%,#3a2a5c 0,transparent 45%),#0d1530;overflow:hidden}
-body::before{content:"";position:fixed;inset:0;background-image:radial-gradient(#ffffff55 1.5px,transparent 2px),radial-gradient(#ffe7a855 1.5px,transparent 2px);
-  background-size:140px 140px,230px 230px;background-position:0 0,60px 90px;opacity:.5}
-.g{position:relative;display:grid;width:2500px;height:1686px;gap:28px;padding:34px}
-.c{position:relative;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
-  color:#fff;background:linear-gradient(180deg,#1c2a58 0%,#121c3d 100%);
-  border:8px solid #d6ad55;box-shadow:inset 0 0 0 6px #121c3d,inset 0 0 0 10px #8c6b2a,0 14px 0 #070b1c}
-.c .lv{position:absolute;top:30px;left:42px;font-size:44px;font-weight:800;color:#e8c878;letter-spacing:4px}
-.c .md{width:250px;height:250px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:150px;line-height:1;
-  background:radial-gradient(circle at 35% 30%,#ffe9a8,#c9932f 70%);box-shadow:0 0 0 10px #8c6b2a,0 0 60px #f3c76a66}
-.c .t{font-size:104px;font-weight:900;margin-top:40px;letter-spacing:4px;text-shadow:0 6px 0 #070b1c}
-.c .s{font-size:52px;margin-top:16px;color:#f0d68e;font-weight:700}
-.c.main{background:linear-gradient(180deg,#f6dc95 0%,#e2b153 100%);color:#2a1a00;box-shadow:inset 0 0 0 6px #f6dc95,inset 0 0 0 10px #a0742a,0 14px 0 #070b1c}
-.c.main .t{text-shadow:none}.c.main .s{color:#5a3a06}.c.main .lv{color:#7a4f0c}
-.c.main .md{background:radial-gradient(circle at 35% 30%,#ffffff,#f3d27e 70%);box-shadow:0 0 0 10px #a0742a}
-.c.main::before{content:"▶";position:absolute;left:46px;top:50%;transform:translateY(-50%);font-size:90px;color:#7a1f1f;animation:none}
+body{width:2500px;height:1686px;background:#05081a;overflow:hidden;font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
+.g{display:grid;width:2500px;height:1686px;gap:14px;padding:14px;background:
+  linear-gradient(#05081a,#05081a) padding-box,linear-gradient(135deg,#7a5a1f,#f3d58a 30%,#8c6624 55%,#f0cf7e 80%,#6e4f18) border-box;border:10px solid transparent}
+.c{position:relative;overflow:hidden;border-radius:6px;background:#0b1230 center 30%/cover no-repeat}
+/* 下を紺に沈めて文字を読みやすく、四辺をうっすら暗く */
+.c::before{content:"";position:absolute;inset:0;background:
+  linear-gradient(180deg,rgba(5,8,26,0) 38%,rgba(5,8,26,.78) 66%,rgba(5,8,26,.96) 100%),
+  radial-gradient(ellipse at 50% 35%,rgba(0,0,0,0) 55%,rgba(0,0,0,.45) 100%)}
+/* 金の二重枠 */
+.c::after{content:"";position:absolute;inset:16px;border:5px solid #d9b25c;border-radius:4px;
+  box-shadow:0 0 0 2px rgba(0,0,0,.6),inset 0 0 0 9px rgba(5,8,26,.0),inset 0 0 0 11px rgba(217,178,92,.55);pointer-events:none}
+.corner{position:absolute;width:70px;height:70px;border:6px solid #f3d58a;z-index:2}
+.corner.tl{top:26px;left:26px;border-right:0;border-bottom:0}.corner.tr{top:26px;right:26px;border-left:0;border-bottom:0}
+.corner.bl{bottom:26px;left:26px;border-right:0;border-top:0}.corner.br{bottom:26px;right:26px;border-left:0;border-top:0}
+.tag{position:absolute;top:46px;left:50%;transform:translateX(-50%);z-index:3;font-family:"Times New Roman",serif;font-size:40px;letter-spacing:12px;
+  color:#f3d58a;padding:6px 26px 6px 38px;background:rgba(5,8,26,.72);border:2px solid rgba(243,213,138,.6);border-radius:40px}
+.txt{position:absolute;left:0;right:0;bottom:62px;z-index:3;text-align:center}
+.t{white-space:nowrap;font-size:112px;font-weight:700;letter-spacing:6px;line-height:1.1;
+  background:linear-gradient(180deg,#fff6d8 0%,#f3d58a 45%,#c8963a 100%);-webkit-background-clip:text;color:transparent;
+  filter:drop-shadow(0 5px 0 rgba(0,0,0,.85)) drop-shadow(0 0 22px rgba(0,0,0,.9))}
+.s{margin-top:18px;font-family:"Hiragino Sans",sans-serif;font-weight:700;font-size:46px;color:#efe6cc;letter-spacing:2px;text-shadow:0 3px 8px #000}
+.s::before,.s::after{content:"";display:inline-block;width:60px;height:3px;background:linear-gradient(90deg,transparent,#d9b25c);vertical-align:middle;margin:0 22px}
+.s::after{background:linear-gradient(270deg,transparent,#d9b25c)}
+/* 一番押してほしいボタン：金色に光らせ、▶カーソルを付ける */
+.c.main::after{border-color:#fff1bf;box-shadow:0 0 0 2px rgba(0,0,0,.6),inset 0 0 40px rgba(255,214,120,.55),0 0 0 0 transparent}
+.c.main .tag{background:linear-gradient(180deg,#f7dd92,#c9952f);color:#2a1800;border-color:#fff1bf}
+.c.main .txt::before{content:"▶";position:absolute;left:40px;top:-150px;font-size:64px;color:#fff1bf;filter:drop-shadow(0 0 14px #ffcc55)}
+
+/* 長い名前（7字）は少し小さく */
+.t.long{font-size:94px;letter-spacing:3px}
