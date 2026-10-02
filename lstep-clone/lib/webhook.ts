@@ -2,7 +2,7 @@ import { aiAvailable, generateAiReply } from "./ai";
 import { all, run } from "./db";
 import { collectPending, logIncoming, Outbox } from "./delivery";
 import { getFriendByLineId, markUnfollowed, upsertFriend } from "./friends";
-import { handleHabitText } from "./habits";
+import { habitWelcome, handleHabitText } from "./habits";
 import { syncRichMenu } from "./richmenu";
 import { collectDueSteps, enrollByFollow } from "./scenarios";
 import { attributeOnFollow } from "./sources";
@@ -92,6 +92,8 @@ export async function handleEvent(ev: LineEvent) {
     else await logIncoming(friend.id, `[${ev.message?.type ?? "unknown"}]`);
   } else if (ev.type === "postback") {
     await handlePostback(box, ev.postback?.data ?? "");
+  } else if (ev.type === "follow") {
+    await habitWelcome(box);
   }
   await collectDueSteps(box);
   await collectPending(box);

@@ -1,4 +1,4 @@
-import { createRichMenu, deleteRichMenu, setDefaultMenu } from "@/lib/actions";
+import { createHabitMenu, createRichMenu, deleteRichMenu, setDefaultMenu } from "@/lib/actions";
 import { all } from "@/lib/db";
 import { LAYOUTS, layoutOf } from "@/lib/richmenu";
 import type { RichMenu, Tag } from "@/lib/types";
@@ -20,6 +20,13 @@ export default async function RichMenusPage({ searchParams }: { searchParams: Pr
         トーク画面下部のメニュー。タグを指定すると、そのタグが付いた人だけメニューが切り替わります（切替は通数を消費しません）。
       </p>
       <ErrorBox error={error} />
+      <form action={createHabitMenu} className="panel row" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h2 style={{ margin: 0 }}>習慣トラッカーのメニュー</h2>
+          <div className="hint">「できた」「記録」「習慣の設定」の3ボタンを作り、全員の既定メニューにします</div>
+        </div>
+        <button>ワンクリックで作成</button>
+      </form>
       <form action={createRichMenu} className="panel stack">
         <h2>新規作成</h2>
         <div className="row">

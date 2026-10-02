@@ -525,3 +525,40 @@ export async function saveLineConnection(_: string | null, fd: FormData): Promis
   revalidatePath("/", "layout");
   redirect("/line?ok=1");
 }
+
+// ---- 習慣トラッカー用のリッチメニュー（「できた」「記録」「習慣」の3ボタン）をワンクリックで作って既定にする ----
+export async function createHabitMenu() {
+  await requireAuth();
+  const res = await fetch(`${baseUrl()}/richmenu/habit.jpg`);
+  if (!res.ok) redirect(`/rich-menus?error=${enc("メニュー画像を読み込めませんでした")}`);
+  const data = new Uint8Array(await res.arrayBuffer());
+  const areas: RichMenuArea[] = [
+    { type: "message", value: "できた" },
+    { type: "message", value: "記録" },
+    { type: "message", value: "習慣" },
+  ];
+  let lineId: string | null = null;
+  try {
+    lineId = await lineCreateRichMenu(buildDefinition("習慣トラッカー", "メニュー", "half-3", areas));
+    if (lineId) {
+      await uploadRichMenuImage(lineId, data, "image/jpeg");
+      await setDefaultRichMenu(lineId);
+    }
+  } catch (e) {
+    redirect(`/rich-menus?error=${enc(`LINEへの登録に失敗しました: ${String(e)}`)}`);
+  }
+  await run("UPDATE rich_menus SET is_default = 0");
+  await run(
+    `INSERT INTO rich_menus (name, chat_bar_text, layout, areas, image_data, line_rich_menu_id, tag_id, is_default, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, NULL, 1, ?)`,
+    "習慣トラッカー",
+    "メニュー",
+    "half-3",
+    JSON.stringify(areas),
+    `data:image/jpeg;base64,${Buffer.from(data).toString("base64")}`,
+    lineId ?? `dry-run-${Date.now()}`,
+    Date.now(),
+  );
+  revalidatePath("/rich-menus");
+  redirect("/rich-menus");
+}

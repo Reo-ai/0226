@@ -258,3 +258,18 @@ export async function sendHabitReminders(now = Date.now()) {
     }
   }
 }
+
+/**
+ * 友だち追加のあいさつ。友だち追加で始まるシナリオ（講座の導線など）が無いときだけ、
+ * 習慣づくりへ案内する（SNS → 友だち追加 → 習慣・時刻の設定 → 初日の「できた」までを一続きにする）
+ */
+export async function habitWelcome(box: Outbox) {
+  const followScenario = await get<{ n: number }>(
+    "SELECT COUNT(*) n FROM scenarios WHERE enabled = 1 AND trigger = 'follow'",
+  );
+  if ((followScenario?.n ?? 0) > 0) return;
+  box.add(
+    `{{name}}さん、友だち追加ありがとうございます！🙌\nこのLINEは「小さな行動を、毎日続ける」ための相棒です。\n---\n使い方はかんたん3ステップ👇\n① 続けたい行動を1つ決める\n② 毎日リマインドする時刻を決める\n③ やったら「できた」と送る\n\n連続日数が増えるたびにバッジがもらえます🏅\n---\nさっそく始めましょう！\n「習慣」と送ってください✍️`,
+    "auto",
+  );
+}
