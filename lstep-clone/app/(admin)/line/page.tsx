@@ -1,5 +1,5 @@
 import { getFollowerStats, getQuota } from "@/lib/line";
-import { lineConfig } from "@/lib/lineConfig";
+import { lineConfig, lineConnected } from "@/lib/lineConfig";
 import LineConnectForm from "./LineConnectForm";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function LinePage({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
   const { ok } = await searchParams;
   const cfg = await lineConfig();
-  const connected = Boolean(cfg.accessToken);
+  const connected = await lineConnected();
   const [stats, quota] = connected ? await Promise.all([getFollowerStats(), getQuota()]) : [null, null];
 
   return (
@@ -26,7 +26,7 @@ export default async function LinePage({ searchParams }: { searchParams: Promise
             </div>
           </div>
         ) : (
-          <p className="muted">まだ連携していません。下の欄に公式LINEの値を貼り付けてください。</p>
+          <p className="muted">まだ連携していません。下の欄に、公式LINEの2つの値を貼り付けてください（最初の1回だけ）。</p>
         )}
       </div>
 
@@ -53,10 +53,19 @@ export default async function LinePage({ searchParams }: { searchParams: Promise
 
       <div className="panel">
         <h2>{connected ? "連携を更新する" : "公式LINEと連携する"}</h2>
+        <ol className="hint" style={{ margin: "0 0 12px", paddingLeft: 18, lineHeight: 1.8 }}>
+          <li>
+            <a href="https://manager.line.biz/" target="_blank" rel="noopener noreferrer">
+              公式LINEの管理画面 ↗
+            </a>
+            を開き、右上の「設定」→ 左の「Messaging API」を開く
+          </li>
+          <li>「Channel ID」と「Channel secret」の「コピー」を押して、下に貼り付ける</li>
+        </ol>
         <LineConnectForm connected={connected} />
         <p className="hint">
-          値は LINE Developers（developers.line.biz）の公式LINEのチャネルで確認できます。連携すると Webhook URL も自動で設定されます。
-          連携より前の友だち一覧・トーク履歴は LINE の仕様で取得できないため、連携後の友だち追加・メッセージから記録されます。
+          連携すると、LINEからの受信先（Webhook）も自動で設定されます。連携より前の友だち一覧・トーク履歴は LINE
+          の仕様で取得できないため、連携後の友だち追加・メッセージから記録されます。
         </p>
       </div>
     </>

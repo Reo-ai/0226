@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { lineConfig } from "./lineConfig";
+import { accessToken, lineConfig, lineConnected } from "./lineConfig";
 
 const API = "https://api.line.me/v2/bot";
 const DATA_API = "https://api-data.line.me/v2/bot";
@@ -12,7 +12,7 @@ export type LineMessage =
   | { type: "image"; originalContentUrl: string; previewImageUrl: string };
 
 export async function hasToken(): Promise<boolean> {
-  return Boolean((await lineConfig()).accessToken);
+  return lineConnected();
 }
 
 export async function verifySignature(body: string, signature: string | null): Promise<boolean> {
@@ -31,7 +31,7 @@ interface CallOptions {
 
 async function call(path: string, body?: unknown, opts: CallOptions & { token?: string } = {}): Promise<unknown> {
   const method = opts.method ?? (body === undefined && !opts.raw ? "GET" : "POST");
-  const t = opts.token ?? (await lineConfig()).accessToken;
+  const t = opts.token ?? (await accessToken());
   if (!t) {
     // トークン未設定時はドライラン（ローカル開発用）
     console.log(`[line:dry-run] ${method} ${path}`, opts.raw ? `<${opts.raw.contentType}>` : JSON.stringify(body ?? null));

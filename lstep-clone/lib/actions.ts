@@ -12,7 +12,7 @@ import { parseFields } from "./forms";
 import { fmtDateTime as formatJst, parseJstLocal } from "./format";
 import { getFriend, getFriendByToken, targetFriends } from "./friends";
 import { baseUrl } from "./env";
-import { lineConfig, saveLineConfig } from "./lineConfig";
+import { issueStatelessToken, lineConfig, saveLineConfig } from "./lineConfig";
 import {
   clearDefaultRichMenu,
   fetchBotInfo,
@@ -498,28 +498,29 @@ export async function saveSettings(fd: FormData) {
 export async function saveLineConnection(_: string | null, fd: FormData): Promise<string | null> {
   await requireAuth();
   const current = await lineConfig();
-  const accessToken = str(fd, "accessToken") || current.accessToken;
+  const channelId = str(fd, "channelId") || current.channelId;
   const channelSecret = str(fd, "channelSecret") || current.channelSecret;
-  if (!accessToken || !channelSecret) return "チャネルアクセストークンとチャネルシークレットを入力してください";
-  let info;
+  if (!channelId || !channelSecret) return "Channel ID と Channel secret を入力してください";
+  let token: string;
   try {
-    info = await fetchBotInfo(accessToken);
+    token = await issueStatelessToken(channelId, channelSecret);
   } catch {
-    return "チャネルアクセストークンが正しくありません。LINE Developers で発行した「長期」のトークンを貼り付けてください";
+    return "Channel ID か Channel secret が違います。公式LINEの管理画面「設定 → Messaging API」の値をそのままコピーしてください";
   }
+  const info = await fetchBotInfo(token);
   await saveLineConfig({
-    channelId: str(fd, "channelId") || current.channelId,
+    channelId,
     channelSecret,
-    accessToken,
+    accessToken: current.accessToken,
     basicId: info.basicId,
     displayName: info.displayName,
     pictureUrl: info.pictureUrl ?? "",
   });
   try {
-    const test = await setupWebhook(accessToken, `${baseUrl()}/api/line/webhook`);
-    if (!test.success) return `連携は保存しましたが、Webhookの確認に失敗しました（${test.reason ?? "理由不明"}）。チャネルシークレットが正しいか確認してください`;
+    const test = await setupWebhook(token, `${baseUrl()}/api/line/webhook`);
+    if (!test.success) return `連携は保存しましたが、LINEからの受信確認に失敗しました（${test.reason ?? "理由不明"}）`;
   } catch (e) {
-    return `連携は保存しましたが、Webhookの設定に失敗しました: ${(e as Error).message}`;
+    return `連携は保存しましたが、受信先（Webhook）の設定に失敗しました: ${(e as Error).message}`;
   }
   revalidatePath("/", "layout");
   redirect("/line?ok=1");

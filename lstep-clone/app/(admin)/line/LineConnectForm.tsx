@@ -8,16 +8,12 @@ export default function LineConnectForm({ connected }: { connected: boolean }) {
   return (
     <form action={action} className="stack">
       <label className="stack" style={{ gap: 4 }}>
-        <span>チャネルアクセストークン（長期）</span>
-        <input type="password" name="accessToken" placeholder={connected ? "変更するときだけ入力" : "LINE Developers の「Messaging API設定」で発行"} autoComplete="off" />
+        <span>Channel ID</span>
+        <input name="channelId" inputMode="numeric" placeholder={connected ? "変更するときだけ入力" : "例: 2011839529"} autoComplete="off" />
       </label>
       <label className="stack" style={{ gap: 4 }}>
-        <span>チャネルシークレット</span>
-        <input type="password" name="channelSecret" placeholder={connected ? "変更するときだけ入力" : "LINE Developers の「チャネル基本設定」にあります"} autoComplete="off" />
-      </label>
-      <label className="stack" style={{ gap: 4 }}>
-        <span>チャネルID（任意）</span>
-        <input name="channelId" placeholder="例: 2011839529" />
+        <span>Channel secret</span>
+        <input type="password" name="channelSecret" placeholder={connected ? "変更するときだけ入力" : "管理画面の「コピー」ボタンで貼り付け"} autoComplete="off" />
       </label>
       <button disabled={pending}>{pending ? "確認中…" : connected ? "連携を更新する" : "公式LINEと連携する"}</button>
       {error && <div style={{ color: "var(--danger)" }}>{error}</div>}

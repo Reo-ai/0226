@@ -46,9 +46,38 @@ export async function saveLineConfig(next: LineConfig) {
   cache = null;
 }
 
-/** 公式LINEとつながっているか（アクセストークンがあるか） */
+/** 公式LINEとつながっているか（長期トークン、またはチャネルID＋シークレットがあるか） */
 export async function lineConnected(): Promise<boolean> {
-  return Boolean((await lineConfig()).accessToken);
+  const c = await lineConfig();
+  return Boolean(c.accessToken || (c.channelId && c.channelSecret));
+}
+
+let issued: { token: string; until: number; key: string } | null = null;
+
+/**
+ * API呼び出しに使うトークン。長期トークンが無ければ、チャネルID＋シークレットから
+ * ステートレストークン（15分有効・発行数の上限なし）をその都度発行する
+ */
+export async function accessToken(): Promise<string> {
+  const c = await lineConfig();
+  if (c.accessToken) return c.accessToken;
+  if (!c.channelId || !c.channelSecret) return "";
+  const key = `${c.channelId}:${c.channelSecret}`;
+  if (issued && issued.key === key && Date.now() < issued.until) return issued.token;
+  const token = await issueStatelessToken(c.channelId, c.channelSecret);
+  issued = { token, until: Date.now() + 10 * 60 * 1000, key };
+  return token;
+}
+
+/** チャネルID＋シークレットからステートレストークンを発行する。値が違えば例外 */
+export async function issueStatelessToken(channelId: string, channelSecret: string): Promise<string> {
+  const res = await fetch("https://api.line.me/oauth2/v3/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "client_credentials", client_id: channelId, client_secret: channelSecret }),
+  });
+  if (!res.ok) throw new Error(`token ${res.status}`);
+  return ((await res.json()) as { access_token: string }).access_token;
 }
 
 /** 管理者の LINE ユーザーID（画面で登録した人 ＋ 環境変数） */
