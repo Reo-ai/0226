@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { lineConnected } from "@/lib/lineConfig";
+import { adminLineIds, lineConnected } from "@/lib/lineConfig";
 import { baseUrl } from "@/lib/env";
 import { saveSettings } from "@/lib/actions";
 import { AI_MODELS, aiConfig, aiMonthlyUsage } from "@/lib/ai";
@@ -71,6 +71,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <div className="panel stack">
         <h2>連携状況</h2>
         <div>Webhook URL: <code>{base}/api/line/webhook</code></div>
+        <div>管理者のLINEユーザーID: {(await adminLineIds()).join(", ") || "未登録（最初にログインした人が管理者になります）"}</div>
         <div>
           公式LINE: {(await lineConnected()) ? "連携済み" : "未連携"}（<Link href="/line">LINE連携の画面へ</Link>）
         </div>
