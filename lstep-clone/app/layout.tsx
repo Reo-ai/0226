@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-export const metadata: Metadata = { title: "LINE配信管理" };
+export const metadata: Metadata = { title: "スキルステップ" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

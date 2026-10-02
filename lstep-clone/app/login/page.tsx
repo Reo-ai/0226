@@ -8,7 +8,7 @@ export default function LoginPage() {
   return (
     <div style={{ maxWidth: 360, margin: "15vh auto", padding: 16 }}>
       <div className="panel stack">
-        <h1>LINE配信管理 ログイン</h1>
+        <h1>スキルステップ ログイン</h1>
         <form action={action} className="stack">
           <input type="password" name="password" placeholder="管理パスワード" required autoFocus />
           <button disabled={pending}>ログイン</button>
