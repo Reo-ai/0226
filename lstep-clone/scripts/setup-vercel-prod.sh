@@ -37,16 +37,26 @@ else
 fi
 
 echo "== 2/4 Turso（無料DB） =="
+export PATH="$HOME/.turso:$PATH"
 if ! command -v turso >/dev/null; then
-  brew install tursodatabase/tap/turso
+  curl -sSfL https://get.tur.so/install.sh | bash # Turso 公式のインストーラー
 fi
-if ! turso auth whoami >/dev/null 2>&1; then
-  echo "ブラウザが開きます。GitHub などでログイン（初回は登録）してください"
+# whoami は未ログインでも終了コード0を返すので、出力の文言で判定する
+if turso auth whoami 2>&1 | grep -qi "not logged in"; then
+  echo "ブラウザが開きます。「Continue with GitHub」でログイン（初回は登録）してください"
   turso auth login
+fi
+if turso auth whoami 2>&1 | grep -qi "not logged in"; then
+  echo "Turso にログインできていないので中止します。もう一度実行してください"; exit 1
 fi
 turso db show "$DB_NAME" >/dev/null 2>&1 || turso db create "$DB_NAME"
 DB_URL=$(turso db show "$DB_NAME" --url)
+case "$DB_URL" in
+  libsql://*) ;;
+  *) echo "DBのURLを取得できませんでした: $DB_URL"; exit 1 ;;
+esac
 DB_TOKEN=$(turso db tokens create "$DB_NAME")
+[ ${#DB_TOKEN} -gt 40 ] || { echo "DBのトークンを取得できませんでした"; exit 1; }
 put_env DATABASE_URL "$DB_URL"
 put_env DATABASE_AUTH_TOKEN "$DB_TOKEN"
 echo "✅ $DB_NAME を接続しました"
