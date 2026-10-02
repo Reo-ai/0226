@@ -21,8 +21,8 @@ export const CONFIG = {
   checkoutUrl: "要設定: 決済ページURL（講座ページでは「課金は準備中」のため未定）",
   // lstep-clone/public/gift/ に置いたPDFをスキルステップから配信する
   giftUrl: `${APP_URL}/gift/skillquest-start-guide.pdf`,
-  price: "要設定: 通常価格（講座ページに記載なし）",
-  launchPrice: "要設定: 期間限定価格（講座ページに記載なし）",
+  price: "月額7,000円",
+  launchPrice: "月額3,000円",
   // 期限内に申し込んだ人だけの特典（講座ページにある講師サポートから組んだ仮案。提供できるか講師に確認すること）
   bonuses: [
     "リサーチ模擬案件の納品物に、講師が個別フィードバック",
