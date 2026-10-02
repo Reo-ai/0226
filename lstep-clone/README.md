@@ -61,16 +61,18 @@ image:https://example.com/banner.jpg
 
 1. [Oracle Cloud](https://www.oracle.com/cloud/free/) に登録し、Always Free の VM（Ubuntu、Ampere A1 推奨）を作成
 2. VCNのセキュリティリストで TCP 80, 443 の受信を許可
-3. このリポジトリを GitHub に置き、VMにSSHして実行:
+3. VMにSSHして、コードを取得してセットアップを実行:
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/deploy/setup-vm.sh | bash -s -- https://github.com/<you>/<repo>.git
+   sudo apt-get update && sudo apt-get install -y git
+   git clone -b <ブランチ> https://github.com/<you>/<repo>.git app
+   cd app/lstep-clone        # リポジトリ直下にアプリがある場合は cd app
+   bash deploy/setup-vm.sh
    ```
-   初回は `.env` が作られるので、`ADMIN_PASSWORD` と LINE の値を記入して同じコマンドを再実行
+   非公開リポジトリの場合、clone 時のパスワードには GitHub の Personal Access Token（読み取り権限のみ）を入力します。
+   スクリプトが管理パスワードとLINEの値を質問してくるので答えると、Docker導入・ポート開放・HTTPS化・起動まで自動で行います。
 4. 表示された `https://xx-xx-xx-xx.sslip.io/api/line/webhook` を LINE Developers の Webhook URL に設定して「検証」
 
-ステップ配信・予約配信はアプリ内蔵のタイマーで毎分処理されます。データはDockerボリュームに保存されます。
-
-> 非公開リポジトリの場合は VM 上で `git clone` してから `bash deploy/setup-vm.sh <URL>` を実行してください。
+更新するときは `git pull && bash deploy/setup-vm.sh` を実行します。ステップ配信・予約配信はアプリ内蔵のタイマーで毎分処理され、データはDockerボリュームに保存されます。
 
 ### 2'. サーバー（代替: Vercel + Turso）
 
