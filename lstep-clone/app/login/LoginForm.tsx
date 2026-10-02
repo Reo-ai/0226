@@ -1,11 +1,12 @@
 import Link from "next/link";
 
-type Props = { lineEnabled: boolean; lineMessage: string | null };
+type Props = { lineEnabled: boolean; officialUrl: string | null; lineMessage: string | null };
 
 const LINE_GREEN = "#06c755";
 const bigBtn = { textAlign: "center", padding: "12px 14px" } as const;
+const disabledBtn = { ...bigBtn, opacity: 0.5, cursor: "not-allowed" } as const;
 
-export default function LoginForm({ lineEnabled, lineMessage }: Props) {
+export default function LoginForm({ lineEnabled, officialUrl, lineMessage }: Props) {
   return (
     <div style={{ maxWidth: 380, margin: "12vh auto", padding: 16 }}>
       <div className="panel stack" style={{ gap: 14 }}>
@@ -17,15 +18,23 @@ export default function LoginForm({ lineEnabled, lineMessage }: Props) {
             LINEでログイン
           </a>
         ) : (
-          <button disabled style={{ ...bigBtn, opacity: 0.5, cursor: "not-allowed" }}>
+          <button disabled style={disabledBtn}>
             LINEでログイン（準備中）
           </button>
         )}
 
-        <a className="btn ghost" href="https://manager.line.biz/" target="_blank" rel="noopener noreferrer" style={bigBtn}>
-          公式LINEの管理画面にログイン ↗
-        </a>
-        <div className="hint">公式LINE（LINE Official Account Manager）は別タブで開きます。</div>
+        {officialUrl ? (
+          <a className="btn ghost" href={officialUrl} style={bigBtn}>
+            公式LINEでログイン
+          </a>
+        ) : (
+          <button disabled className="ghost" style={disabledBtn}>
+            公式LINEでログイン（準備中）
+          </button>
+        )}
+        <div className="hint">
+          公式LINEでログイン：トークに「ログイン」と入った状態で開くので、そのまま送信してください。届いたリンクを開くと管理画面に入れます（10分間・1回だけ有効）。
+        </div>
 
         {lineMessage && <div className="pre" style={{ color: "var(--danger)" }}>{lineMessage}</div>}
       </div>
