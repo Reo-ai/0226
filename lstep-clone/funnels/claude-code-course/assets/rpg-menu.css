@@ -1,0 +1,19 @@
+/* リッチメニュー画像（RPGのコマンドウィンドウ風）。2500×1686 で書き出す */
+*{box-sizing:border-box;margin:0}
+body{width:2500px;height:1686px;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+  background:radial-gradient(circle at 20% 15%,#2b3f7a 0,transparent 40%),radial-gradient(circle at 85% 90%,#3a2a5c 0,transparent 45%),#0d1530;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;background-image:radial-gradient(#ffffff55 1.5px,transparent 2px),radial-gradient(#ffe7a855 1.5px,transparent 2px);
+  background-size:140px 140px,230px 230px;background-position:0 0,60px 90px;opacity:.5}
+.g{position:relative;display:grid;width:2500px;height:1686px;gap:28px;padding:34px}
+.c{position:relative;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  color:#fff;background:linear-gradient(180deg,#1c2a58 0%,#121c3d 100%);
+  border:8px solid #d6ad55;box-shadow:inset 0 0 0 6px #121c3d,inset 0 0 0 10px #8c6b2a,0 14px 0 #070b1c}
+.c .lv{position:absolute;top:30px;left:42px;font-size:44px;font-weight:800;color:#e8c878;letter-spacing:4px}
+.c .md{width:250px;height:250px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:150px;line-height:1;
+  background:radial-gradient(circle at 35% 30%,#ffe9a8,#c9932f 70%);box-shadow:0 0 0 10px #8c6b2a,0 0 60px #f3c76a66}
+.c .t{font-size:104px;font-weight:900;margin-top:40px;letter-spacing:4px;text-shadow:0 6px 0 #070b1c}
+.c .s{font-size:52px;margin-top:16px;color:#f0d68e;font-weight:700}
+.c.main{background:linear-gradient(180deg,#f6dc95 0%,#e2b153 100%);color:#2a1a00;box-shadow:inset 0 0 0 6px #f6dc95,inset 0 0 0 10px #a0742a,0 14px 0 #070b1c}
+.c.main .t{text-shadow:none}.c.main .s{color:#5a3a06}.c.main .lv{color:#7a4f0c}
+.c.main .md{background:radial-gradient(circle at 35% 30%,#ffffff,#f3d27e 70%);box-shadow:0 0 0 10px #a0742a}
+.c.main::before{content:"▶";position:absolute;left:46px;top:50%;transform:translateY(-50%);font-size:90px;color:#7a1f1f;animation:none}

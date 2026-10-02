@@ -4,7 +4,7 @@
 // - 接続先は アプリと同じ DATABASE_URL / DATABASE_AUTH_TOKEN（未設定なら file:./data/app.db）
 // - テーブル作成はアプリ側で行うため、先に一度アプリを起動しておくこと
 // - 同名のタグ・リンク・経路・フォーム・キーワード・シナリオは上書きせずスキップ
-//   （--replace を付けるとシナリオとステップだけ作り直す。進行中の配信状況はリセットされる）
+//   （--replace を付けると、シナリオとステップを作り直し、既存のキーワード応答・フォーム・計測リンクの中身も更新する。進行中の配信状況はリセットされる）
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -101,7 +101,11 @@ if (!cols.includes("fixed_time")) {
 }
 
 const now = Date.now();
-const log = (kind, name, created) => console.log(`${created ? "＋" : "・"} ${kind}: ${name}${created ? "" : "（既存のためスキップ）"}`);
+// --replace では、タグ・流入経路以外の既存項目は中身を更新している
+const log = (kind, name, created) => {
+  const updated = REPLACE && !["タグ", "流入経路"].includes(kind);
+  console.log(`${created ? "＋" : updated ? "↻" : "・"} ${kind}: ${name}${created ? "" : updated ? "（更新）" : "（既存のためスキップ）"}`);
+};
 
 for (const t of tags) {
   const r = await db.execute({ sql: "INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)", args: [t.name, t.color ?? "#06c755"] });
@@ -115,6 +119,7 @@ for (const l of links) {
     sql: "INSERT OR IGNORE INTO links (code, name, url, add_tag_id, created_at) VALUES (?, ?, ?, ?, ?)",
     args: [l.code, l.name, l.url, tid(l.tag), now],
   });
+  if (r.rowsAffected === 0 && REPLACE) await q("UPDATE links SET name = ?, url = ?, add_tag_id = ? WHERE code = ?", l.name, l.url, tid(l.tag), l.code);
   log("計測リンク", `${l.code}（${l.name}）`, r.rowsAffected > 0);
 }
 
@@ -129,15 +134,21 @@ for (const s of sources) {
 const formId = new Map();
 for (const f of forms) {
   const existing = await one("SELECT id FROM forms WHERE title = ?", f.title);
-  if (existing) {
-    formId.set(f.key, Number(existing.id));
-    log("フォーム", f.title, false);
-    continue;
-  }
   const fields = f.fields.split("\n").map((l) => l.trim()).filter(Boolean).map((line) => {
     const [label, type = "text", options = "", req = ""] = line.split("|").map((x) => x.trim());
     return { label, type, options: options ? options.split(",").map((o) => o.trim()) : [], required: req === "必須" };
   });
+  if (existing) {
+    formId.set(f.key, Number(existing.id));
+    if (REPLACE) {
+      await q(
+        "UPDATE forms SET description = ?, fields = ?, add_tag_id = ?, thanks_message = ? WHERE id = ?",
+        f.description ?? "", JSON.stringify(fields), tid(f.tag), f.thanks ?? "", existing.id,
+      );
+    }
+    log("フォーム", f.title, false);
+    continue;
+  }
   const r = await db.execute({
     sql: "INSERT INTO forms (title, description, fields, add_tag_id, thanks_message, created_at) VALUES (?, ?, ?, ?, ?, ?)",
     args: [f.title, f.description ?? "", JSON.stringify(fields), tid(f.tag), f.thanks ?? "", now],
@@ -157,6 +168,8 @@ for (const r of autoReplies) {
       resolve(r.reply),
       tid(r.tag),
     );
+  } else if (REPLACE) {
+    await q("UPDATE auto_replies SET reply = ?, add_tag_id = ? WHERE id = ?", resolve(r.reply), tid(r.tag), existing.id);
   }
   log("キーワード", `${r.keyword}（${r.match === "exact" ? "完全一致" : "部分一致"}）`, !existing);
 }

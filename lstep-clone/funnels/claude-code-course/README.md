@@ -2,13 +2,13 @@
 
 講座ページ: https://sho-claude-code-course.pages.dev/ （作成者 茅森ショウ）
 
-配信文面・特典PDF・リッチメニュー画像は、講座ページの内容（灯火の道＝Claude Code／星図の道＝Codex、World1 全10章 → 営業武器 → リサーチ模擬案件）に合わせています。
+配信文面とリッチメニューは、講座ページ（改良版 https://skillquest-v2.pages.dev/ ）の世界観に合わせ、講座内の案内役「冒険の書の守護者」がナレーターとして冒険者（友だち）に語りかける形にしています。World 1 マップ（相棒の村 → 営業の工房 → 調査の森 → 依頼の街 → ボス）・アイテム・称号の言葉を使いつつ、料金・必要なもの・合格条件は現実の言葉で明記します。
 
 | 素材 | 場所 |
 |---|---|
 | 登録特典PDF「スキルクエストの歩き方」 | `public/gift/skillquest-start-guide.pdf`（スキルステップから `/gift/skillquest-start-guide.pdf` で配信。元HTMLは `assets/gift.html`） |
-| リッチメニュー画像（通常・6分割） | `assets/richmenu-normal.jpg`（2500×1686） |
-| リッチメニュー画像（購入者・4分割） | `assets/richmenu-buyer.jpg`（2500×1686） |
+| リッチメニュー画像（通常・6分割・RPGコマンド風） | `assets/richmenu-normal.jpg`（2500×1686。元は `richmenu-normal.html` ＋ `rpg-menu.css`） |
+| リッチメニュー画像（購入者・4分割・RPGコマンド風） | `assets/richmenu-buyer.jpg`（2500×1686。元は `richmenu-buyer.html`） |
 
 > 期限内特典3つは、講座ページにある講師サポートから組んだ**仮案**です。講師が提供できるか確認してから公開してください。
 
