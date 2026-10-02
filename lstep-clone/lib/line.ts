@@ -186,7 +186,10 @@ export async function verifyIdToken(idToken: string): Promise<string | null> {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ id_token: idToken, client_id: clientId }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error("IDトークン検証エラー", res.status, await res.text());
+    return null;
+  }
   const json = (await res.json()) as { sub?: string };
   return json.sub ?? null;
 }

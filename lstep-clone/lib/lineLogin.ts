@@ -38,7 +38,12 @@ export async function userIdFromCode(code: string): Promise<string | null> {
       client_secret: process.env.LINE_LOGIN_CHANNEL_SECRET || "",
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error("LINEログイン: トークン交換に失敗", res.status, await res.text());
+    return null;
+  }
   const json = (await res.json()) as { id_token?: string };
-  return json.id_token ? verifyIdToken(json.id_token) : null;
+  const userId = json.id_token ? await verifyIdToken(json.id_token) : null;
+  if (!userId) console.error("LINEログイン: IDトークンの検証に失敗", Boolean(json.id_token));
+  return userId;
 }

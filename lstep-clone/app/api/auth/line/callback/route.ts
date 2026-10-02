@@ -15,6 +15,13 @@ export async function GET(req: Request) {
 
   const code = url.searchParams.get("code");
   if (!lineLoginEnabled() || !code || !expected || url.searchParams.get("state") !== expected) {
+    console.error("LINEログイン: 事前チェックで失敗", {
+      enabled: lineLoginEnabled(),
+      code: Boolean(code),
+      stateCookie: Boolean(expected),
+      stateMatch: url.searchParams.get("state") === expected,
+      error: url.searchParams.get("error"),
+    });
     redirect("/login?line=failed");
   }
 
