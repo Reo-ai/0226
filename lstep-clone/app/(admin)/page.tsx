@@ -72,7 +72,8 @@ export default async function Dashboard() {
             (SELECT COUNT(*) FROM messages m WHERE m.source = 'broadcast' AND m.ref_id = b.id) delivered,
             (SELECT COUNT(DISTINCT c.friend_id) FROM link_clicks c
                WHERE c.message_source = 'broadcast' AND c.created_at >= b.sent_at
-                 AND c.created_at < b.sent_at + 3 * 86400000) clickers,
+                 AND c.created_at < b.sent_at + 3 * 86400000
+                 AND c.friend_id IN (SELECT m.friend_id FROM messages m WHERE m.source = 'broadcast' AND m.ref_id = b.id)) clickers,
             (SELECT COUNT(*) FROM friends fr WHERE fr.unfollowed_at >= b.sent_at
                  AND fr.unfollowed_at < b.sent_at + 86400000) blocks
      FROM broadcasts b WHERE b.status = 'sent' ORDER BY b.sent_at DESC LIMIT 8`,
