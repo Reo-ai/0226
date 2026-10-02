@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSession } from "@/lib/auth";
-import { allowedAdminIds, DENIED_COOKIE, lineLoginEnabled, STATE_COOKIE, userIdFromCode } from "@/lib/lineLogin";
+import { authorizeAdmin } from "@/lib/lineConfig";
+import { DENIED_COOKIE, lineLoginEnabled, STATE_COOKIE, userIdFromCode } from "@/lib/lineLogin";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
   const userId = await userIdFromCode(code);
   if (!userId) redirect("/login?line=failed");
 
-  if (!allowedAdminIds().includes(userId)) {
+  if (!(await authorizeAdmin(userId))) {
     // 許可リストに追加できるよう、本人にだけ自分のIDを見せる（Cookie 経由・5分）
     jar.set(DENIED_COOKIE, userId, {
       httpOnly: true,

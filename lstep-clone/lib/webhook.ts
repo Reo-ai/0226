@@ -2,7 +2,6 @@ import { aiAvailable, generateAiReply } from "./ai";
 import { all, run } from "./db";
 import { collectPending, logIncoming, Outbox } from "./delivery";
 import { getFriendByLineId, markUnfollowed, upsertFriend } from "./friends";
-import { createMagicUrl, isAdminLineUser, LOGIN_KEYWORD } from "./magicLogin";
 import { syncRichMenu } from "./richmenu";
 import { collectDueSteps, enrollByFollow } from "./scenarios";
 import { attributeOnFollow } from "./sources";
@@ -33,17 +32,6 @@ async function ensureFriend(userId: string): Promise<Friend> {
 async function handleText(box: Outbox, text: string) {
   const friend = box.friend;
   await logIncoming(friend.id, text);
-
-  // 「公式LINEでログイン」: 管理者にだけ1回限りのログインURLを返す
-  if (text.trim() === LOGIN_KEYWORD) {
-    box.add(
-      isAdminLineUser(friend.line_user_id)
-        ? `スキルコーチの管理画面に入るリンクです（10分間・1回だけ有効）\n${createMagicUrl()}`
-        : `このLINEアカウントは管理者として登録されていません。\n登録用ID: ${friend.line_user_id}`,
-      "auto",
-    );
-    return;
-  }
 
   const rule = await matchAutoReply(text);
   if (rule) {

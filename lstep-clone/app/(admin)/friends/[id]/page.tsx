@@ -73,8 +73,7 @@ export default async function FriendPage({
           <div className="chat">
             {messages.map((m) => (
               <div key={m.id} className={`bubble ${m.direction}`}>
-                {/* ログインURLは履歴に出さない（閲覧のみの人に使われないように） */}
-                {m.content.replace(/https?:\/\/\S+\/api\/auth\/magic\?t=\S+/g, "（ログイン用URL）")}
+                {m.content}
                 <div className="meta">
                   {SOURCE_LABEL[m.source] ?? m.source}
                   {m.direction === "out" && CHANNEL_LABEL[m.channel] ? `（${CHANNEL_LABEL[m.channel]}）` : ""} ·{" "}

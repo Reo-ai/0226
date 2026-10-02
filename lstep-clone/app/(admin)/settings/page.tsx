@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { lineConnected } from "@/lib/lineConfig";
 import { baseUrl } from "@/lib/env";
 import { saveSettings } from "@/lib/actions";
 import { AI_MODELS, aiConfig, aiMonthlyUsage } from "@/lib/ai";
@@ -69,10 +71,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <div className="panel stack">
         <h2>連携状況</h2>
         <div>Webhook URL: <code>{base}/api/line/webhook</code></div>
-        <div>チャネルシークレット: {env("LINE_CHANNEL_SECRET")}</div>
-        <div>アクセストークン: {process.env.LINE_CHANNEL_ACCESS_TOKEN ? "設定済み" : "未設定（ドライランで動作）"}</div>
+        <div>
+          公式LINE: {(await lineConnected()) ? "連携済み" : "未連携"}（<Link href="/line">LINE連携の画面へ</Link>）
+        </div>
         <div>流入経路（LIFF）: LIFF_ID {env("LIFF_ID")} / LINE_LOGIN_CHANNEL_ID {env("LINE_LOGIN_CHANNEL_ID")} / LINE_ADD_FRIEND_URL {env("LINE_ADD_FRIEND_URL")}</div>
-        <div>DB: {process.env.DATABASE_URL?.startsWith("libsql") ? "Turso" : "ローカルファイル"}</div>
+        <div>データの保存先: {process.env.DATABASE_URL?.startsWith("libsql") ? "Turso（消えません）" : "一時保存（消える可能性あり）"}</div>
       </div>
     </>
   );

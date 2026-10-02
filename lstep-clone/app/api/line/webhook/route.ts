@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const body = await req.text();
-  if (!verifySignature(body, req.headers.get("x-line-signature"))) {
+  if (!(await verifySignature(body, req.headers.get("x-line-signature")))) {
     return new Response("invalid signature", { status: 401 });
   }
   const { events = [] } = JSON.parse(body) as { events?: LineEvent[] };

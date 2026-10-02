@@ -11,8 +11,13 @@ import { pushToFriend, queuePending } from "./delivery";
 import { parseFields } from "./forms";
 import { fmtDateTime as formatJst, parseJstLocal } from "./format";
 import { getFriend, getFriendByToken, targetFriends } from "./friends";
+import { baseUrl } from "./env";
+import { lineConfig, saveLineConfig } from "./lineConfig";
 import {
   clearDefaultRichMenu,
+  fetchBotInfo,
+  hasToken,
+  setupWebhook,
   createRichMenu as lineCreateRichMenu,
   deleteRichMenu as lineDeleteRichMenu,
   setDefaultRichMenu,
@@ -345,7 +350,7 @@ export async function createRichMenu(fd: FormData) {
     layout.key,
     JSON.stringify(areas),
     `data:${image.type};base64,${Buffer.from(data).toString("base64")}`,
-    lineId ?? (process.env.LINE_CHANNEL_ACCESS_TOKEN ? null : `dry-run-${Date.now()}`),
+    lineId ?? ((await hasToken()) ? null : `dry-run-${Date.now()}`),
     tagId,
     Date.now(),
   );
@@ -487,4 +492,35 @@ export async function saveSettings(fd: FormData) {
   await setSetting("push_limit", String(Math.max(0, num(fd, "pushLimit"))));
   revalidatePath("/settings");
   redirect(`/settings?saved=${enc(formatJst(Date.now()))}`);
+}
+
+// ---- LINE連携（公式LINEの値を画面から登録） ----
+export async function saveLineConnection(_: string | null, fd: FormData): Promise<string | null> {
+  await requireAuth();
+  const current = await lineConfig();
+  const accessToken = str(fd, "accessToken") || current.accessToken;
+  const channelSecret = str(fd, "channelSecret") || current.channelSecret;
+  if (!accessToken || !channelSecret) return "チャネルアクセストークンとチャネルシークレットを入力してください";
+  let info;
+  try {
+    info = await fetchBotInfo(accessToken);
+  } catch {
+    return "チャネルアクセストークンが正しくありません。LINE Developers で発行した「長期」のトークンを貼り付けてください";
+  }
+  await saveLineConfig({
+    channelId: str(fd, "channelId") || current.channelId,
+    channelSecret,
+    accessToken,
+    basicId: info.basicId,
+    displayName: info.displayName,
+    pictureUrl: info.pictureUrl ?? "",
+  });
+  try {
+    const test = await setupWebhook(accessToken, `${baseUrl()}/api/line/webhook`);
+    if (!test.success) return `連携は保存しましたが、Webhookの確認に失敗しました（${test.reason ?? "理由不明"}）。チャネルシークレットが正しいか確認してください`;
+  } catch (e) {
+    return `連携は保存しましたが、Webhookの設定に失敗しました: ${(e as Error).message}`;
+  }
+  revalidatePath("/", "layout");
+  redirect("/line?ok=1");
 }

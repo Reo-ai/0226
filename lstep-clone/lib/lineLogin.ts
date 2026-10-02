@@ -10,14 +10,6 @@ export function lineLoginEnabled(): boolean {
   return Boolean(process.env.LINE_LOGIN_CHANNEL_ID && process.env.LINE_LOGIN_CHANNEL_SECRET);
 }
 
-/** ログインを許可する LINE ユーザーID（カンマ区切り） */
-export function allowedAdminIds(): string[] {
-  return (process.env.ADMIN_LINE_USER_IDS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 export function callbackUrl(): string {
   return `${baseUrl()}/api/auth/line/callback`;
 }

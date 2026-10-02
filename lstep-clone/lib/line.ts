@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { lineConfig } from "./lineConfig";
 
 const API = "https://api.line.me/v2/bot";
 const DATA_API = "https://api-data.line.me/v2/bot";
@@ -10,12 +11,12 @@ export type LineMessage =
   | { type: "text"; text: string }
   | { type: "image"; originalContentUrl: string; previewImageUrl: string };
 
-export function hasToken(): boolean {
-  return Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN);
+export async function hasToken(): Promise<boolean> {
+  return Boolean((await lineConfig()).accessToken);
 }
 
-export function verifySignature(body: string, signature: string | null): boolean {
-  const secret = process.env.LINE_CHANNEL_SECRET;
+export async function verifySignature(body: string, signature: string | null): Promise<boolean> {
+  const secret = (await lineConfig()).channelSecret;
   if (!secret || !signature) return false;
   const expected = crypto.createHmac("sha256", secret).update(body).digest();
   const given = Buffer.from(signature, "base64");
@@ -23,14 +24,14 @@ export function verifySignature(body: string, signature: string | null): boolean
 }
 
 interface CallOptions {
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   base?: string;
   raw?: { data: Uint8Array; contentType: string };
 }
 
-async function call(path: string, body?: unknown, opts: CallOptions = {}): Promise<unknown> {
+async function call(path: string, body?: unknown, opts: CallOptions & { token?: string } = {}): Promise<unknown> {
   const method = opts.method ?? (body === undefined && !opts.raw ? "GET" : "POST");
-  const t = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const t = opts.token ?? (await lineConfig()).accessToken;
   if (!t) {
     // トークン未設定時はドライラン（ローカル開発用）
     console.log(`[line:dry-run] ${method} ${path}`, opts.raw ? `<${opts.raw.contentType}>` : JSON.stringify(body ?? null));
@@ -90,13 +91,54 @@ export async function getProfile(userId: string): Promise<LineProfile | null> {
 
 /** LINE側で集計された今月の通数 { limit: null=上限なし, used } */
 export async function getQuota(): Promise<{ limit: number | null; used: number } | null> {
-  if (!hasToken()) return null;
+  if (!(await hasToken())) return null;
   try {
     const [q, c] = (await Promise.all([call("/message/quota"), call("/message/quota/consumption")])) as [
       { type: "none" | "limited"; value?: number },
       { totalUsage: number },
     ];
     return { limit: q.type === "limited" ? (q.value ?? 0) : null, used: c.totalUsage };
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+// ---- 連携・アカウント情報 ----
+
+export interface BotInfo {
+  basicId: string;
+  displayName: string;
+  pictureUrl?: string;
+}
+
+/** アクセストークンが正しいか確かめ、公式LINEの情報を返す（連携画面用） */
+export async function fetchBotInfo(token: string): Promise<BotInfo> {
+  return (await call("/info", undefined, { token })) as BotInfo;
+}
+
+/** Webhook URL を設定して、LINEから届くか試す */
+export async function setupWebhook(token: string, endpoint: string): Promise<{ success: boolean; reason?: string }> {
+  await call("/channel/webhook/endpoint", { endpoint }, { token, method: "PUT" });
+  return (await call("/channel/webhook/test", { endpoint }, { token })) as { success: boolean; reason?: string };
+}
+
+export interface FollowerStats {
+  date: string;
+  followers: number;
+  targetedReaches: number;
+  blocks: number;
+}
+
+/** LINE公式が集計した友だち数（前日分。連携前からの友だちも含む） */
+export async function getFollowerStats(): Promise<FollowerStats | null> {
+  if (!(await hasToken())) return null;
+  const d = new Date(Date.now() + 9 * 3600_000 - 86400_000);
+  const date = d.toISOString().slice(0, 10).replace(/-/g, "");
+  try {
+    const r = (await call(`/insight/followers?date=${date}`)) as Partial<FollowerStats> & { status: string };
+    if (r.status !== "ready") return null;
+    return { date, followers: r.followers ?? 0, targetedReaches: r.targetedReaches ?? 0, blocks: r.blocks ?? 0 };
   } catch (e) {
     console.error(e);
     return null;
