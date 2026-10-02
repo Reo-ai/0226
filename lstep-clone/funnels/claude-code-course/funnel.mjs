@@ -10,7 +10,7 @@
 // 1. ここだけ書き換える（「要設定」が残っていると投入時に警告）
 // ============================================================
 // 特典PDFなどスキルステップ自身が配るファイルの公開URL（BASE_URL があればそれを優先）
-const APP_URL = (process.env.BASE_URL || "https://skill-step.vercel.app").replace(/\/$/, "");
+const APP_URL = (process.env.BASE_URL || "https://skill-step-hazel.vercel.app").replace(/\/$/, "");
 
 export const CONFIG = {
   courseName: "スキルクエスト",

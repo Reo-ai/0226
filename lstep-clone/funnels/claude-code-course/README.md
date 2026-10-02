@@ -132,7 +132,7 @@ node scripts/seed-funnel.mjs funnels/claude-code-course/funnel.mjs --replace
 
 - [ ] `CONFIG` の「要設定」をすべて埋めた（`--dry-run` で警告が0件）
 - [ ] 決済サービスのサンクスページに「LINEで『購入しました』と送ってください」を記載
-- [x] 特典PDFを作成（スキルステップの公開URLが `skill-step.vercel.app` 以外になったら `BASE_URL` を付けて投入）
+- [x] 特典PDFを作成（スキルステップの公開URLが `skill-step-hazel.vercel.app` から変わったら `BASE_URL` を付けて投入）
 - [ ] 本番DBに投入し、管理画面で全シナリオ・キーワードを確認
 - [ ] 自分のLINEで友だち追加 → 1/2/3・特典・アンケート・質問・購入しました を一通り送って確認
 - [ ] リッチメニュー画像を設定（画像は `assets/` に作成済み）
