@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>スキルクエストの歩き方｜AIと一緒に進めるスタートガイド</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  :root { --navy:#1f3a7a; --blue:#3157c8; --pale:#eef2fc; --ink:#1d2433; --sub:#5b6478; --gold:#c8962c; }
+  * { box-sizing: border-box; }
+  body { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.75; margin: 0; }
+  h1, h2, h3 { color: var(--navy); line-height: 1.35; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always;
+           background: linear-gradient(160deg, #1f3a7a 0%, #3157c8 100%); color: #fff; border-radius: 6mm; padding: 22mm 18mm; }
+  .cover .tag { display: inline-block; background: rgba(255,255,255,.18); padding: 2mm 4mm; border-radius: 99px; font-size: 10pt; width: fit-content; }
+  .cover h1 { color: #fff; font-size: 30pt; margin: 8mm 0 4mm; }
+  .cover p { font-size: 13pt; margin: 0; opacity: .92; }
+  .cover .who { margin-top: 18mm; font-size: 11pt; opacity: .85; }
+  h2 { font-size: 15pt; border-left: 2.2mm solid var(--blue); padding-left: 3.5mm; margin: 9mm 0 4mm; }
+  h2 { break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 5mm 0 2mm; }
+  .card { background: var(--pale); border-radius: 3mm; padding: 4mm 5mm; margin: 3mm 0; break-inside: avoid; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; }
+  .grid .card h3 { margin-top: 0; }
+  ol, ul { padding-left: 5.5mm; margin: 2mm 0; }
+  li { margin: 1mm 0; }
+  .say { background: #fff; border: 0.4mm solid #c9d4f2; border-radius: 2.5mm; padding: 3mm 4mm; margin: 2mm 0; font-weight: 600; color: var(--navy); break-inside: avoid; }
+  .say small { display: block; font-weight: 400; color: var(--sub); }
+  table { width: 100%; border-collapse: collapse; font-size: 9.8pt; }
+  th, td { border-bottom: 0.3mm solid #d9dfee; padding: 1.8mm 2mm; text-align: left; vertical-align: top; }
+  th { color: var(--sub); font-weight: 600; width: 9mm; }
+  .warn { border-left: 1.6mm solid var(--gold); background: #fbf6ea; }
+  .page { page-break-before: always; }
+  .foot { color: var(--sub); font-size: 9pt; margin-top: 8mm; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <span class="tag">LINE友だち限定 登録特典</span>
+  <h1>スキルクエストの歩き方</h1>
+  <p>AIに一操作ずつ案内してもらいながら<br>「作る・確かめる・直す・再開する」を身につけるスタートガイド</p>
+  <p class="who">AIと一緒に学ぶ講座「スキルクエスト」　作成者 茅森ショウ</p>
+</section>
+
+<h2>この講座で手に入る、3つの武器</h2>
+<div class="grid">
+  <div class="card"><h3>🕯 World1<br>今日やることメモ</h3>パソコン初心者のための全10章。アプリを入れ、日本語でお願いしてメモを作り、自分の言葉で一か所直します。</div>
+  <div class="card"><h3>⚔️ 営業武器<br>自分専用の営業プロンプト</h3>Chrome にAIの相棒を迎え、クラウドワークスのプロフィールづくりから案件探し・提案文の下書きまで進めます。</div>
+  <div class="card"><h3>📜 リサーチ模擬案件<br>20件のリスト納品</h3>模擬依頼を7日間で調べて検品し、講師に提出。初めての「納品」までを体験します。</div>
+</div>
+
+<h2>はじめに、相棒を選ぶ</h2>
+<table>
+  <tr><th>🕯</th><td><b>灯火の道（Claude Code）</b><br>Claude Pro / Max を使っている方向け。Claude アプリの「Code」で実習します。</td></tr>
+  <tr><th>✨</th><td><b>星図の道（Codex）</b><br>ChatGPT Plus / Pro を使っている方向け。Codex アプリで実習します。</td></tr>
+</table>
+<div class="card warn">新しく契約を急ぐ必要はありません。講座の中に「使えるプランと料金を確認する」章があり、今の契約で使えるかを公式情報で確かめてから進めます。講座の会費と、AIの利用料は別です。</div>
+
+<h2>AIと学ぶ方法（4ステップ）</h2>
+<ol>
+  <li><b>普段のAIチャットを開く</b> … ChatGPT・Gemini・Claude など、いつものもので大丈夫。教材と別のタブで開きます。</li>
+  <li><b>「教材とプロンプトをコピー」して送る</b> … 章ごとのボタンでコピーし、AIチャットに貼って送信します。</li>
+  <li><b>一つ案内されたら、やって返事をする</b> … 分からないまま進めなくてOK。画面が違えば、秘密情報を隠したスクショを送ります。</li>
+  <li><b>できた項目は、自分でチェックする</b> … AIが教材に自動でチェックを付けることはありません。実物を見て、できていたら自分で付けます。</li>
+</ol>
+
+<div class="page"></div>
+<h2>困ったときの“合言葉”</h2>
+<div class="say">「一操作だけ案内して、私の返事を待ってください」<small>AIが一度にたくさん指示してきたとき</small></div>
+<div class="say">「ここまでできました。この章のできたことチェックのうち、どの項目にチェックできますか？」<small>どこまで進んだか分からなくなったとき（できた内容も一緒に伝える）</small></div>
+<div class="say">「まだできていません」<small>AIは「できた」と言ったのに、実際のファイルや画面ができていないとき</small></div>
+
+<h2>World1 の地図（全10章）</h2>
+<table>
+  <tr><th>0</th><td>はじまりの書庫 … 案内役のAIとの進め方を知る</td></tr>
+  <tr><th>1</th><td>可能性の展望台 … AIに頼みたい身近なことを一つ決める</td></tr>
+  <tr><th>2</th><td>旅支度の広場 … パソコンの種類と始める章を確認する</td></tr>
+  <tr><th>3</th><td>アカウントの門 … 自分のアカウントでログインする</td></tr>
+  <tr><th>4</th><td>選択の広間 … 使えるプランと料金を確認する</td></tr>
+  <tr><th>5</th><td>道具の工房 … アプリを入れて Code / Codex の入口を開く</td></tr>
+  <tr><th>6</th><td>練習の作業台 … 空の練習フォルダを用意し、許可の設定を確かめる</td></tr>
+  <tr><th>7</th><td>対話の灯台 … 日本語で話しかけて返事を確かめる</td></tr>
+  <tr><th>8</th><td>小さな創作室 … 「今日やること.txt」を作って実物を開く</td></tr>
+  <tr><th>9</th><td>工夫のアトリエ … 「10分を15分に」と自分の言葉で直す</td></tr>
+  <tr><th>10</th><td>再出発の扉 … アプリを開き直し、同じ場所から再開する</td></tr>
+</table>
+<p>途中で休憩して大丈夫です。進捗はブラウザに保存され、同じブラウザで「続きから学ぶ」を押せば再開できます。</p>
+
+<h2>安全に進めるための約束</h2>
+<div class="card warn">
+<ul>
+  <li>パスワード・認証コード・カード番号・APIキーは、AIに送らない（入力は自分で公式画面に）</li>
+  <li>契約・購入・削除・インストールは、内容を読んで自分で判断する</li>
+  <li>AIの「できました」は、実際のファイルや画面で確かめてからチェックする</li>
+  <li>アクセスの許可を聞かれたら、対象が練習フォルダで今回の作業に必要か確かめる</li>
+</ul>
+</div>
+
+<h2>講師に相談するときのテンプレート</h2>
+<div class="card">
+<b>章：</b>（例：道具の工房）<br>
+<b>できたところ：</b>（例：ダウンロードまで）<br>
+<b>表示：</b>（エラー文や画面。秘密情報は隠す）<br>
+<b>試したこと：</b>（例：アプリを開き直した）<br>
+<b>確認したいこと：</b>（例：この警告は進めて大丈夫？）
+</div>
+<p>公式LINEで「質問」と送ると、講師への質問フォームが届きます。</p>
+
+<h2>最初の24時間でやること</h2>
+<ol>
+  <li>講座ページを開き、相棒（灯火の道／星図の道）を選ぶ</li>
+  <li>「はじめに」の教材とプロンプトを、普段のAIチャットに貼る</li>
+  <li>AIと一往復できたら、公式LINEに「できた」と送る</li>
+</ol>
+<p class="foot">講座ページ：https://sho-claude-code-course.pages.dev/　／　料金・利用条件・画面は変わることがあります。最新は各サービスの公式情報で確認してください。</p>
+</body>
+</html>

@@ -7,3 +7,5 @@ data/*.db*
 deploy/.env
 next-env.d.ts
 node_modules
+.env.vercel
+.vercel

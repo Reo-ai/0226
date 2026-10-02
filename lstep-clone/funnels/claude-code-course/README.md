@@ -1,6 +1,16 @@
-# Claude Code 講座 販売導線（公式LINE）
+# スキルクエスト（Claude Code / Codex 講座）販売導線（公式LINE）
 
-講座ページ: https://sho-claude-code-course.pages.dev/
+講座ページ: https://sho-claude-code-course.pages.dev/ （作成者 茅森ショウ）
+
+配信文面・特典PDF・リッチメニュー画像は、講座ページの内容（灯火の道＝Claude Code／星図の道＝Codex、World1 全10章 → 営業武器 → リサーチ模擬案件）に合わせています。
+
+| 素材 | 場所 |
+|---|---|
+| 登録特典PDF「スキルクエストの歩き方」 | `public/gift/skillquest-start-guide.pdf`（スキルステップから `/gift/skillquest-start-guide.pdf` で配信。元HTMLは `assets/gift.html`） |
+| リッチメニュー画像（通常・6分割） | `assets/richmenu-normal.jpg`（2500×1686） |
+| リッチメニュー画像（購入者・4分割） | `assets/richmenu-buyer.jpg`（2500×1686） |
+
+> 期限内特典3つは、講座ページにある講師サポートから組んだ**仮案**です。講師が提供できるか確認してから公開してください。
 
 すべての設定は [`funnel.mjs`](./funnel.mjs) にまとまっています。冒頭の `CONFIG` を埋めて、1コマンドで管理ツールに投入します。
 
@@ -122,10 +132,10 @@ node scripts/seed-funnel.mjs funnels/claude-code-course/funnel.mjs --replace
 
 - [ ] `CONFIG` の「要設定」をすべて埋めた（`--dry-run` で警告が0件）
 - [ ] 決済サービスのサンクスページに「LINEで『購入しました』と送ってください」を記載
-- [ ] 特典PDFを作成し、共有リンクを `giftUrl` に設定
+- [x] 特典PDFを作成（スキルステップの公開URLが `skill-step.vercel.app` 以外になったら `BASE_URL` を付けて投入）
 - [ ] 本番DBに投入し、管理画面で全シナリオ・キーワードを確認
 - [ ] 自分のLINEで友だち追加 → 1/2/3・特典・アンケート・質問・購入しました を一通り送って確認
-- [ ] リッチメニュー画像を作成・設定（通常／購入者）
+- [ ] リッチメニュー画像を設定（画像は `assets/` に作成済み）
 - [ ] 流入経路URL（ig / tt / x / yt / course）を各SNSのプロフィールと講座ページに設置
 - [ ] プッシュ上限をLINEの契約プランに合わせた
 
