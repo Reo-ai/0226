@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { addStep, deleteScenario, deleteStep, toggleScenario } from "@/lib/actions";
+import { addStep, deleteScenario, deleteStep, setScenarioStopTag, toggleScenario } from "@/lib/actions";
 import { all, get } from "@/lib/db";
 import { fmtDelay } from "@/lib/format";
-import type { Scenario, ScenarioStep } from "@/lib/types";
-import { ContentHelp, ErrorBox } from "@/lib/ui";
+import type { Scenario, ScenarioStep, Tag } from "@/lib/types";
+import { ContentHelp, ErrorBox, TagSelect } from "@/lib/ui";
 
 export default async function ScenarioPage({
   params,
@@ -20,6 +20,7 @@ export default async function ScenarioPage({
     "SELECT * FROM scenario_steps WHERE scenario_id = ? ORDER BY delay_minutes, id",
     s.id,
   );
+  const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
   const sent = new Map(
     (
       await all<{ ref_id: number; n: number; free: number }>(
@@ -46,13 +47,19 @@ export default async function ScenarioPage({
         </div>
       </div>
       <ErrorBox error={error} />
+      <form action={setScenarioStopTag} className="panel row">
+        <input type="hidden" name="id" value={s.id} />
+        停止タグ（このタグが付いたら配信を止める。例: 購入済み）
+        <TagSelect tags={tags} name="stopTagId" empty="（なし）" defaultValue={s.stop_tag_id} />
+        <button className="ghost">保存</button>
+      </form>
       <div className="panel">
         <table>
           <thead><tr><th>タイミング（開始から）</th><th>届け方</th><th>内容</th><th>送信数（うち無料）</th><th /></tr></thead>
           <tbody>
             {steps.map((st) => (
               <tr key={st.id}>
-                <td>{fmtDelay(st.delay_minutes)}</td>
+                <td>{fmtDelay(st.delay_minutes, !!st.fixed_time)}</td>
                 <td>{st.delivery === "reply" ? <span className="free">反応時に無料</span> : "プッシュ"}</td>
                 <td className="pre">{st.content}</td>
                 <td>{sent.get(st.id)?.n ?? 0}（{sent.get(st.id)?.free ?? 0}）</td>
@@ -78,9 +85,17 @@ export default async function ScenarioPage({
         <div className="row">
           開始から
           <input type="number" name="days" min={0} defaultValue={0} style={{ width: 70 }} /> 日
+        </div>
+        <label className="row">
+          <input type="radio" name="timing" value="relative" defaultChecked />＋
           <input type="number" name="hours" min={0} max={23} defaultValue={0} style={{ width: 70 }} /> 時間
           <input type="number" name="minutes" min={0} max={59} defaultValue={0} style={{ width: 70 }} /> 分後
-        </div>
+        </label>
+        <label className="row">
+          <input type="radio" name="timing" value="fixed" />その日の
+          <input type="number" name="atHour" min={0} max={23} defaultValue={20} style={{ width: 70 }} /> 時
+          <input type="number" name="atMinute" min={0} max={59} defaultValue={0} style={{ width: 70 }} /> 分（JST）に配信
+        </label>
         <fieldset className="stack">
           <legend>届け方（時間になったら…）</legend>
           <label className="row">

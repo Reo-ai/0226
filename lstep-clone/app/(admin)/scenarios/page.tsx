@@ -25,11 +25,12 @@ export default async function ScenariosPage() {
           <option value="manual">手動で開始</option>
         </select>
         <TagSelect tags={tags} name="triggerTagId" empty="（タグ付与時のタグ）" />
+        <TagSelect tags={tags} name="stopTagId" empty="（停止タグ：なし）" />
         <button>作成</button>
       </form>
       <div className="panel">
         <table>
-          <thead><tr><th>シナリオ</th><th>開始条件</th><th>ステップ数</th><th>進行中</th><th>状態</th></tr></thead>
+          <thead><tr><th>シナリオ</th><th>開始条件</th><th>停止タグ</th><th>ステップ数</th><th>進行中</th><th>状態</th></tr></thead>
           <tbody>
             {list.map((s) => (
               <tr key={s.id}>
@@ -38,12 +39,13 @@ export default async function ScenariosPage() {
                   {TRIGGER_LABEL[s.trigger]}
                   {s.trigger === "tag" && s.trigger_tag_id ? `（${tagName.get(s.trigger_tag_id)}）` : ""}
                 </td>
+                <td>{s.stop_tag_id ? tagName.get(s.stop_tag_id) : "-"}</td>
                 <td>{s.steps}</td>
                 <td>{s.active}</td>
                 <td><span className={`badge ${s.enabled ? "on" : ""}`}>{s.enabled ? "有効" : "停止"}</span></td>
               </tr>
             ))}
-            {list.length === 0 && <tr><td colSpan={5} className="muted">まだシナリオはありません</td></tr>}
+            {list.length === 0 && <tr><td colSpan={6} className="muted">まだシナリオはありません</td></tr>}
           </tbody>
         </table>
       </div>

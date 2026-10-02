@@ -1,8 +1,8 @@
 import { run } from "./db";
 import { syncRichMenu } from "./richmenu";
-import { enrollByTag } from "./scenarios";
+import { enrollByTag, stopByTag } from "./scenarios";
 
-/** タグ付与。新たに付いた場合はタグ起点シナリオ開始・リッチメニュー切替 */
+/** タグ付与。新たに付いた場合は停止条件のシナリオを止め、タグ起点シナリオ開始・リッチメニュー切替 */
 export async function addTag(friendId: number, tagId: number): Promise<boolean> {
   const { changes } = await run(
     "INSERT OR IGNORE INTO friend_tags (friend_id, tag_id, created_at) VALUES (?, ?, ?)",
@@ -11,6 +11,7 @@ export async function addTag(friendId: number, tagId: number): Promise<boolean> 
     Date.now(),
   );
   if (changes === 0) return false;
+  await stopByTag(friendId, tagId);
   await enrollByTag(friendId, tagId);
   await syncRichMenu(friendId);
   return true;

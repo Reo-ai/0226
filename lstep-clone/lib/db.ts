@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS scenarios (
   name TEXT NOT NULL,
   trigger TEXT NOT NULL DEFAULT 'manual',
   trigger_tag_id INTEGER,
+  stop_tag_id INTEGER,
   enabled INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL
 );
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS scenario_steps (
   scenario_id INTEGER NOT NULL,
   delay_minutes INTEGER NOT NULL,
   delivery TEXT NOT NULL DEFAULT 'push',
+  fixed_time INTEGER NOT NULL DEFAULT 0,
   content TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS enrollments (
@@ -174,6 +176,12 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
+/** 既存DBに後から足した列（CREATE TABLE IF NOT EXISTS では追加されない） */
+const MIGRATIONS = [
+  "ALTER TABLE scenarios ADD COLUMN stop_tag_id INTEGER",
+  "ALTER TABLE scenario_steps ADD COLUMN fixed_time INTEGER NOT NULL DEFAULT 0",
+];
+
 export type Arg = InValue;
 
 const g = globalThis as unknown as { __db?: Client; __dbReady?: Promise<void> };
@@ -188,6 +196,13 @@ function client(): Client {
     g.__dbReady = (async () => {
       if (url.startsWith("file:")) await g.__db!.execute("PRAGMA journal_mode = WAL");
       await g.__db!.executeMultiple(SCHEMA);
+      for (const sql of MIGRATIONS) {
+        try {
+          await g.__db!.execute(sql);
+        } catch (err) {
+          if (!/duplicate column/i.test(String(err))) throw err;
+        }
+      }
     })();
   }
   return g.__db;

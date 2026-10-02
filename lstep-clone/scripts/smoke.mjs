@@ -218,6 +218,24 @@ await test("ブロックでシナリオ停止・保留削除", async () => {
   assert.equal((await one("SELECT COUNT(*) n FROM enrollments WHERE friend_id = 2 AND status = 'active'")).n, 0);
 });
 
+await test("停止タグが付くとシナリオが止まり、タグ起点の時刻指定ステップは開始日0時(JST)から数える", async () => {
+  await db.batch([
+    "INSERT INTO tags (name) VALUES ('購入済み')",
+    "INSERT INTO scenarios (name, trigger, stop_tag_id, created_at) VALUES ('セールス', 'manual', 3, 0)",
+    "INSERT INTO scenario_steps (scenario_id, delay_minutes, content) VALUES (3, 60, '購入しませんか')",
+    "INSERT INTO scenarios (name, trigger, trigger_tag_id, created_at) VALUES ('購入者フォロー', 'tag', 3, 0)",
+    "INSERT INTO scenario_steps (scenario_id, delay_minutes, fixed_time, content) VALUES (4, 2640, 1, '翌日20時')",
+    "INSERT INTO auto_replies (keyword, match_type, reply, add_tag_id) VALUES ('購入しました', 'exact', 'ありがとうございます', 3)",
+    "INSERT INTO enrollments (friend_id, scenario_id, started_at, next_run_at) VALUES (3, 3, 0, 0)",
+  ]);
+  await hook([text("U3", "購入しました")]);
+  assert.ok(!(await out(3)).some((m) => m.content === "購入しませんか"));
+  assert.equal((await one("SELECT status FROM enrollments WHERE friend_id = 3 AND scenario_id = 3")).status, "stopped");
+  const e = await one("SELECT started_at, next_run_at FROM enrollments WHERE friend_id = 3 AND scenario_id = 4");
+  const dayStart = Math.floor((Number(e.started_at) + 9 * 3600_000) / 86_400_000) * 86_400_000 - 9 * 3600_000;
+  assert.equal(Number(e.next_run_at), dayStart + 2640 * 60_000);
+});
+
 await test("CSVエクスポートは要ログイン", async () => {
   assert.equal((await fetch(`${BASE}/api/export/friends`)).status, 401);
 });

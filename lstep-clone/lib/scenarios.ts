@@ -1,5 +1,6 @@
 import { all, get, run } from "./db";
 import { pushToFriend, type Outbox } from "./delivery";
+import { jstDayStart } from "./format";
 import { getFriend } from "./friends";
 import { QuotaError, pushRemaining } from "./quota";
 import type { Scenario, ScenarioStep } from "./types";
@@ -11,8 +12,22 @@ function steps(scenarioId: number) {
   );
 }
 
-/** シナリオ開始。各ステップは開始時刻からの経過時間で配信される */
+/** ステップの配信時刻。時刻指定のステップは開始日の0時(JST)から数える */
+const dueAt = (e: { started_at: number }, s: ScenarioStep) =>
+  (s.fixed_time ? jstDayStart(e.started_at) : e.started_at) + s.delay_minutes * 60_000;
+
+/** 配信を止めるタグが付いている人の進行中シナリオを止める */
+const STOPPED_BY_TAG = `EXISTS (SELECT 1 FROM friend_tags ft WHERE ft.friend_id = e.friend_id AND ft.tag_id = s.stop_tag_id)`;
+
+/** シナリオ開始。各ステップは開始時刻からの経過時間（または開始日からの日数＋時刻）で配信される */
 export async function enroll(friendId: number, scenarioId: number) {
+  const stopped = await get(
+    `SELECT 1 FROM scenarios s JOIN friend_tags ft ON ft.tag_id = s.stop_tag_id
+     WHERE s.id = ? AND ft.friend_id = ?`,
+    scenarioId,
+    friendId,
+  );
+  if (stopped) return;
   const first = (await steps(scenarioId))[0];
   const now = Date.now();
   await run(
@@ -24,7 +39,7 @@ export async function enroll(friendId: number, scenarioId: number) {
     friendId,
     scenarioId,
     now,
-    first ? now + first.delay_minutes * 60_000 : null,
+    first ? dueAt({ started_at: now }, first) : null,
     first ? "active" : "done",
   );
 }
@@ -32,6 +47,16 @@ export async function enroll(friendId: number, scenarioId: number) {
 export async function enrollByFollow(friendId: number) {
   const list = await all<Scenario>("SELECT * FROM scenarios WHERE enabled = 1 AND trigger = 'follow'");
   for (const s of list) await enroll(friendId, s.id);
+}
+
+/** タグが付いた時、そのタグで止めるシナリオを停止する */
+export async function stopByTag(friendId: number, tagId: number) {
+  await run(
+    `UPDATE enrollments SET status = 'stopped', next_run_at = NULL
+     WHERE friend_id = ? AND status = 'active' AND scenario_id IN (SELECT id FROM scenarios WHERE stop_tag_id = ?)`,
+    friendId,
+    tagId,
+  );
 }
 
 export async function enrollByTag(friendId: number, tagId: number) {
@@ -55,13 +80,11 @@ async function advance(e: EnrollmentRow, list: ScenarioStep[], idx: number) {
   await run(
     "UPDATE enrollments SET next_step_index = ?, next_run_at = ?, waiting = 0, status = ? WHERE id = ?",
     idx,
-    next ? e.started_at + next.delay_minutes * 60_000 : null,
+    next ? dueAt(e, next) : null,
     next ? "active" : "done",
     e.id,
   );
 }
-
-const dueAt = (e: EnrollmentRow, s: ScenarioStep) => e.started_at + s.delay_minutes * 60_000;
 
 /**
  * 友だちから反応（追加・メッセージ・ボタン）があった時に呼ぶ。
@@ -71,7 +94,8 @@ export async function collectDueSteps(box: Outbox, now = Date.now()) {
   const due = await all<EnrollmentRow>(
     `SELECT e.id, e.friend_id, e.scenario_id, e.started_at, e.next_step_index
      FROM enrollments e JOIN scenarios s ON s.id = e.scenario_id
-     WHERE e.friend_id = ? AND e.status = 'active' AND s.enabled = 1 AND e.next_run_at <= ?`,
+     WHERE e.friend_id = ? AND e.status = 'active' AND s.enabled = 1 AND e.next_run_at <= ?
+       AND NOT ${STOPPED_BY_TAG}`,
     box.friend.id,
     now,
   );
@@ -95,6 +119,7 @@ export async function processDueSteps(now = Date.now()) {
     `SELECT e.id, e.friend_id, e.scenario_id, e.started_at, e.next_step_index
      FROM enrollments e JOIN scenarios s ON s.id = e.scenario_id
      WHERE e.status = 'active' AND e.waiting = 0 AND s.enabled = 1 AND e.next_run_at <= ?
+       AND NOT ${STOPPED_BY_TAG}
      ORDER BY e.next_run_at LIMIT 200`,
     now,
   );

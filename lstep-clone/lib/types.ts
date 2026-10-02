@@ -50,6 +50,8 @@ export interface Scenario {
   name: string;
   trigger: "follow" | "tag" | "manual";
   trigger_tag_id: number | null;
+  /** このタグが付いている人には配信しない（付いた時点で停止） */
+  stop_tag_id: number | null;
   enabled: number;
   created_at: number;
 }
@@ -61,6 +63,8 @@ export interface ScenarioStep {
   scenario_id: number;
   delay_minutes: number;
   delivery: Delivery;
+  /** 1: delay_minutes を「開始日の0時(JST)から」数える（例: 1日後の20:00） */
+  fixed_time: number;
   content: string;
 }
 

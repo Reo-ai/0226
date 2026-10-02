@@ -192,13 +192,21 @@ export async function createScenario(fd: FormData) {
   if (!name) return;
   const trigger = str(fd, "trigger") as "follow" | "tag" | "manual";
   const { lastId } = await run(
-    "INSERT INTO scenarios (name, trigger, trigger_tag_id, created_at) VALUES (?, ?, ?, ?)",
+    "INSERT INTO scenarios (name, trigger, trigger_tag_id, stop_tag_id, created_at) VALUES (?, ?, ?, ?, ?)",
     name,
     trigger,
     trigger === "tag" ? optId(fd, "triggerTagId") : null,
+    optId(fd, "stopTagId"),
     Date.now(),
   );
   redirect(`/scenarios/${lastId}`);
+}
+
+export async function setScenarioStopTag(fd: FormData) {
+  await requireAuth();
+  const id = num(fd, "id");
+  await run("UPDATE scenarios SET stop_tag_id = ? WHERE id = ?", optId(fd, "stopTagId"), id);
+  revalidatePath(`/scenarios/${id}`);
 }
 
 export async function toggleScenario(fd: FormData) {
@@ -226,12 +234,16 @@ export async function addStep(fd: FormData) {
   const content = str(fd, "content");
   const err = validateContent(content);
   if (err) redirect(`/scenarios/${scenarioId}?error=${enc(err)}`);
-  const delay = num(fd, "days") * 1440 + num(fd, "hours") * 60 + num(fd, "minutes");
+  const fixedTime = str(fd, "timing") === "fixed";
+  const delay = fixedTime
+    ? num(fd, "days") * 1440 + Math.min(23, num(fd, "atHour")) * 60 + Math.min(59, num(fd, "atMinute"))
+    : num(fd, "days") * 1440 + num(fd, "hours") * 60 + num(fd, "minutes");
   await run(
-    "INSERT INTO scenario_steps (scenario_id, delay_minutes, delivery, content) VALUES (?, ?, ?, ?)",
+    "INSERT INTO scenario_steps (scenario_id, delay_minutes, delivery, fixed_time, content) VALUES (?, ?, ?, ?, ?)",
     scenarioId,
     Math.max(0, delay),
     str(fd, "delivery") === "reply" ? "reply" : "push",
+    fixedTime ? 1 : 0,
     content,
   );
   revalidatePath(`/scenarios/${scenarioId}`);
