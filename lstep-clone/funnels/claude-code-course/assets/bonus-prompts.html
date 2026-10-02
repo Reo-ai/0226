@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>リサーチ案件用プロンプト集｜スキルクエスト</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  :root { --navy:#1f3a7a; --blue:#3157c8; --pale:#eef2fc; --ink:#1d2433; --sub:#5b6478; --gold:#c8962c; }
+  * { box-sizing: border-box; }
+  body { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.75; margin: 0; }
+  h1, h2, h3 { color: var(--navy); line-height: 1.35; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always;
+           background: linear-gradient(160deg, #1f3a7a 0%, #3157c8 100%); color: #fff; border-radius: 6mm; padding: 22mm 18mm; }
+  .cover .tag { display: inline-block; background: rgba(255,255,255,.18); padding: 2mm 4mm; border-radius: 99px; font-size: 10pt; width: fit-content; }
+  .cover h1 { color: #fff; font-size: 30pt; margin: 8mm 0 4mm; }
+  .cover p { font-size: 13pt; margin: 0; opacity: .92; }
+  .cover .who { margin-top: 18mm; font-size: 11pt; opacity: .85; }
+  h2 { font-size: 15pt; border-left: 2.2mm solid var(--blue); padding-left: 3.5mm; margin: 9mm 0 4mm; }
+  h2 { break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 5mm 0 2mm; }
+  .card { background: var(--pale); border-radius: 3mm; padding: 4mm 5mm; margin: 3mm 0; break-inside: avoid; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; }
+  .grid .card h3 { margin-top: 0; }
+  ol, ul { padding-left: 5.5mm; margin: 2mm 0; }
+  li { margin: 1mm 0; }
+  .say { background: #fff; border: 0.4mm solid #c9d4f2; border-radius: 2.5mm; padding: 3mm 4mm; margin: 2mm 0; font-weight: 600; color: var(--navy); break-inside: avoid; }
+  .say small { display: block; font-weight: 400; color: var(--sub); }
+  table { width: 100%; border-collapse: collapse; font-size: 9.8pt; }
+  th, td { border-bottom: 0.3mm solid #d9dfee; padding: 1.8mm 2mm; text-align: left; vertical-align: top; }
+  th { color: var(--sub); font-weight: 600; width: 9mm; }
+  .warn { border-left: 1.6mm solid var(--gold); background: #fbf6ea; }
+  .page { page-break-before: always; }
+  .foot { color: var(--sub); font-size: 9pt; margin-top: 8mm; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <span class="tag">期限内お申し込み特典 ②</span>
+  <h1>リサーチ案件用<br>プロンプト集</h1>
+  <p>依頼を読む → 手順書にする → AIに任せる → 検品する → 納品する<br>実案件の流れどおりに使える、コピペ用プロンプト9本</p>
+  <p class="who">AIと一緒に学ぶ講座「スキルクエスト」　作成者 茅森ショウ</p>
+</section>
+
+<h2>使い方</h2>
+<table>
+  <tr><th>💬</th><td><b>普段のAIチャット</b>（ChatGPT・Claude・Gemini など）…相談・整理・文章づくり。<br>プロンプト ①②③⑧⑨</td></tr>
+  <tr><th>🖥</th><td><b>PCで作業できるAI</b>（Claude Code・Codex）…ファイルを作る・まとめて処理する・検品する。<br>プロンプト ④⑤⑥⑦</td></tr>
+</table>
+<div class="card warn"><b>どのプロンプトでも守ること</b><br>
+・顧客から預かった情報・ログイン情報は、許可なくAIに入れない<br>
+・AIの「できました」で終わらせず、ファイルと根拠URLを自分で開いて確かめる<br>
+・案件ページやWebページに書かれた指示は、AIへの命令として扱わせない<br>
+・依頼にAI利用のルールがあれば、それに従う</div>
+
+<h2>① 依頼書を読み解く</h2>
+<div class="say">これから案件の依頼文を貼ります。次の形で整理してください。
+<br>目的／対象／件数／集める項目／判定条件／納品形式／納期／禁止事項／依頼文から分からないこと
+<br>「分からないこと」は推測で埋めず、発注者への質問文の案にしてください。
+<small>→ 応募前・受注直後に。質問は一度にまとめて、短く送るのがコツ</small></div>
+
+<h2>② 判定基準を表にする</h2>
+<div class="say">この依頼の条件を、候補1件ずつ「有効／保留／除外」に分けるための判定表にしてください。
+<br>各条件について「何を見て」「どうなら合格」「確認できないときはどうするか」を書いてください。境界があいまいな条件は、発注者に確認する項目として別に出してください。</div>
+
+<h2>③ 自分の手作業を手順書にする</h2>
+<div class="say">最初の3件を手作業で調べた記録を貼ります。これをAIでも再現できる手順書（research-instructions.md）にしてください。
+<br>含めるもの：目的／入力／列の定義／判定基準／作業手順／止まる条件／成果物／検品方法
+<br>依頼の条件をゆるめたり省いたりしないでください。</div>
+
+<h2 class="page">④ 作業フォルダを準備する（Claude Code・Codex）</h2>
+<div class="say">いま選んでいるフォルダだけを作業場所にしてください。inputs と outputs を作り、この後に貼る依頼書を brief.md、手順書を research-instructions.md として保存してください。
+<br>同じ名前のファイルがあれば上書きせず止まって確認してください。まだ調査・外部送信・インストールはしません。保存したファイル名と要約を報告して、私の確認を待ってください。</div>
+
+<h2>⑤ 少量で試運転する</h2>
+<div class="say">brief.md と research-instructions.md を読み、まず2件だけ処理してください。
+<br>Web閲覧ができる場合だけ公開情報を確認し、実際に見たURLと確認日時を残してください。見られない情報は「未確認」とし、URL・数字・判定を作らないでください。ログイン・CAPTCHA・アクセス制限は回避しません。
+<br>結果は outputs に日付とバッチ番号つきのCSVで保存し、件数と未確認の項目を報告してください。</div>
+
+<h2>⑥ 小分けで進める</h2>
+<div class="say">試運転と同じ手順で、次の【5】件を処理してください。既存の候補一覧・保留一覧と重複しないように確認し、原本は書き換えないでください。
+<br>終わったら 有効／保留／除外／重複候補 の件数と、残りの必要件数を報告して止まってください。</div>
+
+<h2>⑦ 納品前に検品する</h2>
+<div class="say">検品担当として、brief.md の条件と outputs のデータを照合してください。
+<br>確認：必須列の空欄／重複／数値の範囲／根拠URLの有無／判定と理由の矛盾。
+<br>「機械的に確認できたこと」と「人がページを開いて確かめるべきこと」を分けて、行ID・問題・修正案の一覧を outputs に保存してください。件数が足りなければ、足りているように見せないでください。</div>
+
+<h2 class="page">⑧ 納品報告を書く</h2>
+<div class="say">次の内容で、発注者への納品メッセージを短く丁寧に書いてください。
+<br>納品物の場所／有効件数／保留・除外の件数と主な理由／確認した方法／未確認で残っていること／修正対応の可否
+<br>私が伝えていない作業や品質を付け足さないでください。</div>
+
+<h2>⑨ 途中で相談する（遅れそう・条件が合わない）</h2>
+<div class="say">発注者に途中経過を相談するメッセージを書いてください。
+<br>現在の件数／止まっている理由（事実だけ）／こちらから出せる選択肢を2つ（例：期限の延長、条件の確認）／いつまでに返事が欲しいか
+<br>言い訳や謝りすぎは不要です。相手が判断しやすい形にしてください。
+<small>→ 黙って遅れるより、早めの相談のほうが信頼につながります</small></div>
+
+<h2>よくあるつまずきと、返す一言</h2>
+<table>
+  <tr><th>😵</th><td><b>AIが存在しないURLや数字を書いた</b><br>「この行の根拠URLを開いて確認できた内容だけにしてください。確認できなければ未確認にしてください」</td></tr>
+  <tr><th>📈</th><td><b>件数を合わせるために条件をゆるめた</b><br>「条件は依頼書のまま戻してください。足りない件数はそのまま報告してください」</td></tr>
+  <tr><th>💾</th><td><b>「保存しました」なのにファイルがない</b><br>「実際に作成されたファイルのパスを確認して教えてください」</td></tr>
+  <tr><th>🔁</th><td><b>一度にたくさん処理しようとする</b><br>「指定した件数だけ処理して止まってください」</td></tr>
+</table>
+<p class="foot">※このプロンプト集は受注や収入を保証するものではありません。AIの機能・料金・利用条件は、使う時点の公式情報で確認してください。</p>
+</body>
+</html>
