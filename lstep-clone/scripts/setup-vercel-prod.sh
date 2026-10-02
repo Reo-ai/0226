@@ -31,7 +31,10 @@ if has_env LINE_CHANNEL_SECRET && has_env LINE_CHANNEL_ACCESS_TOKEN; then
   echo "登録済みなのでスキップ"
 else
   echo "LINE Developers の画面からコピーして貼ってください（貼った文字は表示されません）"
-  put_env LINE_CHANNEL_SECRET "$(read_secret '「チャネル基本設定」の Channel secret')"
+  SECRET=$(read_secret '「チャネル基本設定」の Channel secret' | tr -d '[:space:]')
+  printf '%s' "$SECRET" | grep -Eq '^[0-9a-f]{32}$' ||
+    { echo "❌ Channel secret の形ではありません（英数字32文字のはず）。コピーし直して再実行してください"; exit 1; }
+  put_env LINE_CHANNEL_SECRET "$SECRET"; unset SECRET
   put_env LINE_CHANNEL_ACCESS_TOKEN "$(read_secret '「Messaging API設定」のチャネルアクセストークン（長期）')"
   echo "✅ 登録しました"
 fi
