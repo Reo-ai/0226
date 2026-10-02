@@ -18,10 +18,12 @@ export interface LineEvent {
 
 async function matchAutoReply(text: string): Promise<AutoReply | undefined> {
   const rules = await all<AutoReply>("SELECT * FROM auto_replies WHERE enabled = 1 ORDER BY id");
-  const t = text.trim();
+  // 全角数字・英字（「１」など）や大文字小文字の違いでも一致させる
+  const norm = (s: string) => s.normalize("NFKC").trim().toLowerCase();
+  const t = norm(text);
   return (
-    rules.find((r) => r.match_type === "exact" && r.keyword === t) ??
-    rules.find((r) => r.match_type === "contains" && t.includes(r.keyword))
+    rules.find((r) => r.match_type === "exact" && norm(r.keyword) === t) ??
+    rules.find((r) => r.match_type === "contains" && t.includes(norm(r.keyword)))
   );
 }
 
