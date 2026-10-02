@@ -124,9 +124,22 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
     );
     return true;
   }
-  if (!habit) return false;
+  if (!habit) {
+    // 習慣を決める前に「記録」を押された時は始め方を案内する（「できた」は講座のキーワード応答に任せる）
+    if (text === "記録") {
+      box.add("まだ続ける習慣が決まっていません。\n下のメニューの「習慣の設定」を押すか、「習慣」と送って始めましょう✍️", "auto");
+      return true;
+    }
+    return false;
+  }
 
-  // 行動を決める
+  const MENU_WORDS = [...DONE_WORDS, "記録"];
+
+  // 行動を決める（メニューのボタンを押しただけの時は登録しない）
+  if (habit.state === "await_action" && MENU_WORDS.includes(text)) {
+    box.add("先に、続けたい行動を【1つだけ】文字で送ってください✍️\n例）腕立て10回／SNS投稿1本／英単語を5個覚える", "auto");
+    return true;
+  }
   if (habit.state === "await_action") {
     const action = text.slice(0, 60);
     await run("UPDATE habits SET action = ?, state = 'await_time' WHERE friend_id = ?", action, friend.id);
@@ -137,7 +150,11 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
     return true;
   }
 
-  // 時刻を決める
+  // 時刻を決める（メニューのボタンを押しただけの時は時刻を聞き直す）
+  if (habit.state === "await_time" && MENU_WORDS.includes(text)) {
+    box.add(`先に、毎日リマインドする時刻を決めましょう⏰\n「21:00」のように送ってください（いらなければ「なし」）。\n\n📒 続ける行動：${habit.action}`, "auto");
+    return true;
+  }
   if (habit.state === "await_time") {
     if (text === "なし") {
       await run("UPDATE habits SET remind_enabled = 0, state = NULL WHERE friend_id = ?", friend.id);
