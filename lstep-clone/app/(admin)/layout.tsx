@@ -17,6 +17,7 @@ const NAV = [
   ["/auto-replies", "自動応答"],
   ["/rich-menus", "リッチメニュー"],
   ["/forms", "回答フォーム"],
+  ["/bookings", "予約の受付"],
   ["/sources", "流入経路"],
   ["/links", "計測リンク"],
   ["/tags", "タグ"],

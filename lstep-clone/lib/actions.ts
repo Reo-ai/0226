@@ -35,6 +35,7 @@ import { saveAnswersToFields, setFieldValue } from "./fields";
 import { segmentFriends, segmentFrom } from "./segment";
 import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
 import { installTemplate } from "./templates";
+import { book, BOOKING_SETTINGS, BookingError, cancelBooking, createSlots } from "./bookings";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k) ?? 0);
@@ -769,4 +770,70 @@ export async function installTemplateAction(fd: FormData) {
   await installTemplate(key);
   revalidatePath("/templates");
   redirect(`/templates?done=${enc(key)}`);
+}
+
+// ---- 予約の受付 ----
+export async function createSlotsAction(fd: FormData) {
+  await requireAuth();
+  const dates = str(fd, "dates").split(/[\s,、]+/).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+  const times = str(fd, "times").split(/[\s,、]+/).map((t) => t.replace("：", ":")).filter((t) => /^\d{1,2}:\d{2}$/.test(t)).map((t) => t.padStart(5, "0"));
+  const minutes = Math.min(Math.max(num(fd, "minutes") || 60, 5), 24 * 60);
+  const capacity = Math.min(Math.max(num(fd, "capacity") || 1, 1), 1000);
+  // 繰り返し：最初の日付から○週間分、同じ曜日にも作る
+  const weeks = Math.min(Math.max(num(fd, "weeks") || 1, 1), 12);
+  const all = dates.flatMap((d) =>
+    Array.from({ length: weeks }, (_, i) => new Date(Date.parse(`${d}T00:00:00Z`) + i * 7 * 86400_000).toISOString().slice(0, 10)),
+  );
+  if (!all.length || !times.length) redirect(`/bookings?error=${enc("日付と時刻を入力してください")}`);
+  const n = await createSlots(all, times, minutes, capacity);
+  revalidatePath("/bookings");
+  redirect(`/bookings?made=${n}`);
+}
+
+export async function deleteSlot(fd: FormData) {
+  await requireAuth();
+  const id = num(fd, "id");
+  await run("UPDATE bookings SET status = 'canceled' WHERE slot_id = ? AND status = 'booked'", id);
+  await run("DELETE FROM booking_slots WHERE id = ?", id);
+  revalidatePath("/bookings");
+}
+
+export async function adminCancelBooking(fd: FormData) {
+  await requireAuth();
+  await cancelBooking(num(fd, "id"));
+  revalidatePath("/bookings");
+}
+
+export async function saveBookingSettings(fd: FormData) {
+  await requireAuth();
+  await setSetting(BOOKING_SETTINGS.title, str(fd, "title").slice(0, 40));
+  await setSetting(BOOKING_SETTINGS.tagId, String(optId(fd, "tagId") ?? ""));
+  await setSetting(BOOKING_SETTINGS.remindHours, String(Math.max(0, Math.min(num(fd, "remindHours"), 168))));
+  await setSetting(BOOKING_SETTINGS.confirm, str(fd, "confirm").slice(0, 1000));
+  revalidatePath("/bookings");
+}
+
+/** 友だちが予約ページから予約する（ログイン不要） */
+export async function submitBooking(fd: FormData) {
+  const token = str(fd, "f") || "open";
+  const friend = token === "open" ? undefined : await getFriendByToken(token);
+  const ws = await currentWorkspace();
+  const name = str(fd, "name");
+  if (!friend && !name) redirect(withWs(`/b/${token}?error=${enc("お名前を入力してください")}`, ws));
+  try {
+    await book(num(fd, "slotId"), friend, name, str(fd, "note"));
+  } catch (e) {
+    if (e instanceof BookingError) redirect(withWs(`/b/${token}?error=${enc(e.message)}`, ws));
+    throw e;
+  }
+  redirect(withWs(`/b/${token}?done=1`, ws));
+}
+
+export async function cancelMyBooking(fd: FormData) {
+  const token = str(fd, "f");
+  const friend = token ? await getFriendByToken(token) : undefined;
+  const ws = await currentWorkspace();
+  if (!friend) redirect(withWs(`/b/open`, ws));
+  await cancelBooking(num(fd, "id"), friend.id);
+  redirect(withWs(`/b/${token}?canceled=1`, ws));
 }

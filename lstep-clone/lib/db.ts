@@ -203,6 +203,25 @@ CREATE TABLE IF NOT EXISTS friend_fields (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (friend_id, field_id)
 );
+CREATE TABLE IF NOT EXISTS booking_slots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  starts_at INTEGER NOT NULL,
+  minutes INTEGER NOT NULL DEFAULT 60,
+  capacity INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_slots_start ON booking_slots(starts_at);
+CREATE TABLE IF NOT EXISTS bookings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slot_id INTEGER NOT NULL,
+  friend_id INTEGER,
+  name TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'booked',
+  reminded INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bookings_slot ON bookings(slot_id, status);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

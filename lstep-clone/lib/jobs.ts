@@ -1,3 +1,4 @@
+import { sendBookingReminders } from "./bookings";
 import { processDueBroadcasts } from "./broadcasts";
 import { mainAll, run } from "./db";
 import { sendHabitReminders } from "./habits";
@@ -15,6 +16,7 @@ export async function runDueJobs() {
     await processDueBroadcasts();
     await processDueSteps();
     await sendHabitReminders();
+    await sendBookingReminders();
     await run("DELETE FROM pending_messages WHERE expires_at <= ?", Date.now());
   } finally {
     running.delete(ws);

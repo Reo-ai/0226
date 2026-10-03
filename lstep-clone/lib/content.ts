@@ -7,7 +7,7 @@ import type { Friend, MessageSource } from "./types";
  * 本文の書式
  * - 「---」だけの行で吹き出しを区切る（最大5つ。何個でも1通としてカウント）
  * - 「image:https://...」だけの吹き出しは画像として送る
- * - 変数: {{name}} 表示名 / {{link:CODE}} 計測リンク / {{form:ID}} 回答フォーム
+ * - 変数: {{name}} 表示名 / {{link:CODE}} 計測リンク / {{form:ID}} 回答フォーム / {{booking}} 予約ページ
  * - 「選択肢: A / B / C」の行 → 吹き出しの下にタップで送れるボタン（クイックリプライ。最大13個）
  *     「表示=送る文字」と書くと、ボタンの表示と送る文字を分けられる
  * - 「カード: タイトル」で始まる吹き出し → 画像とボタン付きのカード。1つの吹き出しに複数書くと横スクロールのカルーセル
@@ -132,7 +132,7 @@ function cardBubble(c: Card): object {
 
 /** 友だちごとに差し替えが必要か（必要なら一斉送信でもmulticastできない） */
 export function isPersonalized(content: string): boolean {
-  return /\{\{\s*(name|link:[\w-]+|form:\d+|field:[^}]+)\s*\}\}/.test(content);
+  return /\{\{\s*(name|booking|link:[\w-]+|form:\d+|field:[^}]+)\s*\}\}/.test(content);
 }
 
 /** ws: どのワークスペースの友だち向けか（公開ページの URL に ?w= を付ける） */
@@ -156,7 +156,8 @@ export function renderVars(
     .replace(/\{\{\s*form:(\d+)\s*\}\}/g, (_, id: string) => {
       const q = [friend ? `f=${friend.token}` : "", w].filter(Boolean).join("&");
       return `${base}/f/${id}${q ? `?${q}` : ""}`;
-    });
+    })
+    .replace(/\{\{\s*booking\s*\}\}/g, () => `${base}/b/${friend?.token ?? "open"}${w ? `?${w}` : ""}`);
 }
 
 export interface Rendered {
