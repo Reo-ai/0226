@@ -9,6 +9,7 @@ declare global {
       isLoggedIn(): boolean;
       login(opts?: { redirectUri?: string }): void;
       getIDToken(): string | null;
+      getAccessToken(): string | null;
     };
   }
 }
@@ -35,7 +36,7 @@ export default function JoinClient({ liffId, code, addUrl }: { liffId: string; c
         await fetch(w ? `/api/join?w=${encodeURIComponent(w)}` : "/api/join", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, idToken: liff.getIDToken() }),
+          body: JSON.stringify({ code, idToken: liff.getIDToken(), accessToken: liff.getAccessToken() }),
         });
       } catch (e) {
         console.error(e);

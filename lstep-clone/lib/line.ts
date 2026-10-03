@@ -213,3 +213,27 @@ export async function verifyIdToken(idToken: string): Promise<string | null> {
   const json = (await res.json()) as { sub?: string };
   return json.sub ?? null;
 }
+
+/**
+ * LIFF のアクセストークンから LINE ユーザーIDを得る（IDトークンが無いとき＝openid の許可が無いLIFF用）
+ * トークンが自分のチャネル（LIFF ID の前半＝チャネルID）で発行されたものかを先に確かめる
+ */
+export async function userIdFromAccessToken(accessToken: string): Promise<string | null> {
+  const channelId = (process.env.LIFF_ID || "").split("-")[0] || process.env.LINE_LOGIN_CHANNEL_ID;
+  const v = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(accessToken)}`);
+  if (!v.ok) {
+    console.error("アクセストークン検証エラー", v.status, await v.text());
+    return null;
+  }
+  const info = (await v.json()) as { client_id?: string; expires_in?: number };
+  if (!info.client_id || info.client_id !== channelId || !(Number(info.expires_in) > 0)) {
+    console.error("アクセストークンのチャネルが違います", info.client_id);
+    return null;
+  }
+  const p = await fetch("https://api.line.me/v2/profile", { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!p.ok) {
+    console.error("プロフィール取得エラー", p.status, await p.text());
+    return null;
+  }
+  return ((await p.json()) as { userId?: string }).userId ?? null;
+}
