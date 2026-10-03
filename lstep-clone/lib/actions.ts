@@ -244,13 +244,17 @@ export async function addStep(fd: FormData) {
   const delay = fixedTime
     ? num(fd, "days") * 1440 + Math.min(23, num(fd, "atHour")) * 60 + Math.min(59, num(fd, "atMinute"))
     : num(fd, "days") * 1440 + num(fd, "hours") * 60 + num(fd, "minutes");
+  const condTagId = optId(fd, "condTagId");
+  const condType = condTagId && ["has", "not"].includes(str(fd, "condType")) ? str(fd, "condType") : null;
   await run(
-    "INSERT INTO scenario_steps (scenario_id, delay_minutes, delivery, fixed_time, content) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO scenario_steps (scenario_id, delay_minutes, delivery, fixed_time, content, cond_tag_id, cond_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
     scenarioId,
     Math.max(0, delay),
     str(fd, "delivery") === "reply" ? "reply" : "push",
     fixedTime ? 1 : 0,
     content,
+    condType ? condTagId : null,
+    condType,
   );
   revalidatePath(`/scenarios/${scenarioId}`);
 }

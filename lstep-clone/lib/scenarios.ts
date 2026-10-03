@@ -75,6 +75,17 @@ interface EnrollmentRow {
   next_step_index: number;
 }
 
+/** ステップの送る条件（タグがある／ない）に合うか。合わなければ送らずに次へ進む */
+async function stepAllowed(friendId: number, step: ScenarioStep): Promise<boolean> {
+  if (!step.cond_tag_id || !step.cond_type) return true;
+  const has = await get<{ n: number }>(
+    "SELECT 1 n FROM friend_tags WHERE friend_id = ? AND tag_id = ?",
+    friendId,
+    step.cond_tag_id,
+  );
+  return step.cond_type === "has" ? Boolean(has) : !has;
+}
+
 async function advance(e: EnrollmentRow, list: ScenarioStep[], idx: number) {
   const next = list[idx];
   await run(
@@ -103,7 +114,7 @@ export async function collectDueSteps(box: Outbox, now = Date.now()) {
     const list = await steps(e.scenario_id);
     let idx = e.next_step_index;
     while (idx < list.length && dueAt(e, list[idx]) <= now) {
-      box.add(list[idx].content, "step", list[idx].id);
+      if (await stepAllowed(box.friend.id, list[idx])) box.add(list[idx].content, "step", list[idx].id);
       idx++;
     }
     await advance(e, list, idx);
@@ -135,6 +146,10 @@ export async function processDueSteps(now = Date.now()) {
     let waiting = false;
     while (idx < list.length && dueAt(e, list[idx]) <= now) {
       const step = list[idx];
+      if (!(await stepAllowed(friend.id, step))) {
+        idx++;
+        continue;
+      }
       if (step.delivery === "reply") {
         waiting = true;
         break;

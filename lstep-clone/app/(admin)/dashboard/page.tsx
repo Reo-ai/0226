@@ -165,7 +165,7 @@ export default async function Dashboard() {
                   </td>
                   <td>{st.n}</td>
                   <td>{i === 0 ? "-" : pct(st.n, activeFriends)}</td>
-                  <td>{i === 0 ? "-" : pct(st.n, funnel[i - 1].n)}</td>
+                  <td>{i === 0 || st.n > funnel[i - 1].n ? "-" : pct(st.n, funnel[i - 1].n)}</td>
                 </tr>
               ))}
             </tbody>

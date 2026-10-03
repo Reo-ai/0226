@@ -60,7 +60,15 @@ export default async function ScenarioPage({
             {steps.map((st) => (
               <tr key={st.id}>
                 <td>{fmtDelay(st.delay_minutes, !!st.fixed_time)}</td>
-                <td>{st.delivery === "reply" ? <span className="free">反応時に無料</span> : "プッシュ"}</td>
+                <td>
+                  {st.delivery === "reply" ? <span className="free">反応時に無料</span> : "プッシュ"}
+                  {st.cond_tag_id && st.cond_type && (
+                    <div className="hint">
+                      条件：タグ「{tags.find((t) => t.id === st.cond_tag_id)?.name ?? "削除済み"}」が
+                      {st.cond_type === "has" ? "ある人だけ" : "ない人だけ"}
+                    </div>
+                  )}
+                </td>
                 <td className="pre">{st.content}</td>
                 <td>{sent.get(st.id)?.n ?? 0}（{sent.get(st.id)?.free ?? 0}）</td>
                 <td>
@@ -104,6 +112,15 @@ export default async function ScenarioPage({
           <label className="row">
             <input type="radio" name="delivery" value="reply" /> <span><b className="free">無料</b>：相手の次の反応を待って届ける</span>
           </label>
+        </fieldset>
+        <fieldset className="row">
+          <legend>送る条件（シナリオの分岐）</legend>
+          <TagSelect tags={tags} name="condTagId" />
+          <select name="condType" defaultValue="has">
+            <option value="has">が付いている人だけに送る</option>
+            <option value="not">が付いていない人だけに送る</option>
+          </select>
+          <span className="hint">タグを選ばなければ全員に送ります。条件に合わない人はこのステップを飛ばして次へ進みます</span>
         </fieldset>
         <textarea name="content" required placeholder="{{name}}さん、ご登録ありがとうございます！" />
         <ContentHelp />

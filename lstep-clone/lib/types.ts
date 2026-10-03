@@ -66,6 +66,9 @@ export interface ScenarioStep {
   /** 1: delay_minutes を「開始日の0時(JST)から」数える（例: 1日後の20:00） */
   fixed_time: number;
   content: string;
+  /** 送る条件：このタグが has=ある人だけ / not=ない人だけ（null なら全員） */
+  cond_tag_id: number | null;
+  cond_type: "has" | "not" | null;
 }
 
 export interface Broadcast {

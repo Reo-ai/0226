@@ -200,6 +200,9 @@ CREATE TABLE IF NOT EXISTS settings (
 const MIGRATIONS = [
   "ALTER TABLE scenarios ADD COLUMN stop_tag_id INTEGER",
   "ALTER TABLE scenario_steps ADD COLUMN fixed_time INTEGER NOT NULL DEFAULT 0",
+  // シナリオの分岐：タグがある人だけ／ない人だけに送るステップ
+  "ALTER TABLE scenario_steps ADD COLUMN cond_tag_id INTEGER",
+  "ALTER TABLE scenario_steps ADD COLUMN cond_type TEXT",
 ];
 
 export type Arg = InValue;
