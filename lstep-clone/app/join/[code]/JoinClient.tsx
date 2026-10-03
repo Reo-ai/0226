@@ -30,7 +30,9 @@ export default function JoinClient({ liffId, code, addUrl }: { liffId: string; c
           liff.login({ redirectUri: window.location.href });
           return;
         }
-        await fetch("/api/join", {
+        // どのワークスペースの流入経路か（URL の ?w=）を引き継ぐ
+        const w = new URLSearchParams(window.location.search).get("w");
+        await fetch(w ? `/api/join?w=${encodeURIComponent(w)}` : "/api/join", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code, idToken: liff.getIDToken() }),

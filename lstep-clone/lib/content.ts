@@ -1,4 +1,5 @@
 import { baseUrl } from "./env";
+import { wsQuery } from "./workspace";
 import { MAX_BUBBLES, type LineMessage } from "./line";
 import type { Friend, MessageSource } from "./types";
 
@@ -134,17 +135,20 @@ export function isPersonalized(content: string): boolean {
   return /\{\{\s*(name|link:[\w-]+|form:\d+)\s*\}\}/.test(content);
 }
 
-export function renderVars(content: string, friend: Friend | null, source: MessageSource): string {
+/** ws: どのワークスペースの友だち向けか（公開ページの URL に ?w= を付ける） */
+export function renderVars(content: string, friend: Friend | null, source: MessageSource, ws = "main"): string {
   const base = baseUrl();
+  const w = wsQuery(ws);
   return content
     .replace(/\{\{\s*name\s*\}\}/g, friend?.display_name || "")
     .replace(/\{\{\s*link:([\w-]+)\s*\}\}/g, (_, code: string) => {
       const params = new URLSearchParams({ s: source });
       if (friend) params.set("f", friend.token);
-      return `${base}/r/${code}?${params}`;
+      return `${base}/r/${code}?${params}${w ? `&${w}` : ""}`;
     })
     .replace(/\{\{\s*form:(\d+)\s*\}\}/g, (_, id: string) => {
-      return friend ? `${base}/f/${id}?f=${friend.token}` : `${base}/f/${id}`;
+      const q = [friend ? `f=${friend.token}` : "", w].filter(Boolean).join("&");
+      return `${base}/f/${id}${q ? `?${q}` : ""}`;
     });
 }
 
@@ -154,8 +158,8 @@ export interface Rendered {
   text: string;
 }
 
-export function render(content: string, friend: Friend | null, source: MessageSource): Rendered {
-  const blocks = splitBlocks(renderVars(content, friend, source)).slice(0, MAX_BUBBLES);
+export function render(content: string, friend: Friend | null, source: MessageSource, ws = "main"): Rendered {
+  const blocks = splitBlocks(renderVars(content, friend, source, ws)).slice(0, MAX_BUBBLES);
   const messages: LineMessage[] = blocks.map((raw) => {
     const choices = raw.match(CHOICES);
     const b = raw.replace(CHOICES, "").trim();

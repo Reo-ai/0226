@@ -4,8 +4,8 @@ import LineConnectForm from "./LineConnectForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function LinePage({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
-  const { ok } = await searchParams;
+export default async function LinePage({ searchParams }: { searchParams: Promise<{ ok?: string; welcome?: string }> }) {
+  const { ok, welcome } = await searchParams;
   const cfg = await lineConfig();
   const connected = await lineConnected();
   const [stats, quota] = connected ? await Promise.all([getFollowerStats(), getQuota()]) : [null, null];
@@ -13,6 +13,11 @@ export default async function LinePage({ searchParams }: { searchParams: Promise
   return (
     <>
       <h1>LINE連携</h1>
+      {welcome && (
+        <div className="panel ok">
+          ようこそ！あなた専用の管理画面ができました🎉 まずは下の手順で、あなたの公式LINEとつなぎましょう。
+        </div>
+      )}
       {ok && <div className="panel ok">公式LINEと連携しました。友だち追加やメッセージがこのツールに記録されます。</div>}
 
       <div className="panel">

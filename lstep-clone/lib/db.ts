@@ -1,6 +1,7 @@
 import { createClient, type Client, type InStatement, type InValue } from "@libsql/client";
 import fs from "node:fs";
 import path from "node:path";
+import { currentWorkspace, MAIN } from "./workspace";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS friends (
@@ -207,34 +208,107 @@ const MIGRATIONS = [
 
 export type Arg = InValue;
 
-const g = globalThis as unknown as { __db?: Client; __dbReady?: Promise<void> };
+/** main のデータベースだけに置く「場所・メンバー・招待」の表 */
+const CONTROL_SCHEMA = `
+CREATE TABLE IF NOT EXISTS workspaces (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  owner_line_user_id TEXT NOT NULL,
+  db_url TEXT NOT NULL,
+  db_token TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS workspace_members (
+  workspace_id TEXT NOT NULL,
+  line_user_id TEXT NOT NULL,
+  display_name TEXT NOT NULL DEFAULT '',
+  role TEXT NOT NULL DEFAULT 'owner',
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (workspace_id, line_user_id)
+);
+CREATE TABLE IF NOT EXISTS invites (
+  code TEXT PRIMARY KEY,
+  note TEXT NOT NULL DEFAULT '',
+  created_by TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used_by TEXT,
+  used_at INTEGER,
+  workspace_id TEXT
+);
+`;
 
-function client(): Client {
-  if (!g.__db) {
-    const url = process.env.DATABASE_URL || (process.env.VERCEL ? "file:/tmp/app.db" : "file:./data/app.db");
-    if (url.startsWith("file:")) {
-      fs.mkdirSync(path.dirname(url.slice(5)), { recursive: true });
-    }
-    g.__db = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN || undefined });
-    g.__dbReady = (async () => {
-      if (url.startsWith("file:")) await g.__db!.execute("PRAGMA journal_mode = WAL");
-      await g.__db!.executeMultiple(SCHEMA);
-      for (const sql of MIGRATIONS) {
-        try {
-          await g.__db!.execute(sql);
-        } catch (err) {
-          if (!/duplicate column/i.test(String(err))) throw err;
-        }
+interface Conn {
+  client: Client;
+  ready: Promise<void>;
+}
+const g = globalThis as unknown as { __conns?: Map<string, Conn> };
+const conns = (g.__conns ??= new Map());
+
+function open(url: string, authToken: string | undefined, extraSchema = ""): Conn {
+  if (url.startsWith("file:")) fs.mkdirSync(path.dirname(url.slice(5)), { recursive: true });
+  const c = createClient({ url, authToken: authToken || undefined });
+  const ready = (async () => {
+    if (url.startsWith("file:")) await c.execute("PRAGMA journal_mode = WAL");
+    await c.executeMultiple(SCHEMA + extraSchema);
+    for (const sql of MIGRATIONS) {
+      try {
+        await c.execute(sql);
+      } catch (err) {
+        if (!/duplicate column/i.test(String(err))) throw err;
       }
-    })();
+    }
+  })();
+  return { client: c, ready };
+}
+
+function mainConn(): Conn {
+  let c = conns.get(MAIN);
+  if (!c) {
+    const url = process.env.DATABASE_URL || (process.env.VERCEL ? "file:/tmp/app.db" : "file:./data/app.db");
+    c = open(url, process.env.DATABASE_AUTH_TOKEN, CONTROL_SCHEMA);
+    conns.set(MAIN, c);
   }
-  return g.__db;
+  return c;
+}
+
+async function connFor(ws: string): Promise<Conn> {
+  if (ws === MAIN) return mainConn();
+  let c = conns.get(ws);
+  if (!c) {
+    const m = mainConn();
+    await m.ready;
+    const rs = await m.client.execute({ sql: "SELECT db_url, db_token FROM workspaces WHERE id = ?", args: [ws] });
+    const row = rs.rows[0];
+    if (!row) throw new Error(`ワークスペース ${ws} が見つかりません`);
+    c = open(String(row[0]), row[1] ? String(row[1]) : undefined);
+    conns.set(ws, c);
+  }
+  return c;
 }
 
 async function ready(): Promise<Client> {
-  const c = client();
-  await g.__dbReady;
-  return c;
+  const c = await connFor(await currentWorkspace());
+  await c.ready;
+  return c.client;
+}
+
+/** main（場所・メンバー・招待の表がある）に対して実行する */
+async function mainReady(): Promise<Client> {
+  const c = mainConn();
+  await c.ready;
+  return c.client;
+}
+
+export async function mainAll<T>(sql: string, ...args: Arg[]): Promise<T[]> {
+  return toObjects<T>(await (await mainReady()).execute({ sql, args }));
+}
+export async function mainGet<T>(sql: string, ...args: Arg[]): Promise<T | undefined> {
+  return (await mainAll<T>(sql, ...args))[0];
+}
+export async function mainRun(sql: string, ...args: Arg[]) {
+  const rs = await (await mainReady()).execute({ sql, args });
+  return { changes: rs.rowsAffected };
 }
 
 function toObjects<T>(rs: { columns: string[]; rows: ArrayLike<unknown>[] }): T[] {

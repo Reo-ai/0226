@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { logout } from "@/lib/actions";
-import { requireViewer } from "@/lib/auth";
+import { requireViewer, sessionUser, workspacesOf } from "@/lib/auth";
+import { currentWorkspace, MAIN } from "@/lib/workspace";
 import AdminNav from "./AdminNav";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +23,16 @@ const NAV = [
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { guest } = await requireViewer();
+  // 使える場所（ワークスペース）と、招待を作れるか（内海さんの場所の管理者だけ）
+  const user = await sessionUser();
+  const mine = user ? await workspacesOf(user) : [];
+  const ws = await currentWorkspace();
+  const canInvite = mine.some((m) => m.id === MAIN);
+  const items = canInvite ? [...NAV, ["/invites", "招待"] as const] : NAV;
+  const current = mine.find((m) => m.id === ws);
   return (
     <div className="shell">
-      <AdminNav items={NAV}>
+      <AdminNav items={items} workspaceName={current?.name} workspaces={mine.length > 1 ? mine : []} currentWs={ws}>
         <form action={logout}>
           <button className="ghost small" style={{ color: "inherit" }}>
             {guest ? "閲覧を終える" : "ログアウト"}

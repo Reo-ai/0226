@@ -8,6 +8,7 @@ import { baseUrl } from "./env";
 import { jstDateKey } from "./format";
 import { QuotaError } from "./quota";
 import type { Friend } from "./types";
+import { currentWorkspace, withWs } from "./workspace";
 
 export interface Habit {
   friend_id: number;
@@ -83,8 +84,8 @@ async function isOtherKeyword(text: string): Promise<boolean> {
 }
 
 /** その人専用の記録ページ（友だちごとのトークンで本人だけが開ける） */
-export function recordUrl(friend: Friend): string {
-  return `${baseUrl()}/h/${friend.token}`;
+export function recordUrl(friend: Friend, ws = "main"): string {
+  return withWs(`${baseUrl()}/h/${friend.token}`, ws);
 }
 
 export const ALL_BADGES = { streak: STREAK_BADGES, total: TOTAL_BADGES };
@@ -265,13 +266,13 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
         : `ナイス！今日も達成です🎉`;
     const parts = [`${head}\n\n🔥 連続 ${streak}日\n📅 累計 ${total}日`];
     if (fresh.length) parts.push(`🏅 新しいバッジを獲得しました！\n${fresh.join("\n")}`);
-    parts.push(`${nextBadgeLine(streak)}\n\n📊 記録を見る\n${recordUrl(friend)}\n選択肢: 記録`);
+    parts.push(`${nextBadgeLine(streak)}\n\n📊 記録を見る\n${recordUrl(friend, await currentWorkspace())}\n選択肢: 記録`);
     box.add(parts.join("\n---\n"), "auto");
     return true;
   }
 
   if (text === "記録") {
-    box.add(`${statusText(habit)}\n\n📊 カレンダーとバッジ一覧はこちら\n${recordUrl(friend)}`, "auto");
+    box.add(`${statusText(habit)}\n\n📊 カレンダーとバッジ一覧はこちら\n${recordUrl(friend, await currentWorkspace())}`, "auto");
     return true;
   }
   if (text === "通知オフ" || text === "通知停止") {

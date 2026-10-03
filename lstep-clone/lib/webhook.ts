@@ -8,6 +8,7 @@ import { collectDueSteps, enrollByFollow } from "./scenarios";
 import { attributeOnFollow } from "./sources";
 import { addTag } from "./tags";
 import type { AutoReply, Friend } from "./types";
+import { currentWorkspace } from "./workspace";
 
 export interface LineEvent {
   type: string;
@@ -86,7 +87,7 @@ export async function handleEvent(ev: LineEvent) {
     return;
   }
 
-  const box = new Outbox(friend, ev.replyToken);
+  const box = new Outbox(friend, ev.replyToken, await currentWorkspace());
   if (ev.type === "message") {
     if (ev.message?.type === "text" && ev.message.text) await handleText(box, ev.message.text);
     else await logIncoming(friend.id, `[${ev.message?.type ?? "unknown"}]`);

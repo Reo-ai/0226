@@ -1,6 +1,5 @@
 // 管理画面の「LINEでログイン」（LINEログイン v2.1 の認可コードフロー）
 import { baseUrl } from "./env";
-import { verifyIdToken } from "./line";
 
 export const STATE_COOKIE = "line_login_state";
 export const DENIED_COOKIE = "line_login_denied";
@@ -25,8 +24,8 @@ export function authorizeUrl(state: string): string {
   return `https://access.line.me/oauth2/v2.1/authorize?${q}`;
 }
 
-/** 認可コードを IDトークンに交換し、検証済みの LINE ユーザーIDを返す */
-export async function userIdFromCode(code: string): Promise<string | null> {
+/** 認可コードを IDトークンに交換し、検証済みの LINE ユーザーIDと表示名を返す */
+export async function profileFromCode(code: string): Promise<{ sub: string; name: string } | null> {
   const res = await fetch("https://api.line.me/oauth2/v2.1/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -43,7 +42,22 @@ export async function userIdFromCode(code: string): Promise<string | null> {
     return null;
   }
   const json = (await res.json()) as { id_token?: string };
-  const userId = json.id_token ? await verifyIdToken(json.id_token) : null;
-  if (!userId) console.error("LINEログイン: IDトークンの検証に失敗", Boolean(json.id_token));
-  return userId;
+  const profile = json.id_token ? await verifyIdTokenProfile(json.id_token) : null;
+  if (!profile) console.error("LINEログイン: IDトークンの検証に失敗", Boolean(json.id_token));
+  return profile;
+}
+
+/** IDトークンを検証して、LINE ユーザーIDと表示名を返す */
+async function verifyIdTokenProfile(idToken: string): Promise<{ sub: string; name: string } | null> {
+  const res = await fetch("https://api.line.me/oauth2/v2.1/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ id_token: idToken, client_id: process.env.LINE_LOGIN_CHANNEL_ID || "" }),
+  });
+  if (!res.ok) {
+    console.error("IDトークン検証エラー", res.status, await res.text());
+    return null;
+  }
+  const j = (await res.json()) as { sub?: string; name?: string };
+  return j.sub ? { sub: j.sub, name: j.name ?? "" } : null;
 }

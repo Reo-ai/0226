@@ -1,12 +1,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { setSession } from "@/lib/auth";
+import { setSession, WS_COOKIE, workspacesOf } from "@/lib/auth";
+import { acceptInvite, INVITE_COOKIE } from "@/lib/invites";
 import { authorizeAdmin } from "@/lib/lineConfig";
-import { DENIED_COOKIE, lineLoginEnabled, STATE_COOKIE, userIdFromCode } from "@/lib/lineLogin";
+import { DENIED_COOKIE, lineLoginEnabled, profileFromCode, STATE_COOKIE } from "@/lib/lineLogin";
+import { MAIN, runInWorkspace } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 
-// LINEから戻ってきたら、許可済みのユーザーだけ管理画面に入れる
+// LINEから戻ってきたら：招待があれば専用の場所を作る／なければ自分が使える場所へ入れる
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const jar = await cookies();
@@ -25,11 +27,31 @@ export async function GET(req: Request) {
     redirect("/login?line=failed");
   }
 
-  const userId = await userIdFromCode(code);
-  if (!userId) redirect("/login?line=failed");
+  const profile = await profileFromCode(code);
+  if (!profile) redirect("/login?line=failed");
+  const userId = profile.sub;
 
-  if (!(await authorizeAdmin(userId))) {
-    // 許可リストに追加できるよう、本人にだけ自分のIDを見せる（Cookie 経由・5分）
+  // 招待リンクから来た人：その人専用のワークスペースを作って、公式LINEの連携画面へ
+  const invite = jar.get(INVITE_COOKIE)?.value;
+  if (invite) {
+    jar.delete(INVITE_COOKIE);
+    let ws: string | null = null;
+    try {
+      ws = await acceptInvite(invite, userId, profile.name);
+    } catch (e) {
+      console.error("招待の受け取りに失敗", e);
+      redirect("/login?line=invite_error");
+    }
+    if (!ws) redirect("/login?line=invite_invalid");
+    await setSession(userId, ws);
+    redirect("/line?welcome=1");
+  }
+
+  // 内海さんの場所（main）：管理者がまだ誰もいなければ、最初にログインした人を管理者にする
+  await runInWorkspace(MAIN, () => authorizeAdmin(userId));
+  const mine = await workspacesOf(userId);
+  if (mine.length === 0) {
+    // 招待されていない人。本人にだけ自分のIDを見せる（Cookie 経由・5分）
     jar.set(DENIED_COOKIE, userId, {
       httpOnly: true,
       sameSite: "lax",
@@ -39,7 +61,8 @@ export async function GET(req: Request) {
     });
     redirect("/login?line=denied");
   }
-
-  await setSession();
+  const last = jar.get(WS_COOKIE)?.value;
+  const ws = mine.find((m) => m.id === last)?.id ?? mine[0].id;
+  await setSession(userId, ws);
   redirect("/dashboard");
 }

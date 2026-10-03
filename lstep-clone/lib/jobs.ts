@@ -1,19 +1,38 @@
 import { processDueBroadcasts } from "./broadcasts";
-import { run } from "./db";
+import { mainAll, run } from "./db";
 import { sendHabitReminders } from "./habits";
 import { processDueSteps } from "./scenarios";
+import { currentWorkspace, MAIN, runInWorkspace } from "./workspace";
 
-let running = false;
+// 同じワークスペースの処理が重ならないように（ワークスペースごと）
+const running = new Set<string>();
 
 export async function runDueJobs() {
-  if (running) return;
-  running = true;
+  const ws = await currentWorkspace();
+  if (running.has(ws)) return;
+  running.add(ws);
   try {
     await processDueBroadcasts();
     await processDueSteps();
     await sendHabitReminders();
     await run("DELETE FROM pending_messages WHERE expires_at <= ?", Date.now());
   } finally {
-    running = false;
+    running.delete(ws);
   }
+}
+
+/** 定期実行：すべてのワークスペースの予約配信・ステップ配信・リマインドを処理する */
+export async function runDueJobsForAll(): Promise<{ ws: string; ok: boolean }[]> {
+  const ids = [MAIN, ...(await mainAll<{ id: string }>("SELECT id FROM workspaces ORDER BY created_at")).map((r) => r.id)];
+  const results: { ws: string; ok: boolean }[] = [];
+  for (const ws of ids) {
+    try {
+      await runInWorkspace(ws, runDueJobs);
+      results.push({ ws, ok: true });
+    } catch (e) {
+      console.error(`定期実行に失敗（${ws}）`, e);
+      results.push({ ws, ok: false });
+    }
+  }
+  return results;
 }

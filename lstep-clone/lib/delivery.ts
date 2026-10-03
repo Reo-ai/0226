@@ -3,6 +3,7 @@ import { isPersonalized, render, type Rendered } from "./content";
 import { MAX_BUBBLES, multicast, push, reply } from "./line";
 import { assertPushQuota } from "./quota";
 import type { Channel, Friend, MessageSource } from "./types";
+import { currentWorkspace } from "./workspace";
 
 const PENDING_TTL = 14 * 86_400_000;
 
@@ -46,10 +47,12 @@ export class Outbox {
   constructor(
     readonly friend: Friend,
     private readonly replyToken?: string,
+    /** どのワークスペースの友だちか（公開ページの URL に ?w= を付ける） */
+    private readonly ws = "main",
   ) {}
 
   add(content: string, source: MessageSource, refId: number | null = null) {
-    this.items.push({ rendered: render(content, this.friend, source), content, source, refId });
+    this.items.push({ rendered: render(content, this.friend, source, this.ws), content, source, refId });
   }
 
   get size() {
@@ -125,7 +128,7 @@ export async function pushToFriend(
   refId: number | null = null,
 ) {
   await assertPushQuota(1);
-  const r = render(content, friend, source);
+  const r = render(content, friend, source, await currentWorkspace());
   await push(friend.line_user_id, r.messages);
   await batch([logStmt(friend.id, "out", r.text, source, "push", refId)]);
 }
@@ -139,10 +142,11 @@ export async function pushToMany(
 ) {
   if (friends.length === 0) return;
   await assertPushQuota(friends.length);
+  const ws = await currentWorkspace();
   if (isPersonalized(content)) {
     for (const f of friends) {
       try {
-        const r = render(content, f, source);
+        const r = render(content, f, source, ws);
         await push(f.line_user_id, r.messages);
         await batch([logStmt(f.id, "out", r.text, source, "push", refId)]);
       } catch (e) {
@@ -151,7 +155,7 @@ export async function pushToMany(
     }
     return;
   }
-  const r = render(content, null, source);
+  const r = render(content, null, source, ws);
   await multicast(
     friends.map((f) => f.line_user_id),
     r.messages,

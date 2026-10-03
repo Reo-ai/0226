@@ -1,24 +1,39 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { mainAll } from "./db";
+import { adminLineIds } from "./lineConfig";
+import { currentWorkspace, isValidWorkspaceId, MAIN, runInWorkspace } from "./workspace";
 
 const COOKIE = "admin_session";
 const GUEST_COOKIE = "guest_view";
+/** いま操作しているワークスペース（proxy.ts がこれを見てリクエストに付ける） */
+export const WS_COOKIE = "ws";
 
-function sessionValue(): string {
-  const secret = process.env.SESSION_SECRET || "";
-  const password = process.env.ADMIN_PASSWORD || "";
-  return crypto.createHmac("sha256", secret).update(`admin:${password}`).digest("base64url");
+const cookieOpts = (maxAge: number) => ({
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge,
+});
+
+function sign(lineUserId: string): string {
+  return crypto
+    .createHmac("sha256", process.env.SESSION_SECRET || "")
+    .update(`session:${lineUserId}`)
+    .digest("base64url");
 }
 
-export async function setSession() {
-  (await cookies()).set(COOKIE, sessionValue(), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 14,
-  });
+/** ログインした LINE ユーザーを Cookie に記録する（署名付き・14日） */
+export async function setSession(lineUserId: string, ws?: string) {
+  const jar = await cookies();
+  jar.set(COOKIE, `${lineUserId}.${sign(lineUserId)}`, cookieOpts(60 * 60 * 24 * 14));
+  if (ws) jar.set(WS_COOKIE, ws, cookieOpts(60 * 60 * 24 * 365));
+}
+
+export async function setWorkspaceCookie(ws: string) {
+  (await cookies()).set(WS_COOKIE, ws, cookieOpts(60 * 60 * 24 * 365));
 }
 
 export async function clearSession() {
@@ -27,31 +42,53 @@ export async function clearSession() {
   jar.delete(GUEST_COOKIE);
 }
 
-/** ログインなしの閲覧（読み取り専用）を許可しているか。本物の友だちデータが入る前に OFF にする */
+/** Cookie からログイン中の LINE ユーザーIDを取り出す（署名が合わなければ null） */
+export async function sessionUser(): Promise<string | null> {
+  if (!process.env.SESSION_SECRET) return null;
+  const v = (await cookies()).get(COOKIE)?.value;
+  if (!v) return null;
+  const i = v.lastIndexOf(".");
+  if (i <= 0) return null;
+  const user = v.slice(0, i);
+  const given = v.slice(i + 1);
+  const expected = sign(user);
+  return given.length === expected.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected)) ? user : null;
+}
+
+/** その LINE ユーザーが使えるワークスペース一覧（main は内海さんの場所） */
+export async function workspacesOf(lineUserId: string): Promise<{ id: string; name: string }[]> {
+  const list: { id: string; name: string }[] = [];
+  if ((await runInWorkspace(MAIN, adminLineIds)).includes(lineUserId)) list.push({ id: MAIN, name: "メイン" });
+  const rows = await mainAll<{ id: string; name: string }>(
+    `SELECT w.id, w.name FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id
+     WHERE m.line_user_id = ? ORDER BY w.created_at`,
+    lineUserId,
+  );
+  return [...list, ...rows];
+}
+
+/** ログインなしの閲覧（読み取り専用）を許可しているか。main（内海さんの場所）だけで使える */
 export function guestViewEnabled(): boolean {
   return process.env.GUEST_VIEW_ENABLED === "1";
 }
 
 export async function setGuestSession() {
-  (await cookies()).set(GUEST_COOKIE, "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24,
-  });
+  const jar = await cookies();
+  jar.set(GUEST_COOKIE, "1", cookieOpts(60 * 60 * 24));
+  jar.set(WS_COOKIE, MAIN, cookieOpts(60 * 60 * 24 * 365));
 }
 
 export async function isGuest(): Promise<boolean> {
-  return guestViewEnabled() && (await cookies()).get(GUEST_COOKIE)?.value === "1";
+  return (
+    guestViewEnabled() && (await currentWorkspace()) === MAIN && (await cookies()).get(GUEST_COOKIE)?.value === "1"
+  );
 }
 
+/** ログインしていて、いまのワークスペースのメンバーか */
 export async function isAuthed(): Promise<boolean> {
-  if (!process.env.ADMIN_PASSWORD || !process.env.SESSION_SECRET) return false;
-  const v = (await cookies()).get(COOKIE)?.value;
-  if (!v) return false;
-  const expected = sessionValue();
-  return v.length === expected.length && crypto.timingSafeEqual(Buffer.from(v), Buffer.from(expected));
+  const user = await sessionUser();
+  if (!user) return false;
+  return (await adminLineIds()).includes(user);
 }
 
 /** 書き込み・個人情報の出力用。ゲストは通さない */
@@ -63,5 +100,14 @@ export async function requireAuth() {
 export async function requireViewer(): Promise<{ guest: boolean }> {
   if (await isAuthed()) return { guest: false };
   if (await isGuest()) return { guest: true };
+  // ログインはしているが、選んでいる場所のメンバーではない（Cookie が古いなど）→ 自分の場所へ
+  const user = await sessionUser();
+  if (user) {
+    const mine = await workspacesOf(user);
+    const ws = (await cookies()).get(WS_COOKIE)?.value;
+    if (mine.length > 0 && (!isValidWorkspaceId(ws) || !mine.some((m) => m.id === ws))) {
+      redirect(`/api/workspace/switch?ws=${mine[0].id}`);
+    }
+  }
   redirect("/login");
 }

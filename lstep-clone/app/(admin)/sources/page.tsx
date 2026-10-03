@@ -4,6 +4,7 @@ import { createSource, deleteSource } from "@/lib/actions";
 import { all } from "@/lib/db";
 import type { Source, Tag } from "@/lib/types";
 import { TagSelect } from "@/lib/ui";
+import { currentWorkspace, withWs } from "@/lib/workspace";
 
 export default async function SourcesPage() {
   const sources = await all<Source & { visits: number; friends: number; blocked: number }>(
@@ -18,7 +19,9 @@ export default async function SourcesPage() {
   const base = baseUrl();
   const liff = Boolean(process.env.LIFF_ID && process.env.LINE_LOGIN_CHANNEL_ID);
   // LIFF設定時は LIFF URL（LINEアプリ内で開き、ユーザーを特定できる）
-  const urlOf = (code: string) => (liff ? `https://liff.line.me/${process.env.LIFF_ID}/${code}` : `${base}/join/${code}`);
+  const ws = await currentWorkspace();
+  const urlOf = (code: string) =>
+    withWs(liff ? `https://liff.line.me/${process.env.LIFF_ID}/${code}` : `${base}/join/${code}`, ws);
   const qrs = await Promise.all(sources.map((s) => QRCode.toDataURL(urlOf(s.code), { margin: 1, width: 160 })));
   return (
     <>

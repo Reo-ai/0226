@@ -3,16 +3,16 @@
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { clearSession, guestViewEnabled, requireAuth, setGuestSession } from "./auth";
+import { clearSession, guestViewEnabled, requireAuth, sessionUser, setGuestSession } from "./auth";
 import { sendBroadcast } from "./broadcasts";
 import { validateContent } from "./content";
-import { batch, get, run, setSetting } from "./db";
+import { batch, get, mainRun, run, setSetting } from "./db";
 import { pushToFriend, queuePending } from "./delivery";
 import { parseFields } from "./forms";
 import { fmtDateTime as formatJst, parseJstLocal } from "./format";
 import { getFriend, getFriendByToken, targetFriends } from "./friends";
 import { baseUrl } from "./env";
-import { issueStatelessToken, lineConfig, saveLineConfig } from "./lineConfig";
+import { adminLineIds, issueStatelessToken, lineConfig, saveLineConfig } from "./lineConfig";
 import {
   clearDefaultRichMenu,
   fetchBotInfo,
@@ -29,6 +29,8 @@ import { action as richAction, buildDefinition, layoutOf, syncRichMenuForTag } f
 import { enroll } from "./scenarios";
 import { addTag, removeTag } from "./tags";
 import type { Broadcast, Form, FormField, RichMenu, RichMenuArea } from "./types";
+import { currentWorkspace, MAIN, runInWorkspace, withWs } from "./workspace";
+import { createInvite } from "./invites";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k) ?? 0);
@@ -444,7 +446,7 @@ export async function submitForm(fd: FormData) {
         ? fd.getAll(`q${i}`).map(String).filter((o) => f.options.includes(o)).join(", ")
         : str(fd, `q${i}`).slice(0, 5000);
     if (f.required && !v) {
-      redirect(`/f/${form.id}?${new URLSearchParams({ ...(token ? { f: token } : {}), error: `「${f.label}」は必須です` })}`);
+      redirect(withWs(`/f/${form.id}?${new URLSearchParams({ ...(token ? { f: token } : {}), error: `「${f.label}」は必須です` })}`, await currentWorkspace()));
     }
     answers[f.label] = v;
   }
@@ -456,7 +458,7 @@ export async function submitForm(fd: FormData) {
     Date.now(),
   );
   if (friend && form.add_tag_id) await addTag(friend.id, form.add_tag_id);
-  redirect(`/f/${form.id}/thanks`);
+  redirect(withWs(`/f/${form.id}/thanks`, await currentWorkspace()));
 }
 
 // ---- sources ----
@@ -522,7 +524,9 @@ export async function saveLineConnection(_: string | null, fd: FormData): Promis
     pictureUrl: info.pictureUrl ?? "",
   });
   try {
-    const test = await setupWebhook(token, `${baseUrl()}/api/line/webhook`);
+    // ワークスペースごとの受信先（main は従来どおり /api/line/webhook）
+    const ws = await currentWorkspace();
+    const test = await setupWebhook(token, `${baseUrl()}/api/line/webhook${ws === MAIN ? "" : `/${ws}`}`);
     if (!test.success) return `連携は保存しましたが、LINEからの受信確認に失敗しました（${test.reason ?? "理由不明"}）`;
   } catch (e) {
     return `連携は保存しましたが、受信先（Webhook）の設定に失敗しました: ${(e as Error).message}`;
@@ -656,4 +660,23 @@ export async function createTabMenus() {
   ]);
   revalidatePath("/rich-menus");
   redirect("/rich-menus");
+}
+
+// ---- 招待（内海さん＝main の管理者だけが発行できる） ----
+async function requireInviter(): Promise<string> {
+  const user = await sessionUser();
+  if (!user || !(await runInWorkspace(MAIN, adminLineIds)).includes(user)) redirect("/login");
+  return user;
+}
+
+export async function createInviteAction(fd: FormData) {
+  const user = await requireInviter();
+  await createInvite(user, str(fd, "note"));
+  revalidatePath("/invites");
+}
+
+export async function revokeInvite(fd: FormData) {
+  await requireInviter();
+  await mainRun("DELETE FROM invites WHERE code = ? AND used_by IS NULL", str(fd, "code"));
+  revalidatePath("/invites");
 }

@@ -5,6 +5,7 @@ import { pushToFriend } from "@/lib/delivery";
 import { validateMessages } from "@/lib/line";
 import { adminLineIds } from "@/lib/lineConfig";
 import type { Friend } from "@/lib/types";
+import { currentWorkspace } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     ? await all<Friend>(`SELECT * FROM friends WHERE blocked = 0 AND line_user_id IN (${ids.map(() => "?").join(",")})`, ...ids)
     : [];
   const sample = admins[0] ?? null;
-  const { messages } = render(content, sample, "manual");
+  const { messages } = render(content, sample, "manual", await currentWorkspace());
 
   // LINE に「送れる形式か」を確かめる（送信はしない）
   try {
