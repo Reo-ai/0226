@@ -1,3 +1,4 @@
+import ContentTools from "@/app/(admin)/ContentTools";
 import type { Tag } from "./types";
 
 export function TagChip({ tag }: { tag: Tag }) {
@@ -28,10 +29,16 @@ export function ErrorBox({ error }: { error?: string }) {
 
 export function ContentHelp() {
   return (
-    <div className="hint">
-      「---」だけの行で吹き出しを分割（最大5つ・何個でも1通扱い）／「image:https://〜」で画像／変数 {"{{name}}"}{" "}
-      {"{{link:コード}}"} {"{{form:ID}}"}
-    </div>
+    <>
+      <div className="hint">
+        「---」だけの行で吹き出しを分割（最大5つ・何個でも1通扱い）／「image:https://〜」で画像／変数 {"{{name}}"}{" "}
+        {"{{link:コード}}"} {"{{form:ID}}"}
+        <br />
+        「選択肢: A / B / C」の行でタップできるボタン／「カード: タイトル」で始めると画像とボタン付きのカード（本文の下に「画像: URL」「ボタン:
+        表示=送る文字 / 表示=https://〜」。1つの吹き出しに複数書くと横スクロール）
+      </div>
+      <ContentTools />
+    </>
   );
 }
 

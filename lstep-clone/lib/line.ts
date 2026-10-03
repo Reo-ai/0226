@@ -7,9 +7,15 @@ const MULTICAST_LIMIT = 500;
 /** 1回の送信で送れる吹き出しの上限（LINEの仕様） */
 export const MAX_BUBBLES = 5;
 
-export type LineMessage =
+export interface QuickReply {
+  items: { type: "action"; action: { type: "message"; label: string; text: string } }[];
+}
+
+export type LineMessage = (
   | { type: "text"; text: string }
-  | { type: "image"; originalContentUrl: string; previewImageUrl: string };
+  | { type: "image"; originalContentUrl: string; previewImageUrl: string }
+  | { type: "flex"; altText: string; contents: object }
+) & { quickReply?: QuickReply };
 
 export async function hasToken(): Promise<boolean> {
   return lineConnected();
@@ -55,6 +61,11 @@ async function call(path: string, body?: unknown, opts: CallOptions & { token?: 
 }
 
 // ---- メッセージ送信 ----
+
+/** LINEに送れる形式か確かめる（送信はしない・通数も使わない）。問題があれば例外 */
+export function validateMessages(messages: LineMessage[]) {
+  return call("/message/validate/push", { messages });
+}
 
 /** 応答メッセージ（無料・通数にカウントされない） */
 export function reply(replyToken: string, messages: LineMessage[]) {

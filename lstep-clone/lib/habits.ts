@@ -162,7 +162,7 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
       );
     }
     box.add(
-      `続けたい行動を【1つだけ】送ってください✍️\n\n例）\n・腕立て10回\n・SNS投稿1本\n・英単語を5個覚える\n\nコツは「小さすぎるかな？」くらいにすることです。`,
+      `続けたい行動を【1つだけ】送ってください✍️\n\n例）\n・腕立て10回\n・SNS投稿1本\n・英単語を5個覚える\n\nコツは「小さすぎるかな？」くらいにすることです。\n選択肢: 腕立て10回 / SNS投稿1本 / 英単語を5個覚える / 10分読書`,
       "auto",
     );
     return true;
@@ -192,7 +192,7 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
     const action = text.slice(0, 60);
     await run("UPDATE habits SET action = ?, state = 'await_time' WHERE friend_id = ?", action, friend.id);
     box.add(
-      `「${action}」ですね！いい選択です👍\n---\n毎日、何時にリマインドしましょうか？\n「21:00」のように送ってください。\nリマインドがいらなければ「なし」と送ってください。`,
+      `「${action}」ですね！いい選択です👍\n---\n毎日、何時にリマインドしましょうか？\n「21:00」のように送ってください。\nリマインドがいらなければ「なし」と送ってください。\n選択肢: 07:00 / 12:00 / 18:00 / 21:00 / なし`,
       "auto",
     );
     return true;
@@ -200,7 +200,7 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
 
   // 時刻を決める（メニューのボタンを押しただけの時は時刻を聞き直す）
   if (habit.state === "await_time" && MENU_WORDS.includes(text)) {
-    box.add(`先に、毎日リマインドする時刻を決めましょう⏰\n「21:00」のように送ってください（いらなければ「なし」）。\n\n📒 続ける行動：${habit.action}`, "auto");
+    box.add(`先に、毎日リマインドする時刻を決めましょう⏰\n「21:00」のように送ってください（いらなければ「なし」）。\n\n📒 続ける行動：${habit.action}\n選択肢: 07:00 / 12:00 / 18:00 / 21:00 / なし`, "auto");
     return true;
   }
   if (habit.state === "await_time") {
@@ -209,14 +209,14 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
     } else {
       const t = parseTime(text);
       if (!t) {
-        box.add("時刻は「21:00」のように送ってください（いらなければ「なし」）。", "auto");
+        box.add("時刻は「21:00」のように送ってください（いらなければ「なし」）。\n選択肢: 07:00 / 12:00 / 18:00 / 21:00 / なし", "auto");
         return true;
       }
       await run("UPDATE habits SET remind_time = ?, remind_enabled = 1, state = NULL WHERE friend_id = ?", t, friend.id);
     }
     const h = (await getHabit(friend.id))!;
     box.add(
-      `準備完了です🎉\n\n📒 続ける行動：${h.action}\n⏰ リマインド：${h.remind_enabled && h.remind_time ? `毎日 ${h.remind_time}` : "なし"}\n\nやったら「できた」と送るだけで記録できます。\nさっそく今日の1回目、やってみましょう！`,
+      `準備完了です🎉\n\n📒 続ける行動：${h.action}\n⏰ リマインド：${h.remind_enabled && h.remind_time ? `毎日 ${h.remind_time}` : "なし"}\n\nやったら「できた」と送るだけで記録できます。\nさっそく今日の1回目、やってみましょう！\n選択肢: できた / 記録`,
       "auto",
     );
     return true;
@@ -265,7 +265,7 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
         : `ナイス！今日も達成です🎉`;
     const parts = [`${head}\n\n🔥 連続 ${streak}日\n📅 累計 ${total}日`];
     if (fresh.length) parts.push(`🏅 新しいバッジを獲得しました！\n${fresh.join("\n")}`);
-    parts.push(`${nextBadgeLine(streak)}\n\n📊 記録を見る\n${recordUrl(friend)}`);
+    parts.push(`${nextBadgeLine(streak)}\n\n📊 記録を見る\n${recordUrl(friend)}\n選択肢: 記録`);
     box.add(parts.join("\n---\n"), "auto");
     return true;
   }

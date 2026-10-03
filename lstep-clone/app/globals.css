@@ -89,3 +89,18 @@ fieldset { border: 1px solid var(--border); border-radius: 6px; }
 label.row { flex-wrap: nowrap; align-items: flex-start; }
 label.row input[type=radio], label.row input[type=checkbox] { margin-top: 3px; flex-shrink: 0; }
 .guest-banner { border-color: #f5b041; background: rgba(245,176,65,.12); }
+/* 本文のプレビュー（LINE風） */
+.pv { margin-top: 4px; }
+.pv-chat { margin-top: 8px; background: #8cabd8; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
+.pv-bubble { background: #fff; color: #111; border-radius: 14px; padding: 8px 12px; white-space: pre-wrap; word-break: break-word; max-width: 85%; font-size: 13px; }
+.pv-img { max-width: 70%; border-radius: 10px; display: block; }
+.pv-carousel { display: flex; gap: 8px; overflow-x: auto; }
+.pv-card { background: #fff; color: #111; border-radius: 12px; min-width: 220px; max-width: 220px; overflow: hidden; flex-shrink: 0; }
+.pv-card img { width: 100%; aspect-ratio: 20 / 13; object-fit: cover; display: block; }
+.pv-card-body { padding: 10px 12px; }
+.pv-title { font-weight: 700; font-size: 15px; }
+.pv-text { font-size: 12px; color: #555; white-space: pre-wrap; margin-top: 4px; }
+.pv-btn { margin: 0 10px 8px; padding: 7px; border-radius: 6px; text-align: center; font-size: 13px; background: #eef0f3; }
+.pv-btn.primary { background: #06c755; color: #fff; }
+.pv-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pv-chips span { background: #fff; color: #06c755; border: 1px solid #06c755; border-radius: 999px; padding: 4px 10px; font-size: 12px; }
