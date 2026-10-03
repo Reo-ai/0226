@@ -70,6 +70,10 @@ export default async function Dashboard() {
     { label: "決済ページを見た", n: await tagCount("t.name = '決済ページ閲覧'"), hint: "" },
     { label: "購入", n: await tagCount("t.name = '購入済み'"), hint: "目安 3〜5%" },
   ];
+  // 講座のタグが1つも無い場所（招待した人の公式LINEなど）では、この表を出さない
+  const courseTags = (await get<{ n: number }>(
+    "SELECT COUNT(*) n FROM tags WHERE name LIKE 'レベル_%' OR name IN ('World1体験','LP閲覧','決済ページ閲覧','購入済み')",
+  ))?.n ?? 0;
   const today = jstDateKey(now);
   const habit = (await get<{ set: number; active: number; doneToday: number; avgStreak: number; best: number }>(
     `SELECT SUM(action != '') "set",
@@ -145,6 +149,7 @@ export default async function Dashboard() {
       </div>
 
       <div className="grid2">
+        {courseTags > 0 && (
         <div className="panel">
           <h2>講座の数字（導線の各段階）</h2>
           <table>
@@ -172,6 +177,7 @@ export default async function Dashboard() {
           </table>
           <div className="hint">タグ（レベル_〜・World1体験・LP閲覧・決済ページ閲覧・購入済み）が付いた人数から計算しています</div>
         </div>
+        )}
         <div className="panel">
           <h2>習慣トラッカー</h2>
           <div className="grid">

@@ -22,7 +22,8 @@ export function proxy(req: NextRequest) {
   // ログインしたままにする：管理画面を開くたびに、ログインの期限を3か月先まで延ばす
   // （中身の正しさは毎回サーバー側で署名を確かめるので、ここでは期限だけを延ばす）
   const session = req.cookies.get("admin_session")?.value;
-  if (session && req.method === "GET" && !PUBLIC.test(path)) {
+  // 場所の切り替えやログイン直後の保存（/api/…）を古い値で上書きしないよう、画面を開いた時だけにする
+  if (session && req.method === "GET" && !PUBLIC.test(path) && !path.startsWith("/api/")) {
     const opts = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/", maxAge: KEEP };
     res.cookies.set("admin_session", session, opts);
     const current = req.cookies.get("ws")?.value;
