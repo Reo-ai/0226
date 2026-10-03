@@ -51,7 +51,8 @@ export function validateContent(content: string): string | null {
 
 function splitItems(s: string): string[] {
   return s
-    .split(/[\/／]/)
+    // URL の「/」で切れないよう、前後に空白がある「 / 」か全角「／」だけで区切る
+    .split(/\s+\/\s+|／/)
     .map((x) => x.trim())
     .filter(Boolean);
 }
