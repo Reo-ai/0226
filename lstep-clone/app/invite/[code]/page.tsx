@@ -5,7 +5,7 @@ import { lineLoginEnabled } from "@/lib/lineLogin";
 import { MAIN, runInWorkspace } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "スキルコーチ・ステップへの招待", robots: { index: false } };
+export const metadata: Metadata = { title: "スキルステップへの招待", robots: { index: false } };
 
 // 招待された人が開くページ（招待リンク）
 export default async function InvitePage({ params }: { params: Promise<{ code: string }> }) {
@@ -19,7 +19,7 @@ export default async function InvitePage({ params }: { params: Promise<{ code: s
   return (
     <div style={{ maxWidth: 420, margin: "12vh auto", padding: 16 }}>
       <div className="panel stack" style={{ gap: 14 }}>
-        <h1 style={{ marginBottom: 0 }}>スキルコーチ・ステップへの招待</h1>
+        <h1 style={{ marginBottom: 0 }}>スキルステップへの招待</h1>
         {invite ? (
           <>
             {staffOf ? (
@@ -29,7 +29,7 @@ export default async function InvitePage({ params }: { params: Promise<{ code: s
             ) : (
               <>
                 <p style={{ margin: 0 }}>
-                  公式LINEの配信ツール「スキルコーチ・ステップ」に招待されています。
+                  公式LINEの配信ツール「スキルステップ」に招待されています。
                   LINEでログインすると、あなた専用の管理画面ができます。
                 </p>
                 <ol className="hint" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>

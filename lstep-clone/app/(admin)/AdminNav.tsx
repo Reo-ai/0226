@@ -24,7 +24,7 @@ export default function AdminNav({
   return (
     <nav className={`side${open ? " open" : ""}`}>
       <div className="side-head">
-        <div className="brand">スキルコーチ・ステップ</div>
+        <div className="brand">スキルステップ</div>
         <button type="button" className="ghost small side-toggle" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
           {open ? "✕ 閉じる" : "☰ メニュー"}
         </button>

@@ -9,7 +9,7 @@ export default function LoginForm({ lineEnabled, lineMessage }: Props) {
   return (
     <div style={{ maxWidth: 380, margin: "12vh auto", padding: 16 }}>
       <div className="panel stack" style={{ gap: 14 }}>
-        <h1 style={{ marginBottom: 4 }}>スキルコーチ・ステップにログイン</h1>
+        <h1 style={{ marginBottom: 4 }}>スキルステップにログイン</h1>
 
         {/* ルートハンドラへの遷移なので next/link ではなく a を使う */}
         {lineEnabled ? (
