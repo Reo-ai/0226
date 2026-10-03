@@ -24,5 +24,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
   );
   if (friend && link.add_tag_id) await addTag(friend.id, link.add_tag_id);
 
-  return Response.redirect(link.url, 302);
+  // Stripe の支払いリンクなら、誰の支払いか分かるように友だちのトークンを付ける（決済完了の自動判定用）
+  let dest = link.url;
+  if (friend) {
+    try {
+      const u = new URL(link.url);
+      if (/(^|\.)(buy|checkout)\.stripe\.com$/.test(u.hostname)) {
+        u.searchParams.set("client_reference_id", friend.token);
+        dest = u.toString();
+      }
+    } catch {
+      // URL として読めなければそのまま転送する
+    }
+  }
+  return Response.redirect(dest, 302);
 }

@@ -76,6 +76,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           公式LINE: {(await lineConnected()) ? "連携済み" : "未連携"}（<Link href="/line">LINE連携の画面へ</Link>）
         </div>
         <div>流入経路（LIFF）: LIFF_ID {env("LIFF_ID")} / LINE_LOGIN_CHANNEL_ID {env("LINE_LOGIN_CHANNEL_ID")} / LINE_ADD_FRIEND_URL {env("LINE_ADD_FRIEND_URL")}</div>
+        <div>
+          決済の自動判定（Stripe）: {process.env.STRIPE_WEBHOOK_SECRET ? "設定済み" : "未設定"}
+          <div className="hint">
+            Stripe のダッシュボード →「開発者」→「Webhook」で送信先に <code>{base}/api/stripe/webhook</code> を登録し、イベントは
+            「checkout.session.completed」を選ぶ。表示される署名シークレット（whsec_…）を環境変数 STRIPE_WEBHOOK_SECRET に登録すると、
+            計測リンク {"{{link:checkout}}"} の行き先を Stripe の支払いリンクにした場合に、支払った友だちへ自動で「購入済み」タグが付きます。
+          </div>
+        </div>
         <div>データの保存先: {process.env.DATABASE_URL?.startsWith("libsql") ? "Turso（消えません）" : "一時保存（消える可能性あり）"}</div>
       </div>
     </>
