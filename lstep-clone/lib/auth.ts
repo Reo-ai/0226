@@ -25,8 +25,8 @@ function sign(lineUserId: string): string {
     .digest("base64url");
 }
 
-/** ログインを保つ期間（ブラウザが保存できる上限の400日。使うたびに proxy.ts が延長する） */
-export const SESSION_MAX_AGE = 60 * 60 * 24 * 400;
+/** ログインを保つ期間（3か月。管理画面を開くたびに proxy.ts が延長する） */
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 90;
 
 /** ログインした LINE ユーザーを Cookie に記録する（署名付き・ログインしたまま） */
 export async function setSession(lineUserId: string, ws?: string) {

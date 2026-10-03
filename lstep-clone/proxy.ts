@@ -19,7 +19,7 @@ export function proxy(req: NextRequest) {
   if (ws && WS.test(ws)) headers.set("x-ws", ws);
   const res = NextResponse.next({ request: { headers } });
 
-  // ログインしたままにする：管理画面を開くたびに、ログインの期限を400日先まで延ばす
+  // ログインしたままにする：管理画面を開くたびに、ログインの期限を3か月先まで延ばす
   // （中身の正しさは毎回サーバー側で署名を確かめるので、ここでは期限だけを延ばす）
   const session = req.cookies.get("admin_session")?.value;
   if (session && req.method === "GET" && !PUBLIC.test(path)) {
@@ -31,7 +31,7 @@ export function proxy(req: NextRequest) {
   return res;
 }
 
-const KEEP = 60 * 60 * 24 * 400;
+const KEEP = 60 * 60 * 24 * 90;
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|richmenu/|brand/|gift/).*)"],
