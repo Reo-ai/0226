@@ -19,6 +19,7 @@ const NAV = [
   ["/sources", "流入経路"],
   ["/links", "計測リンク"],
   ["/tags", "タグ"],
+  ["/fields", "友だち情報欄"],
   ["/line", "LINE連携"],
   ["/settings", "設定・AI"],
   ["/guide", "使い方"],

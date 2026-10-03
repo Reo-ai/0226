@@ -2,31 +2,39 @@ import Link from "next/link";
 import { all } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
 import type { Friend, Tag } from "@/lib/types";
+import { listFields } from "@/lib/fields";
+import { segmentFrom, segmentWhere } from "@/lib/segment";
 import { TagChip } from "@/lib/ui";
+import SegmentFields from "../SegmentFields";
 
 export default async function FriendsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tag?: string; status?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { q = "", tag = "", status = "active" } = await searchParams;
-  const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
+  const sp = await searchParams;
+  const one = (k: string) => (Array.isArray(sp[k]) ? (sp[k] as string[])[0] : (sp[k] as string | undefined)) ?? null;
+  const many = (k: string) => (Array.isArray(sp[k]) ? (sp[k] as string[]) : sp[k] ? [sp[k] as string] : []);
+  const q = one("q") ?? "";
+  const status = one("status") ?? "active";
+  // 昔の「?tag=ID」も使えるようにする
+  const segment = segmentFrom(one, (k) => (k === "tagIds" && one("tag") ? [...many(k), one("tag")!] : many(k)));
+  const [tags, sources, fields] = await Promise.all([
+    all<Tag>("SELECT * FROM tags ORDER BY name"),
+    all<{ id: number; name: string }>("SELECT id, name FROM sources ORDER BY id"),
+    listFields(),
+  ]);
 
-  const where: string[] = [];
-  const args: (string | number)[] = [];
+  const { where, args } = segmentWhere(segment);
   if (q) {
-    where.push("(display_name LIKE ? OR note LIKE ?)");
+    where.push("(f.display_name LIKE ? OR f.note LIKE ?)");
     args.push(`%${q}%`, `%${q}%`);
   }
-  if (tag) {
-    where.push("id IN (SELECT friend_id FROM friend_tags WHERE tag_id = ?)");
-    args.push(Number(tag));
-  }
-  if (status === "active") where.push("blocked = 0");
-  if (status === "blocked") where.push("blocked = 1");
+  if (status === "active") where.push("f.blocked = 0");
+  if (status === "blocked") where.push("f.blocked = 1");
   const friends = await all<Friend>(
-    `SELECT * FROM friends ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-     ORDER BY COALESCE(last_message_at, followed_at) DESC LIMIT 300`,
+    `SELECT f.* FROM friends f ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+     ORDER BY COALESCE(f.last_message_at, f.followed_at) DESC LIMIT 300`,
     ...args,
   );
 
@@ -42,14 +50,10 @@ export default async function FriendsPage({
         <h1>友だち</h1>
         <a className="btn ghost" href="/api/export/friends">CSVダウンロード</a>
       </div>
-      <form className="panel row">
+      <form className="panel stack">
+        <SegmentFields tags={tags} sources={sources} fields={fields} value={segment} />
+        <div className="row">
         <input name="q" defaultValue={q} placeholder="名前・メモで検索" />
-        <select name="tag" defaultValue={tag}>
-          <option value="">すべてのタグ</option>
-          {tags.map((t) => (
-            <option key={t.id} value={t.id}>{t.name}</option>
-          ))}
-        </select>
         <select name="status" defaultValue={status}>
           <option value="active">有効</option>
           <option value="blocked">ブロック</option>
@@ -57,6 +61,7 @@ export default async function FriendsPage({
         </select>
         <button>絞り込み</button>
         <span className="muted">{friends.length}件</span>
+        </div>
       </form>
       <div className="panel">
         <table>

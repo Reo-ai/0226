@@ -132,15 +132,22 @@ function cardBubble(c: Card): object {
 
 /** 友だちごとに差し替えが必要か（必要なら一斉送信でもmulticastできない） */
 export function isPersonalized(content: string): boolean {
-  return /\{\{\s*(name|link:[\w-]+|form:\d+)\s*\}\}/.test(content);
+  return /\{\{\s*(name|link:[\w-]+|form:\d+|field:[^}]+)\s*\}\}/.test(content);
 }
 
 /** ws: どのワークスペースの友だち向けか（公開ページの URL に ?w= を付ける） */
-export function renderVars(content: string, friend: Friend | null, source: MessageSource, ws = "main"): string {
+export function renderVars(
+  content: string,
+  friend: Friend | null,
+  source: MessageSource,
+  ws = "main",
+  fields: Record<string, string> = {},
+): string {
   const base = baseUrl();
   const w = wsQuery(ws);
   return content
     .replace(/\{\{\s*name\s*\}\}/g, friend?.display_name || "")
+    .replace(/\{\{\s*field:([^}]+?)\s*\}\}/g, (_, name: string) => fields[name.trim()] ?? "")
     .replace(/\{\{\s*link:([\w-]+)\s*\}\}/g, (_, code: string) => {
       const params = new URLSearchParams({ s: source });
       if (friend) params.set("f", friend.token);
@@ -158,8 +165,14 @@ export interface Rendered {
   text: string;
 }
 
-export function render(content: string, friend: Friend | null, source: MessageSource, ws = "main"): Rendered {
-  const blocks = splitBlocks(renderVars(content, friend, source, ws)).slice(0, MAX_BUBBLES);
+export function render(
+  content: string,
+  friend: Friend | null,
+  source: MessageSource,
+  ws = "main",
+  fields: Record<string, string> = {},
+): Rendered {
+  const blocks = splitBlocks(renderVars(content, friend, source, ws, fields)).slice(0, MAX_BUBBLES);
   const messages: LineMessage[] = blocks.map((raw) => {
     const choices = raw.match(CHOICES);
     const b = raw.replace(CHOICES, "").trim();

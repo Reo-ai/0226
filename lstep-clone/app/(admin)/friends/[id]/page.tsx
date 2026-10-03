@@ -4,6 +4,7 @@ import {
   cancelPending,
   enrollFriend,
   markReplied,
+  saveFriendFields,
   removeFriendTag,
   saveFriendNote,
   sendManual,
@@ -64,6 +65,10 @@ export default async function FriendPage({
      WHERE ft.friend_id = ? ORDER BY ft.created_at`,
     friend.id,
   );
+  const fieldDefs = await all<{ id: number; name: string; value: string | null }>(
+    `SELECT c.id, c.name, v.value FROM custom_fields c LEFT JOIN friend_fields v ON v.field_id = c.id AND v.friend_id = ? ORDER BY c.id`,
+    friend.id,
+  );
   const habit = await get<{ action: string; streak: number; best_streak: number; total: number; badges: string; remind_time: string | null; remind_enabled: number; last_done_date: string | null }>(
     "SELECT * FROM habits WHERE friend_id = ?",
     friend.id,
@@ -121,6 +126,23 @@ export default async function FriendPage({
             </div>
           </div>
         </div>
+        {fieldDefs.length > 0 && (
+          <form action={saveFriendFields} className="stack" style={{ marginTop: 12, gap: 6 }}>
+            <input type="hidden" name="friendId" value={friend.id} />
+            <div className="hint">友だち情報</div>
+            <div className="grid">
+              {fieldDefs.map((fd) => (
+                <label key={fd.id} className="stack" style={{ gap: 2 }}>
+                  <span className="hint">{fd.name}</span>
+                  <input name={`field_${fd.id}`} defaultValue={fd.value ?? ""} />
+                </label>
+              ))}
+            </div>
+            <div>
+              <button className="ghost small">友だち情報を保存</button>
+            </div>
+          </form>
+        )}
         <div className="hint" style={{ marginTop: 10 }}>タグの付いた日</div>
         <div className="row" style={{ marginTop: 4 }}>
           {tagDates.length === 0 && <span className="muted">タグなし</span>}

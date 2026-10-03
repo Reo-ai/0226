@@ -2,7 +2,10 @@ import { createBroadcast } from "@/lib/actions";
 import { all, get } from "@/lib/db";
 import { pushRemaining } from "@/lib/quota";
 import type { Link, Tag } from "@/lib/types";
+import { listFields } from "@/lib/fields";
+import { emptySegment } from "@/lib/segment";
 import { ContentHelp, ErrorBox } from "@/lib/ui";
+import SegmentFields from "../../SegmentFields";
 
 export default async function NewBroadcastPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
@@ -13,6 +16,8 @@ export default async function NewBroadcastPage({ searchParams }: { searchParams:
   const links = await all<Link>("SELECT * FROM links ORDER BY created_at DESC");
   const active = (await get<{ n: number }>("SELECT COUNT(*) n FROM friends WHERE blocked = 0"))?.n ?? 0;
   const remaining = await pushRemaining();
+  const sources = await all<{ id: number; name: string }>("SELECT id, name FROM sources ORDER BY id");
+  const fields = await listFields();
   return (
     <>
       <h1>新規一斉配信</h1>
@@ -27,15 +32,10 @@ export default async function NewBroadcastPage({ searchParams }: { searchParams:
         />
         <ContentHelp />
         {links.length > 0 && <div className="hint">計測リンク: {links.map((l) => `{{link:${l.code}}}`).join(" ")}</div>}
-        <fieldset className="row">
-          <legend>対象タグ（未選択なら全員 {active}人・複数選択は「いずれかを持つ人」）</legend>
-          {tags.map((t) => (
-            <label key={t.id} className="row">
-              <input type="checkbox" name="tagIds" value={t.id} /> {t.name}（{t.n}）
-            </label>
-          ))}
-          {tags.length === 0 && <span className="muted">タグがありません</span>}
-        </fieldset>
+        <div className="stack" style={{ gap: 4 }}>
+          <b>送る相手（何も選ばなければ全員 {active}人）</b>
+          <SegmentFields tags={tags} sources={sources} fields={fields} value={emptySegment()} />
+        </div>
         <fieldset className="stack">
           <legend>届け方</legend>
           <label className="row">

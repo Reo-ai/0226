@@ -31,6 +31,8 @@ import { addTag, removeTag } from "./tags";
 import type { Broadcast, Form, FormField, RichMenu, RichMenuArea } from "./types";
 import { currentWorkspace, MAIN, runInWorkspace, withWs } from "./workspace";
 import { createInvite, deleteWorkspace } from "./invites";
+import { saveAnswersToFields, setFieldValue } from "./fields";
+import { segmentFriends, segmentFrom } from "./segment";
 import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -174,7 +176,10 @@ export async function createBroadcast(fd: FormData) {
   const content = str(fd, "content");
   const err = validateContent(content);
   if (err) redirect(`/broadcasts/new?error=${enc(err)}`);
-  const tagIds = fd.getAll("tagIds").map(Number).filter(Boolean);
+  const segment = segmentFrom(
+    (k) => (fd.get(k) as string | null) ?? null,
+    (k) => fd.getAll(k).map(String),
+  );
   const delivery = str(fd, "delivery") === "reply" ? "reply" : "push";
   const when = str(fd, "scheduledAt");
   const scheduledAt = str(fd, "mode") === "schedule" && when ? parseJstLocal(when) : Date.now();
@@ -182,7 +187,7 @@ export async function createBroadcast(fd: FormData) {
 
   if (now && delivery === "push") {
     try {
-      await assertPushQuota((await targetFriends(tagIds)).length);
+      await assertPushQuota((await segmentFriends(segment)).length);
     } catch (e) {
       if (e instanceof QuotaError) redirect(`/broadcasts/new?error=${enc(e.message)}`);
       throw e;
@@ -192,7 +197,7 @@ export async function createBroadcast(fd: FormData) {
     "INSERT INTO broadcasts (title, content, tag_ids, delivery, status, scheduled_at, created_at) VALUES (?, ?, ?, ?, 'scheduled', ?, ?)",
     str(fd, "title") || content.slice(0, 20),
     content,
-    JSON.stringify(tagIds),
+    JSON.stringify(segment),
     delivery,
     scheduledAt,
     Date.now(),
@@ -481,6 +486,8 @@ export async function submitForm(fd: FormData) {
     Date.now(),
   );
   if (friend && form.add_tag_id) await addTag(friend.id, form.add_tag_id);
+  // 質問名が友だち情報欄の項目名と同じなら、その友だちの情報として保存する
+  if (friend) await saveAnswersToFields(friend.id, answers);
   redirect(withWs(`/f/${form.id}/thanks`, await currentWorkspace()));
 }
 
@@ -725,4 +732,31 @@ export async function deleteWorkspaceAction(fd: FormData) {
   const rest = user ? await workspacesOf(user) : [];
   if (rest[0]) await setWorkspaceCookie(rest[0].id);
   redirect(rest[0] ? "/dashboard" : "/login");
+}
+
+// ---- 友だち情報欄 ----
+export async function createField(fd: FormData) {
+  await requireAuth();
+  const name = str(fd, "name").slice(0, 30);
+  if (!name) return;
+  await run("INSERT OR IGNORE INTO custom_fields (name, created_at) VALUES (?, ?)", name, Date.now());
+  revalidatePath("/fields");
+}
+
+export async function deleteField(fd: FormData) {
+  await requireAuth();
+  const id = num(fd, "id");
+  await run("DELETE FROM friend_fields WHERE field_id = ?", id);
+  await run("DELETE FROM custom_fields WHERE id = ?", id);
+  revalidatePath("/fields");
+}
+
+export async function saveFriendFields(fd: FormData) {
+  await requireAuth();
+  const friendId = num(fd, "friendId");
+  for (const [k, v] of fd.entries()) {
+    const m = k.match(/^field_(\d+)$/);
+    if (m) await setFieldValue(friendId, Number(m[1]), String(v).trim());
+  }
+  revalidatePath(`/friends/${friendId}`);
 }

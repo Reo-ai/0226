@@ -3,6 +3,7 @@ import { all, run } from "./db";
 import { collectPending, logIncoming, Outbox } from "./delivery";
 import { getFriendByLineId, markUnfollowed, upsertFriend } from "./friends";
 import { habitWelcome, handleHabitText } from "./habits";
+import { fieldValuesOf } from "./fields";
 import { handleNotifyCommand, markNeedsReply } from "./inbox";
 import { syncRichMenu } from "./richmenu";
 import { collectDueSteps, enrollByFollow } from "./scenarios";
@@ -96,7 +97,7 @@ export async function handleEvent(ev: LineEvent) {
     return;
   }
 
-  const box = new Outbox(friend, ev.replyToken, await currentWorkspace());
+  const box = new Outbox(friend, ev.replyToken, await currentWorkspace(), await fieldValuesOf(friend.id));
   if (ev.type === "message") {
     if (ev.message?.type === "text" && ev.message.text) await handleText(box, ev.message.text);
     else await logIncoming(friend.id, `[${ev.message?.type ?? "unknown"}]`);

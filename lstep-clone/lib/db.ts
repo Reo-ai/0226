@@ -191,6 +191,18 @@ CREATE TABLE IF NOT EXISTS habit_logs (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (friend_id, date)
 );
+CREATE TABLE IF NOT EXISTS custom_fields (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS friend_fields (
+  friend_id INTEGER NOT NULL,
+  field_id INTEGER NOT NULL,
+  value TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (friend_id, field_id)
+);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

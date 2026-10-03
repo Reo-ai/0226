@@ -3,6 +3,7 @@ import { cancelBroadcast } from "@/lib/actions";
 import { all } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
 import type { Broadcast, Tag } from "@/lib/types";
+import { parseSegment } from "@/lib/segment";
 
 const STATUS: Record<Broadcast["status"], string> = {
   scheduled: "予約中",
@@ -29,7 +30,9 @@ export default async function BroadcastsPage() {
           <thead><tr><th>タイトル</th><th>対象</th><th>方式</th><th>配信日時</th><th>状態</th><th>到達/対象</th><th /></tr></thead>
           <tbody>
             {list.map((b) => {
-              const ids = JSON.parse(b.tag_ids) as number[];
+              const seg = parseSegment(b.tag_ids);
+              const ids = seg.tagIds;
+              const extra = [seg.excludeTagIds.length ? `除外 ${seg.excludeTagIds.map((id) => tags.get(id) ?? "?").join("・")}` : "", seg.sourceId ? "流入元指定" : "", seg.habitMin ? `習慣${seg.habitMin}日以上` : "", seg.addedWithinDays ? `追加${seg.addedWithinDays}日以内` : "", seg.fieldId ? "友だち情報" : ""].filter(Boolean).join("／");
               const cancellable = b.status === "scheduled" || (b.delivery === "reply" && b.status === "sent");
               return (
                 <tr key={b.id}>
@@ -38,7 +41,10 @@ export default async function BroadcastsPage() {
                     <div className="hint pre">{b.content.slice(0, 80)}</div>
                     {b.error && <div className="hint" style={{ color: "var(--danger)" }}>{b.error}</div>}
                   </td>
-                  <td>{ids.length ? ids.map((id) => tags.get(id) ?? "?").join(", ") : "全員"}</td>
+                  <td>
+                    {ids.length ? ids.map((id) => tags.get(id) ?? "?").join(seg.tagMode === "all" ? " かつ " : ", ") : "全員"}
+                    {extra && <div className="hint">{extra}</div>}
+                  </td>
                   <td>{b.delivery === "reply" ? <span className="free">反応時に無料</span> : "プッシュ"}</td>
                   <td>{fmtDateTime(b.sent_at ?? b.scheduled_at)}</td>
                   <td>{STATUS[b.status]}</td>
