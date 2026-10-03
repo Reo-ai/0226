@@ -54,6 +54,34 @@ export default async function Dashboard() {
     now,
   ))!;
 
+  // 講座の数字：タグの付いた人数で導線の各段階を数える（タグ名で判定）
+  const tagCount = async (where: string, ...args: (string | number)[]) =>
+    (await get<{ n: number }>(
+      `SELECT COUNT(DISTINCT ft.friend_id) n FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id
+       JOIN friends fr ON fr.id = ft.friend_id WHERE fr.blocked = 0 AND (${where})`,
+      ...args,
+    ))?.n ?? 0;
+  const activeFriends = f?.active ?? 0;
+  const funnel = [
+    { label: "友だち（有効）", n: activeFriends, hint: "" },
+    { label: "初日に返信（レベル回答）", n: await tagCount("t.name LIKE 'レベル_%'"), hint: "目安 40%以上" },
+    { label: "World1 体験", n: await tagCount("t.name = 'World1体験'"), hint: "目安 25%以上" },
+    { label: "講座ページを見た", n: await tagCount("t.name = 'LP閲覧'"), hint: "" },
+    { label: "決済ページを見た", n: await tagCount("t.name = '決済ページ閲覧'"), hint: "" },
+    { label: "購入", n: await tagCount("t.name = '購入済み'"), hint: "目安 3〜5%" },
+  ];
+  const today = jstDateKey(now);
+  const habit = (await get<{ set: number; active: number; doneToday: number; avgStreak: number; best: number }>(
+    `SELECT SUM(action != '') "set",
+            SUM(action != '' AND last_done_date >= ?) active,
+            SUM(last_done_date = ?) doneToday,
+            ROUND(AVG(CASE WHEN action != '' THEN streak END), 1) avgStreak,
+            MAX(best_streak) best
+     FROM habits`,
+    jstDateKey(now - 7 * DAY),
+    today,
+  ))!;
+
   // 14日間の友だち追加推移
   const days = Array.from({ length: 14 }, (_, i) => jstDateKey(now - (13 - i) * DAY));
   const adds = new Map<string, number>();
@@ -114,6 +142,45 @@ export default async function Dashboard() {
           value={`${ai.count}${aiCfg.monthlyLimit > 0 ? ` / ${aiCfg.monthlyLimit}` : ""}`}
           sub={aiCfg.enabled ? `推定 ${yen(ai.jpy)}` : "OFF（0円）"}
         />
+      </div>
+
+      <div className="grid2">
+        <div className="panel">
+          <h2>講座の数字（導線の各段階）</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>段階</th>
+                <th>人数</th>
+                <th>友だち比</th>
+                <th>前の段階から</th>
+              </tr>
+            </thead>
+            <tbody>
+              {funnel.map((st, i) => (
+                <tr key={st.label}>
+                  <td>
+                    {st.label}
+                    {st.hint && <div className="hint">{st.hint}</div>}
+                  </td>
+                  <td>{st.n}</td>
+                  <td>{i === 0 ? "-" : pct(st.n, activeFriends)}</td>
+                  <td>{i === 0 ? "-" : pct(st.n, funnel[i - 1].n)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="hint">タグ（レベル_〜・World1体験・LP閲覧・決済ページ閲覧・購入済み）が付いた人数から計算しています</div>
+        </div>
+        <div className="panel">
+          <h2>習慣トラッカー</h2>
+          <div className="grid">
+            <Stat label="習慣を設定した人" value={habit.set ?? 0} />
+            <Stat label="続けている人（7日以内に記録）" value={habit.active ?? 0} sub={pct(habit.active ?? 0, habit.set ?? 0)} />
+            <Stat label="今日できた人" value={habit.doneToday ?? 0} />
+            <Stat label="平均の連続日数" value={habit.avgStreak ?? "-"} sub={`最高 ${habit.best ?? 0}日`} />
+          </div>
+        </div>
       </div>
 
       <div className="panel">

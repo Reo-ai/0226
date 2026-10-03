@@ -10,7 +10,7 @@ import {
   toggleFriendAi,
 } from "@/lib/actions";
 import { all, get } from "@/lib/db";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDateTime, jstDateKey } from "@/lib/format";
 import { friendTags, getFriend } from "@/lib/friends";
 import { pushRemaining } from "@/lib/quota";
 import type { Message, Scenario, Tag } from "@/lib/types";
@@ -57,6 +57,16 @@ export default async function FriendPage({
     pushRemaining(),
   ]);
   const messages = recent.reverse();
+  // ひと目でわかるまとめ用：タグの付いた日と習慣の状況
+  const tagDates = await all<{ name: string; color: string; created_at: number }>(
+    `SELECT t.name, t.color, ft.created_at FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id
+     WHERE ft.friend_id = ? ORDER BY ft.created_at`,
+    friend.id,
+  );
+  const habit = await get<{ action: string; streak: number; best_streak: number; total: number; badges: string; remind_time: string | null; remind_enabled: number; last_done_date: string | null }>(
+    "SELECT * FROM habits WHERE friend_id = ?",
+    friend.id,
+  );
   const hidden = <input type="hidden" name="friendId" value={friend.id} />;
 
   return (
@@ -67,6 +77,52 @@ export default async function FriendPage({
         {friend.blocked ? <span className="badge">ブロック中</span> : null}
       </h1>
       <ErrorBox error={error} />
+      <div className="panel">
+        <h2>ひと目でわかるまとめ</h2>
+        <div className="grid">
+          <div>
+            <div className="hint">友だち追加</div>
+            <div>{fmtDateTime(friend.followed_at)}</div>
+          </div>
+          <div>
+            <div className="hint">流入元</div>
+            <div>{source?.name ?? "（直接・不明）"}</div>
+          </div>
+          <div>
+            <div className="hint">最後のメッセージ</div>
+            <div>{friend.last_message_at ? fmtDateTime(friend.last_message_at) : "-"}</div>
+          </div>
+          <div>
+            <div className="hint">習慣</div>
+            <div>
+              {habit?.action ? (
+                <>
+                  {habit.action}：🔥{habit.streak}日連続（最高{habit.best_streak}日）／累計{habit.total}日
+                  <div className="hint">
+                    バッジ{habit.badges ? habit.badges.split(",").length : 0}個・通知
+                    {habit.remind_enabled && habit.remind_time ? ` ${habit.remind_time}` : "オフ"}・最終記録 {habit.last_done_date ?? "-"}
+                    {" "}
+                    <a href={`/h/${friend.token}`} target="_blank" rel="noreferrer">
+                      記録ページ ↗
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <span className="muted">未設定</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="hint" style={{ marginTop: 10 }}>タグの付いた日</div>
+        <div className="row" style={{ marginTop: 4 }}>
+          {tagDates.length === 0 && <span className="muted">タグなし</span>}
+          {tagDates.map((t) => (
+            <span key={t.name} className="tag" style={{ background: t.color }}>
+              {t.name}・{jstDateKey(t.created_at).slice(5).replace("-", "/")}
+            </span>
+          ))}
+        </div>
+      </div>
       <div className="grid2">
         <div className="panel stack">
           <h2>トーク</h2>
