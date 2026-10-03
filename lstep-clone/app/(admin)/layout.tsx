@@ -24,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="shell">
       <nav className="side">
-        <div className="brand">スキルコーチ</div>
+        <div className="brand">スキルコーチ・ステップ</div>
         {NAV.map(([href, label]) => (
           <Link key={href} href={href}>
             {label}

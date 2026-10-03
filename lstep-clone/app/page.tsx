@@ -20,7 +20,7 @@ export default async function Home() {
     <div className="home">
       <header className="home-head">
         <div className="home-brand">
-          <span className="home-logo">C</span>スキルコーチ
+          <span className="home-logo">C</span>スキルコーチ・ステップ
         </div>
         <div className="row">
           {!authed && guestViewEnabled() && (
@@ -61,7 +61,7 @@ export default async function Home() {
         ))}
       </section>
 
-      <footer className="home-foot muted">© スキルコーチ</footer>
+      <footer className="home-foot muted">© スキルコーチ・ステップ</footer>
     </div>
   );
 }
