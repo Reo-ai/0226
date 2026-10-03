@@ -104,3 +104,18 @@ label.row input[type=radio], label.row input[type=checkbox] { margin-top: 3px; f
 .pv-btn.primary { background: #06c755; color: #fff; }
 .pv-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .pv-chips span { background: #fff; color: #06c755; border: 1px solid #06c755; border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+
+/* 管理画面メニュー：今いるページを強調、スマホでは折りたたむ */
+.side-head { display: flex; align-items: center; justify-content: space-between; }
+.side-toggle { display: none; color: inherit; border-color: rgba(255,255,255,.3); }
+.side a.active { background: rgba(255,255,255,.1); color: #fff; box-shadow: inset 3px 0 0 var(--accent); }
+@media (max-width: 760px) {
+  .side { display: block; padding: 8px 12px; position: sticky; top: 0; z-index: 10; }
+  .side .brand { width: auto; padding: 6px 0; }
+  .side-toggle { display: inline-block; }
+  .side-links { display: none; }
+  .side.open .side-links { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 6px 0 8px; }
+  .side.open .side-links a { padding: 10px; border-radius: 6px; }
+  .side.open .side-links form { padding: 6px 10px; }
+  table { display: block; overflow-x: auto; }
+}

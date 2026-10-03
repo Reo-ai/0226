@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { logout } from "@/lib/actions";
 import { requireViewer } from "@/lib/auth";
+import AdminNav from "./AdminNav";
 
 export const dynamic = "force-dynamic";
 
@@ -23,19 +24,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { guest } = await requireViewer();
   return (
     <div className="shell">
-      <nav className="side">
-        <div className="brand">スキルコーチ・ステップ</div>
-        {NAV.map(([href, label]) => (
-          <Link key={href} href={href}>
-            {label}
-          </Link>
-        ))}
+      <AdminNav items={NAV}>
         <form action={logout}>
           <button className="ghost small" style={{ color: "inherit" }}>
             {guest ? "閲覧を終える" : "ログアウト"}
           </button>
         </form>
-      </nav>
+      </AdminNav>
       <main className="main">
         {guest && (
           <div className="panel guest-banner">
