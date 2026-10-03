@@ -1,0 +1,34 @@
+/* 習慣の記録ページ（公式LINEから開く・スマホ向け・冒険メニューと同じ金×紺） */
+body:has(.hb) { background: #0a0f1e; }
+.hb { max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; color: #efe6cc; font-family: "Hiragino Sans", "Noto Sans JP", sans-serif; }
+.hb h1 { font-size: 22px; color: #f3d27a; margin: 4px 0 16px; font-family: "Hiragino Mincho ProN", serif; }
+.hb h2 { font-size: 15px; color: #d8bf7e; margin: 0 0 12px; letter-spacing: 2px; }
+.hb .who { font-size: 13px; color: #b9a97f; margin: 0; }
+.hb .card, .hb .hero { background: #121933; border: 2px solid #8a6d2b; border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+.hb .hero { text-align: center; background: radial-gradient(circle at 50% 30%, #2a2f4a, #121933 70%); border-color: #c9a24a; }
+.hb .streak { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+.hb .fire { font-size: 34px; }
+.hb .num { font-size: 64px; font-weight: 800; color: #f3d27a; line-height: 1; }
+.hb .unit { font-size: 18px; color: #f3d27a; }
+.hb .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.hb .stats div { background: #0d1224; border-radius: 10px; padding: 8px 4px; font-size: 13px; }
+.hb .stats b { font-size: 22px; color: #fff; margin-right: 2px; }
+.hb .stats small { display: block; color: #b9a97f; margin-top: 2px; }
+.hb .today { margin: 14px 0 0; font-size: 14px; color: #cfc5a8; }
+.hb .today.ok { color: #7ee2a8; font-weight: 700; }
+.hb .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+.hb .cal .w { font-size: 11px; color: #b9a97f; }
+.hb .cal .d { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; background: #0d1224; color: #8b8aa0; }
+.hb .cal .d.done { background: linear-gradient(#2fd27a, #15803d); color: #fff; font-weight: 800; }
+.hb .cal .d.now { outline: 2px solid #f3d27a; }
+.hb .cal .d.fut { opacity: 0.3; }
+.hb .badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.hb .bd { background: #0d1224; border: 1px solid #2a2f4a; border-radius: 12px; padding: 10px 4px; text-align: center; opacity: 0.55; }
+.hb .bd.on { opacity: 1; border-color: #c9a24a; background: radial-gradient(circle, #2a2f4a, #0d1224); }
+.hb .bd .ic { display: block; font-size: 26px; }
+.hb .bd .nm { display: block; font-size: 11px; margin-top: 4px; color: #efe6cc; }
+.hb .bd .need { display: block; font-size: 10px; color: #b9a97f; }
+.hb .together { margin: 0; font-size: 14px; }
+.hb .together b { color: #f3d27a; font-size: 20px; }
+.hb .foot { font-size: 12px; color: #b9a97f; text-align: center; line-height: 1.7; }
+.hb .sub { color: #b9a97f; font-size: 14px; }

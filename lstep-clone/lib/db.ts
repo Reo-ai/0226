@@ -184,6 +184,12 @@ CREATE TABLE IF NOT EXISTS habits (
   badges TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS habit_logs (
+  friend_id INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (friend_id, date)
+);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

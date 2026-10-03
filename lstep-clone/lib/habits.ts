@@ -4,6 +4,7 @@
 import { all, get, run } from "./db";
 import type { Outbox } from "./delivery";
 import { pushToFriend, queuePending } from "./delivery";
+import { baseUrl } from "./env";
 import { jstDateKey } from "./format";
 import { QuotaError } from "./quota";
 import type { Friend } from "./types";
@@ -79,6 +80,40 @@ async function isOtherKeyword(text: string): Promise<boolean> {
     "SELECT keyword, match_type FROM auto_replies WHERE enabled = 1",
   );
   return rules.some((r) => (r.match_type === "exact" ? r.keyword === text : text.includes(r.keyword)));
+}
+
+/** その人専用の記録ページ（友だちごとのトークンで本人だけが開ける） */
+export function recordUrl(friend: Friend): string {
+  return `${baseUrl()}/h/${friend.token}`;
+}
+
+export const ALL_BADGES = { streak: STREAK_BADGES, total: TOTAL_BADGES };
+
+/** 記録ページ用のデータ */
+export async function habitPageData(friendId: number) {
+  const habit = await getHabit(friendId);
+  const since = jstDateKey(Date.now() - 34 * 86400_000);
+  const logs = await all<{ date: string }>(
+    "SELECT date FROM habit_logs WHERE friend_id = ? AND date >= ? ORDER BY date",
+    friendId,
+    since,
+  );
+  const d = today();
+  const community = await get<{ active: number; doneToday: number }>(
+    `SELECT
+       SUM(CASE WHEN action != '' AND last_done_date >= ? THEN 1 ELSE 0 END) AS active,
+       SUM(CASE WHEN last_done_date = ? THEN 1 ELSE 0 END) AS doneToday
+     FROM habits`,
+    jstDateKey(Date.now() - 7 * 86400_000),
+    d,
+  );
+  return {
+    habit,
+    doneDates: new Set(logs.map((l) => l.date)),
+    today: d,
+    active: community?.active ?? 0,
+    doneToday: community?.doneToday ?? 0,
+  };
 }
 
 function earned(h: Habit): string[] {
@@ -208,6 +243,12 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
       .filter((name) => !have.has(name));
     const badges = [...have, ...fresh].join(",");
     await run(
+      "INSERT OR IGNORE INTO habit_logs (friend_id, date, created_at) VALUES (?, ?, ?)",
+      friend.id,
+      today(now),
+      now,
+    );
+    await run(
       "UPDATE habits SET streak = ?, best_streak = ?, total = ?, last_done_date = ?, badges = ? WHERE friend_id = ?",
       streak,
       best,
@@ -224,13 +265,13 @@ export async function handleHabitText(box: Outbox, friend: Friend, raw: string):
         : `ナイス！今日も達成です🎉`;
     const parts = [`${head}\n\n🔥 連続 ${streak}日\n📅 累計 ${total}日`];
     if (fresh.length) parts.push(`🏅 新しいバッジを獲得しました！\n${fresh.join("\n")}`);
-    parts.push(nextBadgeLine(streak));
+    parts.push(`${nextBadgeLine(streak)}\n\n📊 記録を見る\n${recordUrl(friend)}`);
     box.add(parts.join("\n---\n"), "auto");
     return true;
   }
 
   if (text === "記録") {
-    box.add(statusText(habit), "auto");
+    box.add(`${statusText(habit)}\n\n📊 カレンダーとバッジ一覧はこちら\n${recordUrl(friend)}`, "auto");
     return true;
   }
   if (text === "通知オフ" || text === "通知停止") {
