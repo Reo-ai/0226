@@ -1,5 +1,6 @@
 import { get, run } from "@/lib/db";
 import { getFriendByToken } from "@/lib/friends";
+import { addScore } from "@/lib/score";
 import { addTag } from "@/lib/tags";
 import type { Link } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
     Date.now(),
   );
   if (friend && link.add_tag_id) await addTag(friend.id, link.add_tag_id);
+  await addScore(friend?.id, "click", link.id);
 
   // Stripe の支払いリンクなら、誰の支払いか分かるように友だちのトークンを付ける（決済完了の自動判定用）
   let dest = link.url;

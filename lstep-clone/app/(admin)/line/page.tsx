@@ -1,3 +1,4 @@
+import { requireOwnerPage } from "@/lib/auth";
 import { getFollowerStats, getQuota } from "@/lib/line";
 import { lineConfig, lineConnected } from "@/lib/lineConfig";
 import LineConnectForm from "./LineConnectForm";
@@ -5,6 +6,7 @@ import LineConnectForm from "./LineConnectForm";
 export const dynamic = "force-dynamic";
 
 export default async function LinePage({ searchParams }: { searchParams: Promise<{ ok?: string; welcome?: string }> }) {
+  await requireOwnerPage();
   const { ok, welcome } = await searchParams;
   const cfg = await lineConfig();
   const connected = await lineConnected();

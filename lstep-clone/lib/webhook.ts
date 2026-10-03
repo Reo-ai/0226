@@ -1,5 +1,7 @@
 import { aiAvailable, generateAiReply } from "./ai";
-import { all, run } from "./db";
+import { all, get, run } from "./db";
+import { jstDayStart } from "./format";
+import { addScore } from "./score";
 import { collectPending, logIncoming, Outbox } from "./delivery";
 import { getFriendByLineId, markUnfollowed, upsertFriend } from "./friends";
 import { habitWelcome, handleHabitText } from "./habits";
@@ -38,6 +40,13 @@ async function ensureFriend(userId: string): Promise<Friend> {
 async function handleText(box: Outbox, text: string) {
   const friend = box.friend;
   await logIncoming(friend.id, text);
+  // メッセージのスコアは1日1回まで（たくさん送っても点数が膨らまないように）
+  const todayIn = await get<{ n: number }>(
+    "SELECT COUNT(*) n FROM messages WHERE friend_id = ? AND direction = 'in' AND created_at >= ?",
+    friend.id,
+    jstDayStart(Date.now()),
+  );
+  if ((todayIn?.n ?? 0) <= 1) await addScore(friend.id, "message");
 
   // 運用者の「通知登録 123456」「通知解除」（習慣の「通知 21:00」より先に判定）
   if (await handleNotifyCommand(box, friend, text)) return;

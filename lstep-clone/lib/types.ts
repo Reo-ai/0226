@@ -13,6 +13,7 @@ export interface Friend {
   followed_at: number;
   unfollowed_at: number | null;
   last_message_at: number | null;
+  score: number;
 }
 
 export interface Tag {

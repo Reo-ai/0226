@@ -222,6 +222,13 @@ CREATE TABLE IF NOT EXISTS bookings (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_bookings_slot ON bookings(slot_id, status);
+CREATE TABLE IF NOT EXISTS score_rules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,
+  ref_id INTEGER,
+  points INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -238,6 +245,15 @@ const MIGRATIONS = [
   // 未返信の管理
   "ALTER TABLE friends ADD COLUMN needs_reply INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE friends ADD COLUMN needs_reply_at INTEGER",
+  // 行動スコア
+  "ALTER TABLE friends ADD COLUMN score INTEGER NOT NULL DEFAULT 0",
+];
+
+/** main だけの表への追加 */
+const CONTROL_MIGRATIONS = [
+  // スタッフ招待：既存の場所（target_ws）へ、役割（role）付きで招待する
+  "ALTER TABLE invites ADD COLUMN target_ws TEXT",
+  "ALTER TABLE invites ADD COLUMN role TEXT",
 ];
 
 export type Arg = InValue;
@@ -279,13 +295,13 @@ interface Conn {
 const g = globalThis as unknown as { __conns?: Map<string, Conn> };
 const conns = (g.__conns ??= new Map());
 
-function open(url: string, authToken: string | undefined, extraSchema = ""): Conn {
+function open(url: string, authToken: string | undefined, extraSchema = "", extraMigrations: string[] = []): Conn {
   if (url.startsWith("file:")) fs.mkdirSync(path.dirname(url.slice(5)), { recursive: true });
   const c = createClient({ url, authToken: authToken || undefined });
   const ready = (async () => {
     if (url.startsWith("file:")) await c.execute("PRAGMA journal_mode = WAL");
     await c.executeMultiple(SCHEMA + extraSchema);
-    for (const sql of MIGRATIONS) {
+    for (const sql of [...MIGRATIONS, ...extraMigrations]) {
       try {
         await c.execute(sql);
       } catch (err) {
@@ -300,7 +316,7 @@ function mainConn(): Conn {
   let c = conns.get(MAIN);
   if (!c) {
     const url = process.env.DATABASE_URL || (process.env.VERCEL ? "file:/tmp/app.db" : "file:./data/app.db");
-    c = open(url, process.env.DATABASE_AUTH_TOKEN, CONTROL_SCHEMA);
+    c = open(url, process.env.DATABASE_AUTH_TOKEN, CONTROL_SCHEMA, CONTROL_MIGRATIONS);
     conns.set(MAIN, c);
   }
   return c;

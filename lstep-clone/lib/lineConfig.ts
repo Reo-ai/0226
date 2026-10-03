@@ -97,7 +97,11 @@ export async function adminLineIds(): Promise<string[]> {
   }
   const saved = (await getSetting(ADMIN_KEY)).split(",");
   const env = (process.env.ADMIN_LINE_USER_IDS || "").split(",");
-  return [...new Set([...saved, ...env].map((s) => s.trim()).filter(Boolean))];
+  // main に招待されたスタッフ
+  const staff = (await mainAll<{ line_user_id: string }>("SELECT line_user_id FROM workspace_members WHERE workspace_id = ?", MAIN)).map(
+    (r) => r.line_user_id,
+  );
+  return [...new Set([...saved, ...env, ...staff].map((s) => s.trim()).filter(Boolean))];
 }
 
 /**

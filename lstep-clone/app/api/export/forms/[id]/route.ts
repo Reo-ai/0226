@@ -1,4 +1,4 @@
-import { isAuthed } from "@/lib/auth";
+import { currentRole } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
 import { toCsv } from "@/lib/forms";
@@ -8,7 +8,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) {
-  if (!(await isAuthed())) return new Response("unauthorized", { status: 401 });
+  // 一覧の書き出し（個人情報）はオーナーだけ
+  if ((await currentRole()) !== "owner") return new Response("unauthorized", { status: 401 });
   const { id } = await ctx.params;
   const form = await get<Form>("SELECT * FROM forms WHERE id = ?", Number(id));
   if (!form) return new Response("not found", { status: 404 });

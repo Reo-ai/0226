@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getSetting, mainAll } from "./db";
+import { getSetting, mainAll, mainGet } from "./db";
 import { adminLineIds } from "./lineConfig";
 import { currentWorkspace, isValidWorkspaceId, MAIN, runInWorkspace } from "./workspace";
 
@@ -95,6 +95,52 @@ export async function isAuthed(): Promise<boolean> {
   const user = await sessionUser();
   if (!user) return false;
   return (await adminLineIds()).includes(user);
+}
+
+export type Role = "owner" | "staff";
+export const FLASH_COOKIE = "flash";
+
+/**
+ * いまの場所での役割。owner＝すべて操作できる／staff＝友だち対応（トーク・タグ・メモ・情報欄・予約）だけ
+ * main は設定・環境変数の管理者が owner、workspace_members に入っている人はその役割
+ */
+export async function currentRole(): Promise<Role | null> {
+  const user = await sessionUser();
+  if (!user || !(await isAuthed())) return null;
+  const ws = await currentWorkspace();
+  const m = await mainGet<{ role: string }>("SELECT role FROM workspace_members WHERE workspace_id = ? AND line_user_id = ?", ws, user);
+  return m?.role === "staff" ? "staff" : "owner";
+}
+
+/** 新しい場所（公式LINEごとの管理画面）の招待を作れる人：main のオーナー（スタッフは不可） */
+export async function canCreateWorkspaces(user: string | null): Promise<boolean> {
+  if (!user || !(await runInWorkspace(MAIN, adminLineIds)).includes(user)) return false;
+  const staff = await mainGet("SELECT 1 FROM workspace_members WHERE workspace_id = ? AND line_user_id = ? AND role = 'staff'", MAIN, user);
+  return !staff;
+}
+
+/** オーナーだけの操作（設定・配信・削除・メンバー管理など） */
+export async function requireOwner() {
+  const role = await currentRole();
+  if (!role) redirect("/login");
+  if (role !== "owner") {
+    // スタッフ：元の画面に戻して理由を出す
+    const ref = (await headers()).get("referer");
+    let back = "/inbox";
+    try {
+      if (ref) back = new URL(ref).pathname;
+    } catch {
+      // 読めなければ未返信の一覧へ
+    }
+    // どの画面でも上にお知らせを出す（管理画面のレイアウトが読む。数秒で消える）
+    (await cookies()).set(FLASH_COOKIE, "owner_only", { path: "/", maxAge: 10, sameSite: "lax" });
+    redirect(back);
+  }
+}
+
+/** オーナーだけの画面：スタッフは未返信の一覧へ戻す（ゲスト閲覧は main の見学用なのでそのまま） */
+export async function requireOwnerPage() {
+  if ((await currentRole()) === "staff") redirect("/inbox");
 }
 
 /** 書き込み・個人情報の出力用。ゲストは通さない */

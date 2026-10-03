@@ -1,10 +1,16 @@
-import { markPurchased, verifyStripeSignature } from "@/lib/stripe";
+import { markPurchased, stripeWebhookSecret, verifyStripeSignature } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
 // Stripe の Webhook（checkout.session.completed）を受けて、購入した友だちに「購入済み」タグを付ける
+// 送信先の URL に ?w=<場所のID> を付けると、その場所（公式LINE）の友だちとして扱う（proxy.ts が判定）
 export async function POST(req: Request) {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET || "";
+  let secret: string;
+  try {
+    secret = await stripeWebhookSecret();
+  } catch {
+    return new Response("unknown workspace", { status: 404 });
+  }
   if (!secret) return new Response("stripe webhook not configured", { status: 503 });
   const payload = await req.text();
   if (!verifyStripeSignature(payload, req.headers.get("stripe-signature"), secret)) {

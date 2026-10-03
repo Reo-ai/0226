@@ -33,7 +33,7 @@ export default function SegmentFields({
         ))}
         {tags.length === 0 && <span className="muted">タグがありません</span>}
       </fieldset>
-      <details open={value.excludeTagIds.length > 0 || Boolean(value.sourceId || value.habitMin || value.addedWithinDays || value.fieldId)}>
+      <details open={value.excludeTagIds.length > 0 || Boolean(value.sourceId || value.habitMin || value.addedWithinDays || value.scoreMin || value.fieldId)}>
         <summary className="hint" style={{ cursor: "pointer" }}>くわしい条件（除外・流入元・習慣・追加日・友だち情報）</summary>
         <div className="stack" style={{ gap: 8, marginTop: 8 }}>
           <fieldset className="row">
@@ -63,6 +63,10 @@ export default function SegmentFields({
             <label className="row">
               友だち追加が
               <input type="number" name="addedWithinDays" min={1} defaultValue={value.addedWithinDays ?? ""} style={{ width: 70 }} /> 日以内
+            </label>
+            <label className="row">
+              行動スコア
+              <input type="number" name="scoreMin" min={1} defaultValue={value.scoreMin ?? ""} style={{ width: 70 }} /> 点以上
             </label>
           </div>
           {fields.length > 0 && (

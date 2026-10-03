@@ -1,3 +1,4 @@
+import { requireOwnerPage } from "@/lib/auth";
 import Link from "next/link";
 import { installTemplateAction } from "@/lib/actions";
 import { installedKeys, TEMPLATES } from "@/lib/templates";
@@ -6,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 // 導線テンプレート：よくある配信の流れをボタン1つで作る
 export default async function TemplatesPage({ searchParams }: { searchParams: Promise<{ done?: string }> }) {
+  await requireOwnerPage();
   const { done } = await searchParams;
   const installed = await installedKeys();
   const doneTpl = TEMPLATES.find((t) => t.key === done);

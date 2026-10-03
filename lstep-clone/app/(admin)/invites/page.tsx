@@ -1,21 +1,19 @@
 import { redirect } from "next/navigation";
 import { createInviteAction, revokeInvite } from "@/lib/actions";
-import { sessionUser } from "@/lib/auth";
+import { canCreateWorkspaces, sessionUser } from "@/lib/auth";
 import { mainAll } from "@/lib/db";
 import { baseUrl } from "@/lib/env";
 import { fmtDateTime } from "@/lib/format";
 import type { Invite } from "@/lib/invites";
-import { adminLineIds } from "@/lib/lineConfig";
-import { MAIN, runInWorkspace } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
 // 招待の管理（内海さんだけ）：招待リンクを作って、使いたい人に送る
 export default async function InvitesPage() {
   const user = await sessionUser();
-  if (!user || !(await runInWorkspace(MAIN, adminLineIds)).includes(user)) redirect("/dashboard");
+  if (!(await canCreateWorkspaces(user))) redirect("/dashboard");
   const invites = await mainAll<Invite & { ws_name: string | null }>(
-    `SELECT i.*, w.name ws_name FROM invites i LEFT JOIN workspaces w ON w.id = i.workspace_id ORDER BY i.created_at DESC LIMIT 100`,
+    `SELECT i.*, w.name ws_name FROM invites i LEFT JOIN workspaces w ON w.id = i.workspace_id WHERE i.target_ws IS NULL ORDER BY i.created_at DESC LIMIT 100`,
   );
   const members = await mainAll<{ name: string; display_name: string; created_at: number }>(
     `SELECT w.name, m.display_name, m.created_at FROM workspaces w JOIN workspace_members m ON m.workspace_id = w.id ORDER BY w.created_at`,

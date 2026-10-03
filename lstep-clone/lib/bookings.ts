@@ -6,6 +6,7 @@ import { all, get, getSetting, run } from "./db";
 import { pushToFriend, queuePending } from "./delivery";
 import { notifyTargets } from "./inbox";
 import { QuotaError } from "./quota";
+import { addScore } from "./score";
 import { addTag } from "./tags";
 import type { Friend } from "./types";
 
@@ -141,6 +142,7 @@ export async function book(slotId: number, friend: Friend | undefined, name: str
   const label = slotLabel(slot);
   if (friend) {
     if (cfg.tagId) await addTag(friend.id, cfg.tagId);
+    await addScore(friend.id, "booking");
     await safePush(
       friend,
       `📅 ${cfg.title}を受け付けました\n日時：${label}${cfg.confirm ? `\n\n${cfg.confirm}` : ""}\n\n変更・キャンセルは、予約したページからできます。`,

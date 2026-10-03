@@ -66,7 +66,7 @@ export default async function FriendsPage({
       <div className="panel">
         <table>
           <thead>
-            <tr><th>名前</th><th>タグ</th><th>最終メッセージ</th><th>友だち追加</th><th>状態</th></tr>
+            <tr><th>名前</th><th>スコア</th><th>タグ</th><th>最終メッセージ</th><th>友だち追加</th><th>状態</th></tr>
           </thead>
           <tbody>
             {friends.map((f) => (
@@ -77,13 +77,14 @@ export default async function FriendsPage({
                     {f.display_name || "(名前未取得)"}
                   </Link>
                 </td>
+                <td>{f.score || "-"}</td>
                 <td><div className="row">{(tagsOf.get(f.id) ?? []).map((t) => <TagChip key={t.id} tag={t} />)}</div></td>
                 <td>{fmtDateTime(f.last_message_at)}</td>
                 <td>{fmtDateTime(f.followed_at)}</td>
                 <td>{f.blocked ? <span className="badge">ブロック</span> : <span className="badge on">有効</span>}</td>
               </tr>
             ))}
-            {friends.length === 0 && <tr><td colSpan={5} className="muted">該当する友だちはいません</td></tr>}
+            {friends.length === 0 && <tr><td colSpan={6} className="muted">該当する友だちはいません</td></tr>}
           </tbody>
         </table>
       </div>

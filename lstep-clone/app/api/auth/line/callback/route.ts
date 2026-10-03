@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSession, WS_COOKIE, workspacesOf } from "@/lib/auth";
-import { acceptInvite, INVITE_COOKIE } from "@/lib/invites";
+import { acceptInvite, INVITE_COOKIE, validInvite } from "@/lib/invites";
 import { authorizeAdmin } from "@/lib/lineConfig";
 import { DENIED_COOKIE, lineLoginEnabled, profileFromCode, STATE_COOKIE } from "@/lib/lineLogin";
 import { MAIN, runInWorkspace } from "@/lib/workspace";
@@ -35,6 +35,7 @@ export async function GET(req: Request) {
   const invite = jar.get(INVITE_COOKIE)?.value;
   if (invite) {
     jar.delete(INVITE_COOKIE);
+    const staffInvite = Boolean((await validInvite(invite))?.target_ws);
     let ws: string | null = null;
     try {
       ws = await acceptInvite(invite, userId, profile.name);
@@ -44,7 +45,8 @@ export async function GET(req: Request) {
     }
     if (!ws) redirect("/login?line=invite_invalid");
     await setSession(userId, ws);
-    redirect("/line?welcome=1");
+    // スタッフとして入った人は、すでに連携済みの場所なので未返信の一覧へ
+    redirect(staffInvite ? "/inbox?welcome=1" : "/line?welcome=1");
   }
 
   // 内海さんの場所（main）：管理者がまだ誰もいなければ、最初にログインした人を管理者にする

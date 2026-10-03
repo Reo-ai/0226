@@ -1,4 +1,4 @@
-import { isAuthed } from "@/lib/auth";
+import { currentRole } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
 import { toCsv } from "@/lib/forms";
@@ -7,7 +7,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!(await isAuthed())) return new Response("unauthorized", { status: 401 });
+  // 一覧の書き出し（個人情報）はオーナーだけ
+  if ((await currentRole()) !== "owner") return new Response("unauthorized", { status: 401 });
   const rows = await all<{
     id: number;
     display_name: string;

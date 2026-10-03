@@ -10,6 +10,7 @@ import {
   sendManual,
   stopEnrollment,
   toggleFriendAi,
+  adjustScore,
 } from "@/lib/actions";
 import { all, get } from "@/lib/db";
 import { fmtDateTime, jstDateKey } from "@/lib/format";
@@ -96,6 +97,15 @@ export default async function FriendPage({
           <div>
             <div className="hint">友だち追加</div>
             <div>{fmtDateTime(friend.followed_at)}</div>
+          </div>
+          <div>
+            <div className="hint">行動スコア</div>
+            <form action={adjustScore} className="row" style={{ gap: 6 }}>
+              <input type="hidden" name="id" value={friend.id} />
+              <b style={{ fontSize: 20 }}>{friend.score ?? 0}</b>点
+              <input name="delta" type="number" placeholder="±" style={{ width: 60 }} />
+              <button className="ghost small">増減</button>
+            </form>
           </div>
           <div>
             <div className="hint">流入元</div>

@@ -3,7 +3,7 @@
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { clearSession, guestViewEnabled, requireAuth, sessionUser, setGuestSession, setWorkspaceCookie, workspacesOf } from "./auth";
+import { canCreateWorkspaces, clearSession, guestViewEnabled, requireAuth, requireOwner, sessionUser, setGuestSession, setWorkspaceCookie, workspacesOf } from "./auth";
 import { sendBroadcast } from "./broadcasts";
 import { validateContent } from "./content";
 import { batch, get, mainRun, run, setSetting } from "./db";
@@ -35,6 +35,8 @@ import { saveAnswersToFields, setFieldValue } from "./fields";
 import { segmentFriends, segmentFrom } from "./segment";
 import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
 import { installTemplate } from "./templates";
+import { STRIPE_SECRET_KEY, STRIPE_THANKS_KEY } from "./stripe";
+import { addScore, changeScore } from "./score";
 import { book, BOOKING_SETTINGS, BookingError, cancelBooking, createSlots } from "./bookings";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -88,13 +90,13 @@ export async function markReplied(fd: FormData) {
 
 /** 通知を受け取る LINE を登録するためのコードを出す */
 export async function issueNotifyCodeAction() {
-  await requireAuth();
+  await requireOwner();
   await issueNotifyCode();
   revalidatePath("/settings");
 }
 
 export async function removeNotifyTargetAction(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   await removeNotifyTarget(num(fd, "friendId"));
   revalidatePath("/settings");
 }
@@ -150,14 +152,14 @@ export async function stopEnrollment(fd: FormData) {
 
 // ---- tags ----
 export async function createTag(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const name = str(fd, "name");
   if (name) await run("INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)", name, str(fd, "color") || "#06c755");
   revalidatePath("/tags");
 }
 
 export async function deleteTag(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   await batch([
     { sql: "DELETE FROM friend_tags WHERE tag_id = ?", args: [id] },
@@ -174,7 +176,7 @@ export async function deleteTag(fd: FormData) {
 
 // ---- broadcasts ----
 export async function createBroadcast(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const content = str(fd, "content");
   const err = validateContent(content);
   if (err) redirect(`/broadcasts/new?error=${enc(err)}`);
@@ -210,7 +212,7 @@ export async function createBroadcast(fd: FormData) {
 }
 
 export async function cancelBroadcast(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   const b = await get<Broadcast>("SELECT * FROM broadcasts WHERE id = ?", id);
   if (b?.status === "scheduled") {
@@ -225,7 +227,7 @@ export async function cancelBroadcast(fd: FormData) {
 
 // ---- scenarios ----
 export async function createScenario(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const name = str(fd, "name");
   if (!name) return;
   const trigger = str(fd, "trigger") as "follow" | "tag" | "manual";
@@ -241,14 +243,14 @@ export async function createScenario(fd: FormData) {
 }
 
 export async function setScenarioStopTag(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   await run("UPDATE scenarios SET stop_tag_id = ? WHERE id = ?", optId(fd, "stopTagId"), id);
   revalidatePath(`/scenarios/${id}`);
 }
 
 export async function toggleScenario(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   await run("UPDATE scenarios SET enabled = 1 - enabled WHERE id = ?", id);
   revalidatePath(`/scenarios/${id}`);
@@ -256,7 +258,7 @@ export async function toggleScenario(fd: FormData) {
 }
 
 export async function deleteScenario(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   await batch([
     { sql: "DELETE FROM enrollments WHERE scenario_id = ?", args: [id] },
@@ -267,7 +269,7 @@ export async function deleteScenario(fd: FormData) {
 }
 
 export async function addStep(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const scenarioId = num(fd, "scenarioId");
   const content = str(fd, "content");
   const err = validateContent(content);
@@ -292,14 +294,14 @@ export async function addStep(fd: FormData) {
 }
 
 export async function deleteStep(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   await run("DELETE FROM scenario_steps WHERE id = ?", num(fd, "id"));
   revalidatePath(`/scenarios/${num(fd, "scenarioId")}`);
 }
 
 // ---- auto replies ----
 export async function createAutoReply(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const keyword = str(fd, "keyword");
   const reply = str(fd, "reply");
   const err = validateContent(reply);
@@ -317,20 +319,20 @@ export async function createAutoReply(fd: FormData) {
 }
 
 export async function toggleAutoReply(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   await run("UPDATE auto_replies SET enabled = 1 - enabled WHERE id = ?", num(fd, "id"));
   revalidatePath("/auto-replies");
 }
 
 export async function deleteAutoReply(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   await run("DELETE FROM auto_replies WHERE id = ?", num(fd, "id"));
   revalidatePath("/auto-replies");
 }
 
 // ---- links ----
 export async function createLink(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const url = str(fd, "url");
   if (!/^https?:\/\//.test(url)) return;
   const code = str(fd, "code").replace(/[^\w-]/g, "") || crypto.randomBytes(4).toString("hex");
@@ -346,7 +348,7 @@ export async function createLink(fd: FormData) {
 }
 
 export async function deleteLink(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   await batch([
     { sql: "DELETE FROM link_clicks WHERE link_id = ?", args: [id] },
@@ -357,7 +359,7 @@ export async function deleteLink(fd: FormData) {
 
 // ---- rich menus ----
 export async function createRichMenu(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const name = str(fd, "name") || "メニュー";
   const chatBarText = str(fd, "chatBarText") || "メニュー";
   const layout = layoutOf(str(fd, "layout"));
@@ -397,7 +399,7 @@ export async function createRichMenu(fd: FormData) {
 }
 
 export async function setDefaultMenu(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const menu = await get<RichMenu>("SELECT * FROM rich_menus WHERE id = ?", num(fd, "id"));
   if (!menu?.line_rich_menu_id) return;
   if (menu.is_default) {
@@ -414,7 +416,7 @@ export async function setDefaultMenu(fd: FormData) {
 }
 
 export async function deleteRichMenu(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const menu = await get<RichMenu>("SELECT * FROM rich_menus WHERE id = ?", num(fd, "id"));
   if (!menu) return;
   if (menu.line_rich_menu_id && !menu.line_rich_menu_id.startsWith("dry-run")) {
@@ -429,7 +431,7 @@ export async function deleteRichMenu(fd: FormData) {
 
 // ---- forms ----
 export async function saveForm(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   const title = str(fd, "title");
   const fields = parseFields(str(fd, "fields"));
@@ -453,7 +455,7 @@ export async function saveForm(fd: FormData) {
 }
 
 export async function deleteForm(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   await batch([
     { sql: "DELETE FROM form_responses WHERE form_id = ?", args: [id] },
@@ -490,12 +492,13 @@ export async function submitForm(fd: FormData) {
   if (friend && form.add_tag_id) await addTag(friend.id, form.add_tag_id);
   // 質問名が友だち情報欄の項目名と同じなら、その友だちの情報として保存する
   if (friend) await saveAnswersToFields(friend.id, answers);
+  await addScore(friend?.id, "form", form.id);
   redirect(withWs(`/f/${form.id}/thanks`, await currentWorkspace()));
 }
 
 // ---- sources ----
 export async function createSource(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const name = str(fd, "name");
   if (!name) return;
   const code = str(fd, "code").replace(/[^\w-]/g, "") || crypto.randomBytes(4).toString("hex");
@@ -510,7 +513,7 @@ export async function createSource(fd: FormData) {
 }
 
 export async function deleteSource(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   await batch([
     { sql: "DELETE FROM source_visits WHERE source_id = ?", args: [id] },
@@ -522,7 +525,7 @@ export async function deleteSource(fd: FormData) {
 
 // ---- settings ----
 export async function saveSettings(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   await setSetting("ai_enabled", fd.get("aiEnabled") ? "1" : "0");
   await setSetting("ai_model", str(fd, "aiModel"));
   await setSetting("ai_monthly_limit", String(Math.max(0, num(fd, "aiMonthlyLimit"))));
@@ -535,7 +538,7 @@ export async function saveSettings(fd: FormData) {
 
 // ---- LINE連携（公式LINEの値を画面から登録） ----
 export async function saveLineConnection(_: string | null, fd: FormData): Promise<string | null> {
-  await requireAuth();
+  await requireOwner();
   const current = await lineConfig();
   const channelId = str(fd, "channelId") || current.channelId;
   const channelSecret = str(fd, "channelSecret") || current.channelSecret;
@@ -569,7 +572,7 @@ export async function saveLineConnection(_: string | null, fd: FormData): Promis
 
 // ---- 習慣トラッカー用のリッチメニュー（「できた」「記録」「習慣」の3ボタン）をワンクリックで作って既定にする ----
 export async function createHabitMenu() {
-  await requireAuth();
+  await requireOwner();
   const res = await fetch(`${baseUrl()}/richmenu/habit.jpg`);
   if (!res.ok) redirect(`/rich-menus?error=${enc("メニュー画像を読み込めませんでした")}`);
   const data = new Uint8Array(await res.arrayBuffer());
@@ -610,7 +613,7 @@ type Box = { x: number; y: number; width: number; height: number };
 const switchTo = (alias: string) => ({ type: "richmenuswitch", richMenuAliasId: alias, data: `switch=${alias}` });
 
 export async function createTabMenus() {
-  await requireAuth();
+  await requireOwner();
   // A の下半分は、今の「通常メニュー（タグなし）」のボタンをそのまま使う
   const base = await get<RichMenu>(
     "SELECT * FROM rich_menus WHERE tag_id IS NULL AND layout = 'full-6' ORDER BY id LIMIT 1",
@@ -697,7 +700,7 @@ export async function createTabMenus() {
 // ---- 招待（内海さん＝main の管理者だけが発行できる） ----
 async function requireInviter(): Promise<string> {
   const user = await sessionUser();
-  if (!user || !(await runInWorkspace(MAIN, adminLineIds)).includes(user)) redirect("/login");
+  if (!user || !(await canCreateWorkspaces(user))) redirect("/login");
   return user;
 }
 
@@ -715,7 +718,7 @@ export async function revokeInvite(fd: FormData) {
 
 // ---- 場所（ワークスペース）の名前の変更・削除（その場所のメンバーだけ） ----
 export async function renameWorkspace(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const name = str(fd, "name").slice(0, 40);
   if (!name) return;
   const ws = await currentWorkspace();
@@ -725,7 +728,7 @@ export async function renameWorkspace(fd: FormData) {
 }
 
 export async function deleteWorkspaceAction(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const ws = await currentWorkspace();
   if (ws === MAIN) redirect(`/settings?error=${enc("メインの場所は削除できません")}`);
   if (str(fd, "confirm") !== "削除") redirect(`/settings?error=${enc("確認のため「削除」と入力してください")}`);
@@ -738,7 +741,7 @@ export async function deleteWorkspaceAction(fd: FormData) {
 
 // ---- 友だち情報欄 ----
 export async function createField(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const name = str(fd, "name").slice(0, 30);
   if (!name) return;
   await run("INSERT OR IGNORE INTO custom_fields (name, created_at) VALUES (?, ?)", name, Date.now());
@@ -746,7 +749,7 @@ export async function createField(fd: FormData) {
 }
 
 export async function deleteField(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const id = num(fd, "id");
   await run("DELETE FROM friend_fields WHERE field_id = ?", id);
   await run("DELETE FROM custom_fields WHERE id = ?", id);
@@ -765,7 +768,7 @@ export async function saveFriendFields(fd: FormData) {
 
 // ---- 導線テンプレート ----
 export async function installTemplateAction(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   const key = str(fd, "key");
   await installTemplate(key);
   revalidatePath("/templates");
@@ -805,7 +808,7 @@ export async function adminCancelBooking(fd: FormData) {
 }
 
 export async function saveBookingSettings(fd: FormData) {
-  await requireAuth();
+  await requireOwner();
   await setSetting(BOOKING_SETTINGS.title, str(fd, "title").slice(0, 40));
   await setSetting(BOOKING_SETTINGS.tagId, String(optId(fd, "tagId") ?? ""));
   await setSetting(BOOKING_SETTINGS.remindHours, String(Math.max(0, Math.min(num(fd, "remindHours"), 168))));
@@ -836,4 +839,76 @@ export async function cancelMyBooking(fd: FormData) {
   if (!friend) redirect(withWs(`/b/open`, ws));
   await cancelBooking(num(fd, "id"), friend.id);
   redirect(withWs(`/b/${token}?canceled=1`, ws));
+}
+
+// ---- 行動スコア ----
+export async function createScoreRule(fd: FormData) {
+  await requireOwner();
+  const kind = str(fd, "kind");
+  const points = Math.trunc(num(fd, "points"));
+  if (kind === "reach") {
+    // ○点に達したらタグを付ける
+    const tagId = optId(fd, "tagId");
+    if (!tagId || points <= 0) redirect(`/scores?error=${enc("点数（1以上）とタグを選んでください")}`);
+    await run("INSERT INTO score_rules (kind, ref_id, points, created_at) VALUES ('reach', ?, ?, ?)", tagId, points, Date.now());
+  } else {
+    if (!points) redirect(`/scores?error=${enc("点数を入力してください（マイナスも可）")}`);
+    const refId = kind === "click" || kind === "form" || kind === "tag" ? optId(fd, `ref_${kind}`) : null;
+    if (kind === "tag" && !refId) redirect(`/scores?error=${enc("タグを選んでください")}`);
+    await run("INSERT INTO score_rules (kind, ref_id, points, created_at) VALUES (?, ?, ?, ?)", kind, refId, points, Date.now());
+  }
+  revalidatePath("/scores");
+}
+
+export async function deleteScoreRule(fd: FormData) {
+  await requireOwner();
+  await run("DELETE FROM score_rules WHERE id = ?", num(fd, "id"));
+  revalidatePath("/scores");
+}
+
+export async function adjustScore(fd: FormData) {
+  await requireAuth();
+  const id = num(fd, "id");
+  const delta = Math.trunc(num(fd, "delta"));
+  if (delta) await changeScore(id, delta);
+  revalidatePath(`/friends/${id}`);
+}
+
+// ---- メンバー（スタッフ）----
+export async function createStaffInvite(fd: FormData) {
+  await requireOwner();
+  const user = (await sessionUser())!;
+  await createInvite(user, str(fd, "note"), { ws: await currentWorkspace(), role: "staff" });
+  revalidatePath("/members");
+}
+
+export async function revokeStaffInvite(fd: FormData) {
+  await requireOwner();
+  await mainRun("DELETE FROM invites WHERE code = ? AND target_ws = ? AND used_by IS NULL", str(fd, "code"), await currentWorkspace());
+  revalidatePath("/members");
+}
+
+export async function removeStaff(fd: FormData) {
+  await requireOwner();
+  // 外せるのはスタッフだけ（オーナーは外せない）
+  await mainRun(
+    "DELETE FROM workspace_members WHERE workspace_id = ? AND line_user_id = ? AND role = 'staff'",
+    await currentWorkspace(),
+    str(fd, "user"),
+  );
+  revalidatePath("/members");
+}
+
+// ---- 決済の自動判定（Stripe）----
+export async function saveStripeSettings(fd: FormData) {
+  await requireOwner();
+  const secret = str(fd, "secret");
+  if (secret) {
+    if (!/^whsec_[A-Za-z0-9]+$/.test(secret)) redirect(`/settings?error=${enc("署名シークレットは whsec_ で始まる文字です。Stripe の画面からそのままコピーしてください")}#stripe`);
+    await setSetting(STRIPE_SECRET_KEY, secret);
+  }
+  if (fd.get("clearSecret")) await setSetting(STRIPE_SECRET_KEY, "");
+  await setSetting(STRIPE_THANKS_KEY, str(fd, "thanks").slice(0, 1000));
+  revalidatePath("/settings");
+  redirect(`/settings?saved=${enc(formatJst(Date.now()))}#stripe`);
 }

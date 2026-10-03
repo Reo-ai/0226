@@ -1,18 +1,24 @@
 import Link from "next/link";
 import { adminLineIds, lineConnected } from "@/lib/lineConfig";
 import { baseUrl } from "@/lib/env";
-import { deleteWorkspaceAction, issueNotifyCodeAction, removeNotifyTargetAction, renameWorkspace, saveSettings } from "@/lib/actions";
-import { sessionUser, workspacesOf } from "@/lib/auth";
-import { all } from "@/lib/db";
+import { deleteWorkspaceAction, issueNotifyCodeAction, removeNotifyTargetAction, renameWorkspace, saveSettings, saveStripeSettings } from "@/lib/actions";
+import { STRIPE_SECRET_KEY, STRIPE_THANKS_KEY, stripeWebhookSecret } from "@/lib/stripe";
+import { requireOwnerPage, sessionUser, workspacesOf } from "@/lib/auth";
+import { all, getSetting } from "@/lib/db";
 import { currentNotifyCode, notifyTargets } from "@/lib/inbox";
-import { currentWorkspace, MAIN } from "@/lib/workspace";
+import { currentWorkspace, MAIN, withWs } from "@/lib/workspace";
 import { AI_MODELS, aiConfig, aiMonthlyUsage } from "@/lib/ai";
 import { yen } from "@/lib/format";
 import { pushLimit } from "@/lib/quota";
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
+  await requireOwnerPage();
   const { saved, error } = await searchParams;
   const ws = await currentWorkspace();
+  const stripeSaved = Boolean(await getSetting(STRIPE_SECRET_KEY));
+  const stripeReady = Boolean(await stripeWebhookSecret());
+  const stripeThanks = await getSetting(STRIPE_THANKS_KEY);
+  const stripeHookUrl = withWs(`${baseUrl()}/api/stripe/webhook`, ws);
   const user = await sessionUser();
   const wsName = (user ? await workspacesOf(user) : []).find((w) => w.id === ws)?.name ?? "";
   const code = await currentNotifyCode();
@@ -130,6 +136,43 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div><button>保存</button></div>
       </form>
 
+      <form id="stripe" action={saveStripeSettings} className="panel stack">
+        <h2 style={{ margin: 0 }}>決済の自動判定（Stripe）</h2>
+        <p style={{ margin: 0, fontSize: 15 }}>
+          {stripeReady ? "✅ 設定済み：支払った友だちに「購入済み」タグが自動で付きます" : "未設定"}
+        </p>
+        <label className="stack" style={{ gap: 4 }}>
+          <span className="hint">Stripe に登録する送信先 URL</span>
+          <code style={{ userSelect: "all", wordBreak: "break-all" }}>{stripeHookUrl}</code>
+        </label>
+        <label className="stack" style={{ gap: 4 }}>
+          <span className="hint">署名シークレット（whsec_…）</span>
+          <input name="secret" type="password" autoComplete="off" placeholder={stripeSaved ? "登録済み（変えるときだけ入力）" : "whsec_…"} />
+        </label>
+        <label className="stack" style={{ gap: 4 }}>
+          <span className="hint">購入した人に送るお礼（空なら送らない）</span>
+          <textarea name="thanks" rows={2} defaultValue={stripeThanks} />
+        </label>
+        <div className="row">
+          <button>保存</button>
+          {stripeSaved && (
+            <label className="row hint">
+              <input type="checkbox" name="clearSecret" /> 登録を消す
+            </label>
+          )}
+        </div>
+        <details>
+          <summary className="hint" style={{ cursor: "pointer" }}>設定のしかた</summary>
+          <ol className="hint" style={{ lineHeight: 1.8 }}>
+            <li>Stripe のダッシュボード →「開発者」→「Webhook」→「送信先を追加」</li>
+            <li>上の URL を貼り、イベントは「checkout.session.completed」を選ぶ</li>
+            <li>表示された署名シークレット（whsec_…）を上の欄に貼って保存</li>
+            <li>「計測リンク」で行き先を Stripe の支払いリンク（buy.stripe.com/…）にして、本文に {"{{link:コード}}"} で送る</li>
+          </ol>
+          <p className="hint">支払いリンクを計測リンク経由で開くと、誰が払ったかが分かる印が自動で付きます。</p>
+        </details>
+      </form>
+
       <div className="panel stack">
         <h2>連携状況</h2>
         <div>Webhook URL: <code>{base}/api/line/webhook</code></div>
@@ -138,14 +181,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           公式LINE: {(await lineConnected()) ? "連携済み" : "未連携"}（<Link href="/line">LINE連携の画面へ</Link>）
         </div>
         <div>流入経路（LIFF）: LIFF_ID {env("LIFF_ID")} / LINE_LOGIN_CHANNEL_ID {env("LINE_LOGIN_CHANNEL_ID")} / LINE_ADD_FRIEND_URL {env("LINE_ADD_FRIEND_URL")}</div>
-        <div>
-          決済の自動判定（Stripe）: {process.env.STRIPE_WEBHOOK_SECRET ? "設定済み" : "未設定"}
-          <div className="hint">
-            Stripe のダッシュボード →「開発者」→「Webhook」で送信先に <code>{base}/api/stripe/webhook</code> を登録し、イベントは
-            「checkout.session.completed」を選ぶ。表示される署名シークレット（whsec_…）を環境変数 STRIPE_WEBHOOK_SECRET に登録すると、
-            計測リンク {"{{link:checkout}}"} の行き先を Stripe の支払いリンクにした場合に、支払った友だちへ自動で「購入済み」タグが付きます。
-          </div>
-        </div>
         <div>データの保存先: {process.env.DATABASE_URL?.startsWith("libsql") ? "Turso（消えません）" : "一時保存（消える可能性あり）"}</div>
       </div>
     </>

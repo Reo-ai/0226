@@ -15,18 +15,23 @@ export interface Invite {
   used_by: string | null;
   used_at: number | null;
   workspace_id: string | null;
+  /** スタッフ招待：招待先の場所と役割（新しい場所を作る招待では null） */
+  target_ws: string | null;
+  role: string | null;
 }
 
-export async function createInvite(createdBy: string, note: string): Promise<string> {
+export async function createInvite(createdBy: string, note: string, target?: { ws: string; role: "staff" }): Promise<string> {
   const code = crypto.randomBytes(12).toString("base64url");
   const now = Date.now();
   await mainRun(
-    "INSERT INTO invites (code, note, created_by, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO invites (code, note, created_by, created_at, expires_at, target_ws, role) VALUES (?, ?, ?, ?, ?, ?, ?)",
     code,
     note.slice(0, 100),
     createdBy,
     now,
     now + TTL_MS,
+    target?.ws ?? null,
+    target?.role ?? null,
   );
   return code;
 }
@@ -75,6 +80,19 @@ export async function acceptInvite(code: string, lineUserId: string, displayName
     code,
   );
   if (changes === 0) return null;
+  // スタッフ招待：今ある場所にスタッフとして入る（すでにメンバーなら今の役割のまま）
+  if (invite.target_ws) {
+    await mainRun(
+      "INSERT OR IGNORE INTO workspace_members (workspace_id, line_user_id, display_name, role, created_at) VALUES (?, ?, ?, ?, ?)",
+      invite.target_ws,
+      lineUserId,
+      displayName,
+      invite.role || "staff",
+      Date.now(),
+    );
+    await mainRun("UPDATE invites SET workspace_id = ? WHERE code = ?", invite.target_ws, code);
+    return invite.target_ws;
+  }
   const id = newWorkspaceId();
   const db = await provisionDatabase(id);
   const now = Date.now();
@@ -112,5 +130,6 @@ export async function deleteWorkspace(id: string) {
     if (!res.ok && res.status !== 404) throw new Error(`データベースの削除に失敗しました: ${res.status}`);
   }
   await mainRun("DELETE FROM workspace_members WHERE workspace_id = ?", id);
+  await mainRun("DELETE FROM invites WHERE target_ws = ? AND used_by IS NULL", id);
   await mainRun("DELETE FROM workspaces WHERE id = ?", id);
 }

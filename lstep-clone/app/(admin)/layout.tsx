@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { logout } from "@/lib/actions";
-import { requireViewer, sessionUser, workspacesOf } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { canCreateWorkspaces, currentRole, FLASH_COOKIE, requireViewer, sessionUser, workspacesOf } from "@/lib/auth";
 import { unrepliedCount } from "@/lib/inbox";
-import { currentWorkspace, MAIN } from "@/lib/workspace";
+import { currentWorkspace } from "@/lib/workspace";
 import AdminNav from "./AdminNav";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +23,15 @@ const NAV = [
   ["/links", "計測リンク"],
   ["/tags", "タグ"],
   ["/fields", "友だち情報欄"],
+  ["/scores", "行動スコア"],
+  ["/analytics", "クロス分析"],
+  ["/members", "メンバー"],
   ["/line", "LINE連携"],
   ["/settings", "設定・AI"],
   ["/guide", "使い方"],
 ] as const;
+
+const OWNER_ONLY = new Set(["/line", "/settings", "/templates", "/scores", "/members"]);
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { guest } = await requireViewer();
@@ -33,10 +39,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await sessionUser();
   const mine = user ? await workspacesOf(user) : [];
   const ws = await currentWorkspace();
-  const canInvite = mine.some((m) => m.id === MAIN);
-  const items = canInvite ? [...NAV, ["/invites", "招待"] as const] : NAV;
+  const canInvite = await canCreateWorkspaces(user);
+  // スタッフには、設定・連携などオーナーだけの画面を出さない
+  const role = await currentRole();
+  const base = role === "staff" ? NAV.filter(([href]) => !OWNER_ONLY.has(href)) : NAV;
+  const items = canInvite ? [...base, ["/invites", "招待"] as const] : base;
   const current = mine.find((m) => m.id === ws);
   const unreplied = await unrepliedCount();
+  const flash = (await cookies()).get(FLASH_COOKIE)?.value;
   const navItems = items.map(([href, label]) => [href, href === "/inbox" && unreplied > 0 ? `${label}（${unreplied}）` : label] as const);
   return (
     <div className="shell">
@@ -48,6 +58,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </form>
       </AdminNav>
       <main className="main">
+        {flash === "owner_only" && <div className="panel error">この操作はオーナーだけができます（スタッフは友だちへの返信・タグ・メモ・予約の管理ができます）</div>}
         {guest && (
           <div className="panel guest-banner">
             ゲスト閲覧中（読み取り専用）です。保存・配信などの操作はできません。{" "}

@@ -17,6 +17,8 @@ export interface Segment {
   /** 友だち情報欄の条件（値に含む） */
   fieldId: number | null;
   fieldValue: string;
+  /** 行動スコアがこれ以上の人 */
+  scoreMin: number | null;
 }
 
 export const emptySegment = (): Segment => ({
@@ -28,6 +30,7 @@ export const emptySegment = (): Segment => ({
   addedWithinDays: null,
   fieldId: null,
   fieldValue: "",
+  scoreMin: null,
 });
 
 /** 一斉配信に保存された値（昔の形式はタグIDの配列）を読む */
@@ -58,12 +61,13 @@ export function segmentFrom(get: (k: string) => string | null, getAll: (k: strin
     addedWithinDays: optNum(get("addedWithinDays")),
     fieldId: optNum(get("fieldId")),
     fieldValue: (get("fieldValue") ?? "").trim(),
+    scoreMin: optNum(get("scoreMin")),
   };
 }
 
 export function isEmptySegment(s: Segment): boolean {
   return (
-    !s.tagIds.length && !s.excludeTagIds.length && !s.sourceId && !s.habitMin && !s.addedWithinDays && !(s.fieldId && s.fieldValue)
+    !s.tagIds.length && !s.excludeTagIds.length && !s.sourceId && !s.habitMin && !s.addedWithinDays && !s.scoreMin && !(s.fieldId && s.fieldValue)
   );
 }
 
@@ -100,6 +104,10 @@ export function segmentWhere(s: Segment): { where: string[]; args: (string | num
   if (s.fieldId && s.fieldValue) {
     where.push("f.id IN (SELECT friend_id FROM friend_fields WHERE field_id = ? AND value LIKE ?)");
     args.push(s.fieldId, `%${s.fieldValue}%`);
+  }
+  if (s.scoreMin) {
+    where.push("f.score >= ?");
+    args.push(s.scoreMin);
   }
   return { where, args };
 }
