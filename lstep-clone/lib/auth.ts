@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { mainAll } from "./db";
+import { getSetting, mainAll } from "./db";
 import { adminLineIds } from "./lineConfig";
 import { currentWorkspace, isValidWorkspaceId, MAIN, runInWorkspace } from "./workspace";
 
@@ -61,7 +61,10 @@ export async function sessionUser(): Promise<string | null> {
 /** その LINE ユーザーが使えるワークスペース一覧（main は内海さんの場所） */
 export async function workspacesOf(lineUserId: string): Promise<{ id: string; name: string }[]> {
   const list: { id: string; name: string }[] = [];
-  if ((await runInWorkspace(MAIN, adminLineIds)).includes(lineUserId)) list.push({ id: MAIN, name: "メイン" });
+  if ((await runInWorkspace(MAIN, adminLineIds)).includes(lineUserId)) {
+    const name = await runInWorkspace(MAIN, () => getSetting("workspace.name", "メイン"));
+    list.push({ id: MAIN, name: name || "メイン" });
+  }
   const rows = await mainAll<{ id: string; name: string }>(
     `SELECT w.id, w.name FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id
      WHERE m.line_user_id = ? ORDER BY w.created_at`,

@@ -204,6 +204,9 @@ const MIGRATIONS = [
   // シナリオの分岐：タグがある人だけ／ない人だけに送るステップ
   "ALTER TABLE scenario_steps ADD COLUMN cond_tag_id INTEGER",
   "ALTER TABLE scenario_steps ADD COLUMN cond_type TEXT",
+  // 未返信の管理
+  "ALTER TABLE friends ADD COLUMN needs_reply INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE friends ADD COLUMN needs_reply_at INTEGER",
 ];
 
 export type Arg = InValue;

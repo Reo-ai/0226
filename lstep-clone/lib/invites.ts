@@ -97,3 +97,20 @@ export async function acceptInvite(code: string, lineUserId: string, displayName
   await mainRun("UPDATE invites SET workspace_id = ? WHERE code = ?", id, code);
   return id;
 }
+
+/** ワークスペースを削除する（専用データベースごと。メインは削除できない） */
+export async function deleteWorkspace(id: string) {
+  const w = await mainGet<{ db_url: string }>("SELECT db_url FROM workspaces WHERE id = ?", id);
+  if (!w) return;
+  const apiToken = process.env.TURSO_API_TOKEN;
+  const org = process.env.TURSO_ORG;
+  if (w.db_url.startsWith("libsql://") && apiToken && org) {
+    const res = await fetch(`https://api.turso.tech/v1/organizations/${org}/databases/ss-${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${apiToken}` },
+    });
+    if (!res.ok && res.status !== 404) throw new Error(`データベースの削除に失敗しました: ${res.status}`);
+  }
+  await mainRun("DELETE FROM workspace_members WHERE workspace_id = ?", id);
+  await mainRun("DELETE FROM workspaces WHERE id = ?", id);
+}

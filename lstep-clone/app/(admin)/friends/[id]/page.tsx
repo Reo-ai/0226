@@ -3,6 +3,7 @@ import {
   addFriendTag,
   cancelPending,
   enrollFriend,
+  markReplied,
   removeFriendTag,
   saveFriendNote,
   sendManual,
@@ -75,6 +76,13 @@ export default async function FriendPage({
         {friend.picture_url && <img className="avatar" src={friend.picture_url} alt="" />}
         {friend.display_name || "(名前未取得)"}
         {friend.blocked ? <span className="badge">ブロック中</span> : null}
+        {(friend as { needs_reply?: number }).needs_reply ? (
+          <form action={markReplied} className="row">
+            <input type="hidden" name="friendId" value={friend.id} />
+            <span className="badge" style={{ background: "#f5b041", color: "#111" }}>要返信</span>
+            <button className="ghost small">対応済みにする</button>
+          </form>
+        ) : null}
       </h1>
       <ErrorBox error={error} />
       <div className="panel">

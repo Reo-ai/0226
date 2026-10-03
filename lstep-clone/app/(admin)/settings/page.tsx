@@ -1,13 +1,28 @@
 import Link from "next/link";
 import { adminLineIds, lineConnected } from "@/lib/lineConfig";
 import { baseUrl } from "@/lib/env";
-import { saveSettings } from "@/lib/actions";
+import { deleteWorkspaceAction, issueNotifyCodeAction, removeNotifyTargetAction, renameWorkspace, saveSettings } from "@/lib/actions";
+import { sessionUser, workspacesOf } from "@/lib/auth";
+import { all } from "@/lib/db";
+import { currentNotifyCode, notifyTargets } from "@/lib/inbox";
+import { currentWorkspace, MAIN } from "@/lib/workspace";
 import { AI_MODELS, aiConfig, aiMonthlyUsage } from "@/lib/ai";
 import { yen } from "@/lib/format";
 import { pushLimit } from "@/lib/quota";
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
-  const { saved } = await searchParams;
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
+  const { saved, error } = await searchParams;
+  const ws = await currentWorkspace();
+  const user = await sessionUser();
+  const wsName = (user ? await workspacesOf(user) : []).find((w) => w.id === ws)?.name ?? "";
+  const code = await currentNotifyCode();
+  const targetIds = await notifyTargets();
+  const targets = targetIds.length
+    ? await all<{ id: number; display_name: string }>(
+        `SELECT id, display_name FROM friends WHERE id IN (${targetIds.map(() => "?").join(",")})`,
+        ...targetIds,
+      )
+    : [];
   const cfg = await aiConfig();
   const usage = await aiMonthlyUsage();
   const limit = await pushLimit();
@@ -18,6 +33,53 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     <>
       <h1>設定</h1>
       {saved && <div className="panel ok">保存しました（{saved}）</div>}
+      {error && <div className="panel error">{error}</div>}
+
+      <div className="panel stack">
+        <h2>新着の通知</h2>
+        <p className="hint" style={{ margin: 0 }}>
+          自動で返事ができなかったメッセージ（未返信）が届いたら、あなたの LINE にお知らせします（1件ごとに配信数を1通使います。同じ人からは10分に1回まで）。
+        </p>
+        {targets.length > 0 && (
+          <div className="row">
+            通知先：
+            {targets.map((t) => (
+              <form key={t.id} action={removeNotifyTargetAction} className="row">
+                <input type="hidden" name="friendId" value={t.id} />
+                <span className="badge">{t.display_name || `友だち#${t.id}`}</span>
+                <button className="ghost small">外す</button>
+              </form>
+            ))}
+          </div>
+        )}
+        {code ? (
+          <div>
+            あなたの LINE から、この公式LINEに <b style={{ fontSize: 18 }}>通知登録 {code}</b> と送ってください（30分有効）。
+          </div>
+        ) : (
+          <form action={issueNotifyCodeAction}>
+            <button className="ghost">通知を受け取る LINE を登録する</button>
+          </form>
+        )}
+      </div>
+
+      <div className="panel stack">
+        <h2>この場所</h2>
+        <form action={renameWorkspace} className="row">
+          <input name="name" defaultValue={wsName} maxLength={40} style={{ minWidth: 240 }} aria-label="場所の名前" />
+          <button className="ghost">名前を変える</button>
+        </form>
+        {ws !== MAIN && (
+          <details>
+            <summary className="hint" style={{ cursor: "pointer" }}>この場所を削除する</summary>
+            <form action={deleteWorkspaceAction} className="row" style={{ marginTop: 8 }}>
+              <span className="hint">友だち・配信・設定などのデータがすべて消え、元に戻せません。確認のため「削除」と入力：</span>
+              <input name="confirm" placeholder="削除" style={{ width: 80 }} />
+              <button className="danger">削除する</button>
+            </form>
+          </details>
+        )}
+      </div>
       <form action={saveSettings} className="stack">
         <div className="panel stack">
           <h2>LINE通数</h2>

@@ -3,7 +3,7 @@
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { clearSession, guestViewEnabled, requireAuth, sessionUser, setGuestSession } from "./auth";
+import { clearSession, guestViewEnabled, requireAuth, sessionUser, setGuestSession, setWorkspaceCookie, workspacesOf } from "./auth";
 import { sendBroadcast } from "./broadcasts";
 import { validateContent } from "./content";
 import { batch, get, mainRun, run, setSetting } from "./db";
@@ -30,7 +30,8 @@ import { enroll } from "./scenarios";
 import { addTag, removeTag } from "./tags";
 import type { Broadcast, Form, FormField, RichMenu, RichMenuArea } from "./types";
 import { currentWorkspace, MAIN, runInWorkspace, withWs } from "./workspace";
-import { createInvite } from "./invites";
+import { createInvite, deleteWorkspace } from "./invites";
+import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k) ?? 0);
@@ -68,8 +69,30 @@ export async function sendManual(fd: FormData) {
       throw e;
     }
   }
+  await clearNeedsReply(friend.id);
   revalidatePath(path);
   redirect(path);
+}
+
+/** 未返信の一覧から「対応済み」にする */
+export async function markReplied(fd: FormData) {
+  await requireAuth();
+  await clearNeedsReply(num(fd, "friendId"));
+  revalidatePath("/inbox");
+  revalidatePath(`/friends/${num(fd, "friendId")}`);
+}
+
+/** 通知を受け取る LINE を登録するためのコードを出す */
+export async function issueNotifyCodeAction() {
+  await requireAuth();
+  await issueNotifyCode();
+  revalidatePath("/settings");
+}
+
+export async function removeNotifyTargetAction(fd: FormData) {
+  await requireAuth();
+  await removeNotifyTarget(num(fd, "friendId"));
+  revalidatePath("/settings");
 }
 
 export async function cancelPending(fd: FormData) {
@@ -679,4 +702,27 @@ export async function revokeInvite(fd: FormData) {
   await requireInviter();
   await mainRun("DELETE FROM invites WHERE code = ? AND used_by IS NULL", str(fd, "code"));
   revalidatePath("/invites");
+}
+
+// ---- 場所（ワークスペース）の名前の変更・削除（その場所のメンバーだけ） ----
+export async function renameWorkspace(fd: FormData) {
+  await requireAuth();
+  const name = str(fd, "name").slice(0, 40);
+  if (!name) return;
+  const ws = await currentWorkspace();
+  if (ws === MAIN) await setSetting("workspace.name", name);
+  else await mainRun("UPDATE workspaces SET name = ? WHERE id = ?", name, ws);
+  revalidatePath("/", "layout");
+}
+
+export async function deleteWorkspaceAction(fd: FormData) {
+  await requireAuth();
+  const ws = await currentWorkspace();
+  if (ws === MAIN) redirect(`/settings?error=${enc("メインの場所は削除できません")}`);
+  if (str(fd, "confirm") !== "削除") redirect(`/settings?error=${enc("確認のため「削除」と入力してください")}`);
+  await deleteWorkspace(ws);
+  const user = await sessionUser();
+  const rest = user ? await workspacesOf(user) : [];
+  if (rest[0]) await setWorkspaceCookie(rest[0].id);
+  redirect(rest[0] ? "/dashboard" : "/login");
 }

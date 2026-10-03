@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { logout } from "@/lib/actions";
 import { requireViewer, sessionUser, workspacesOf } from "@/lib/auth";
+import { unrepliedCount } from "@/lib/inbox";
 import { currentWorkspace, MAIN } from "@/lib/workspace";
 import AdminNav from "./AdminNav";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 const NAV = [
   ["/dashboard", "ダッシュボード"],
+  ["/inbox", "未返信"],
   ["/friends", "友だち"],
   ["/broadcasts", "一斉配信"],
   ["/scenarios", "ステップ配信"],
@@ -31,9 +33,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const canInvite = mine.some((m) => m.id === MAIN);
   const items = canInvite ? [...NAV, ["/invites", "招待"] as const] : NAV;
   const current = mine.find((m) => m.id === ws);
+  const unreplied = await unrepliedCount();
+  const navItems = items.map(([href, label]) => [href, href === "/inbox" && unreplied > 0 ? `${label}（${unreplied}）` : label] as const);
   return (
     <div className="shell">
-      <AdminNav items={items} workspaceName={current?.name} workspaces={mine.length > 1 ? mine : []} currentWs={ws}>
+      <AdminNav items={navItems} workspaceName={current?.name} workspaces={mine.length > 1 ? mine : []} currentWs={ws}>
         <form action={logout}>
           <button className="ghost small" style={{ color: "inherit" }}>
             {guest ? "閲覧を終える" : "ログアウト"}

@@ -3,6 +3,7 @@ import { all, run } from "./db";
 import { collectPending, logIncoming, Outbox } from "./delivery";
 import { getFriendByLineId, markUnfollowed, upsertFriend } from "./friends";
 import { habitWelcome, handleHabitText } from "./habits";
+import { handleNotifyCommand, markNeedsReply } from "./inbox";
 import { syncRichMenu } from "./richmenu";
 import { collectDueSteps, enrollByFollow } from "./scenarios";
 import { attributeOnFollow } from "./sources";
@@ -37,6 +38,9 @@ async function handleText(box: Outbox, text: string) {
   const friend = box.friend;
   await logIncoming(friend.id, text);
 
+  // 運用者の「通知登録 123456」「通知解除」（習慣の「通知 21:00」より先に判定）
+  if (await handleNotifyCommand(box, friend, text)) return;
+
   // 習慣トラッカー（「習慣」「できた」「記録」「通知 21:00」など）を先に判定する
   if (await handleHabitText(box, friend, text)) return;
 
@@ -49,8 +53,13 @@ async function handleText(box: Outbox, text: string) {
   }
   if (friend.ai_enabled && (await aiAvailable())) {
     const answer = await generateAiReply(friend);
-    if (answer) box.add(answer, "ai");
+    if (answer) {
+      box.add(answer, "ai");
+      return;
+    }
   }
+  // 自動で返事ができなかった：人が返事をするように「要返信」にして、運用者に通知
+  await markNeedsReply(friend, text);
 }
 
 async function handlePostback(box: Outbox, data: string) {
