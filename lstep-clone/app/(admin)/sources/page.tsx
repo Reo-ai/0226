@@ -2,6 +2,7 @@ import { baseUrl } from "@/lib/env";
 import QRCode from "qrcode";
 import { createSource, deleteSource } from "@/lib/actions";
 import { all } from "@/lib/db";
+import { fmtDateTime } from "@/lib/format";
 import type { Source, Tag } from "@/lib/types";
 import { TagSelect } from "@/lib/ui";
 import { currentWorkspace, withWs } from "@/lib/workspace";
@@ -23,6 +24,12 @@ export default async function SourcesPage() {
   const urlOf = (code: string) =>
     withWs(liff ? `https://liff.line.me/${process.env.LIFF_ID}/${code}` : `${base}/join/${code}`, ws);
   const qrs = await Promise.all(sources.map((s) => QRCode.toDataURL(urlOf(s.code), { margin: 1, width: 160 })));
+  // 最近の訪問：LINEのだれか分かったか・友だちと結びついたか（うまく計測できているかの確認用）
+  const visits = await all<{ id: number; created_at: number; source: string; line_user_id: string | null; attributed: number; friend: string | null }>(
+    `SELECT v.id, v.created_at, s.name source, v.line_user_id, v.attributed,
+            (SELECT COALESCE(display_name, '（名前なし）') FROM friends f WHERE f.line_user_id = v.line_user_id) friend
+     FROM source_visits v JOIN sources s ON s.id = v.source_id ORDER BY v.id DESC LIMIT 10`,
+  );
   return (
     <>
       <h1>流入経路分析</h1>
@@ -66,6 +73,21 @@ export default async function SourcesPage() {
           </tbody>
         </table>
       </div>
+      <details className="panel">
+        <summary style={{ cursor: "pointer" }}>最近の訪問（計測の確認）</summary>
+        <table>
+          <tbody>
+            {visits.map((v) => (
+              <tr key={v.id}>
+                <td>{fmtDateTime(v.created_at)}</td>
+                <td>{v.source}</td>
+                <td>{!v.line_user_id ? "LINEの人が分からない" : v.friend ? `友だち：${v.friend}` : "まだ友だちではない人"}</td>
+                <td>{v.attributed ? "✅ 経路を記録" : "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
     </>
   );
 }
