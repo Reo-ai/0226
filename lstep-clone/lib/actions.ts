@@ -34,6 +34,7 @@ import { createInvite, deleteWorkspace } from "./invites";
 import { saveAnswersToFields, setFieldValue } from "./fields";
 import { segmentFriends, segmentFrom } from "./segment";
 import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
+import { installTemplate } from "./templates";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string) => Number(fd.get(k) ?? 0);
@@ -759,4 +760,13 @@ export async function saveFriendFields(fd: FormData) {
     if (m) await setFieldValue(friendId, Number(m[1]), String(v).trim());
   }
   revalidatePath(`/friends/${friendId}`);
+}
+
+// ---- 導線テンプレート ----
+export async function installTemplateAction(fd: FormData) {
+  await requireAuth();
+  const key = str(fd, "key");
+  await installTemplate(key);
+  revalidatePath("/templates");
+  redirect(`/templates?done=${enc(key)}`);
 }

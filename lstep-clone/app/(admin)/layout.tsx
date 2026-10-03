@@ -13,6 +13,7 @@ const NAV = [
   ["/friends", "友だち"],
   ["/broadcasts", "一斉配信"],
   ["/scenarios", "ステップ配信"],
+  ["/templates", "導線テンプレート"],
   ["/auto-replies", "自動応答"],
   ["/rich-menus", "リッチメニュー"],
   ["/forms", "回答フォーム"],
