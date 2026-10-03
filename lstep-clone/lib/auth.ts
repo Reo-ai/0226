@@ -25,10 +25,13 @@ function sign(lineUserId: string): string {
     .digest("base64url");
 }
 
-/** ログインした LINE ユーザーを Cookie に記録する（署名付き・14日） */
+/** ログインを保つ期間（ブラウザが保存できる上限の400日。使うたびに proxy.ts が延長する） */
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 400;
+
+/** ログインした LINE ユーザーを Cookie に記録する（署名付き・ログインしたまま） */
 export async function setSession(lineUserId: string, ws?: string) {
   const jar = await cookies();
-  jar.set(COOKIE, `${lineUserId}.${sign(lineUserId)}`, cookieOpts(60 * 60 * 24 * 14));
+  jar.set(COOKIE, `${lineUserId}.${sign(lineUserId)}`, cookieOpts(SESSION_MAX_AGE));
   if (ws) jar.set(WS_COOKIE, ws, cookieOpts(60 * 60 * 24 * 365));
 }
 
