@@ -31,8 +31,8 @@ export function ContentHelp() {
   return (
     <>
       <ContentTools />
-      <details>
-        <summary className="hint" style={{ cursor: "pointer" }}>書き方</summary>
+      <details className="more">
+        <summary>書き方</summary>
         <ul className="hint" style={{ lineHeight: 1.8, margin: "4px 0 0", paddingLeft: 18 }}>
           <li>「---」だけの行で吹き出しを分ける（最大5つ・何個でも1通）</li>
           <li>「🖼 画像を入れる」で写真を選ぶと画像の吹き出しになる</li>

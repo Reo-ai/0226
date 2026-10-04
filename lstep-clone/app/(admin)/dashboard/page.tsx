@@ -163,17 +163,38 @@ export default async function Dashboard() {
             {lineQuota ? `LINE公式の集計: ${lineQuota.used} / ${lineQuota.limit ?? "上限なし"}` : "LINE連携後に公式集計も表示"}
           </div>
         </div>
-        <Stat label="今月 無料（応答）で届けた数" value={freeSent} sub={<span className="free">通数を消費していません</span>} />
-        <Stat label="反応待ち（無料で届ける予定）" value={pending.n} sub={`${pending.p}人分`} />
         <Stat label="有効友だち" value={f?.active ?? 0} sub={`累計 ${f?.total ?? 0}・30日で+${f?.new30 ?? 0}`} />
         <Stat label="ブロック率" value={pct(f?.blocked ?? 0, f?.total ?? 0)} sub={`30日のブロック ${f?.lost30 ?? 0}`} />
-        <Stat
-          label="今月のAI応答"
-          value={`${ai.count}${aiCfg.monthlyLimit > 0 ? ` / ${aiCfg.monthlyLimit}` : ""}`}
-          sub={aiCfg.enabled ? `推定 ${yen(ai.jpy)}` : "OFF（0円）"}
-        />
       </div>
 
+      <div className="panel">
+        <h2>友だち追加数（直近14日）</h2>
+        <div className="bars">
+          {days.map((k) => {
+            const n = adds.get(k) ?? 0;
+            return (
+              <div className="bar" key={k} title={`${k} 追加${n}`}>
+                <span>{n || ""}</span>
+                <span className="fill" style={{ height: `${(n / maxAdd) * 100}%` }} />
+                <span>{k.slice(5)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <details className="panel fold">
+        <summary>くわしい数字</summary>
+        <div className="grid">
+          <Stat label="今月 無料（応答）で届けた数" value={freeSent} sub={<span className="free">通数を消費していません</span>} />
+          <Stat label="反応待ち（無料で届ける予定）" value={pending.n} sub={`${pending.p}人分`} />
+          <Stat
+            label="今月のAI応答"
+            value={`${ai.count}${aiCfg.monthlyLimit > 0 ? ` / ${aiCfg.monthlyLimit}` : ""}`}
+            sub={aiCfg.enabled ? `推定 ${yen(ai.jpy)}` : "OFF（0円）"}
+          />
+        </div>
+        <div style={{ height: 16 }} />
       <div className="grid2">
         {courseTags > 0 && (
         <div className="panel">
@@ -201,7 +222,10 @@ export default async function Dashboard() {
               ))}
             </tbody>
           </table>
-          <div className="hint">タグ（レベル_〜・World1体験・LP閲覧・決済ページ閲覧・購入済み）が付いた人数から計算しています</div>
+          <details className="more">
+            <summary>くわしく</summary>
+            <div className="hint">タグ（レベル_〜・World1体験・LP閲覧・決済ページ閲覧・購入済み）が付いた人数から計算しています</div>
+          </details>
         </div>
         )}
         <div className="panel">
@@ -212,22 +236,6 @@ export default async function Dashboard() {
             <Stat label="今日できた人" value={habit.doneToday ?? 0} />
             <Stat label="平均の連続日数" value={habit.avgStreak ?? "-"} sub={`最高 ${habit.best ?? 0}日`} />
           </div>
-        </div>
-      </div>
-
-      <div className="panel">
-        <h2>友だち追加数（直近14日）</h2>
-        <div className="bars">
-          {days.map((k) => {
-            const n = adds.get(k) ?? 0;
-            return (
-              <div className="bar" key={k} title={`${k} 追加${n}`}>
-                <span>{n || ""}</span>
-                <span className="fill" style={{ height: `${(n / maxAdd) * 100}%` }} />
-                <span>{k.slice(5)}</span>
-              </div>
-            );
-          })}
         </div>
       </div>
 
@@ -295,6 +303,7 @@ export default async function Dashboard() {
           </table>
         </div>
       </div>
+      </details>
     </>
   );
 }

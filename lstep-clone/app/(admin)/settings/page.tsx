@@ -47,9 +47,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <div className="panel stack">
         <h2>新着の通知</h2>
-        <p className="hint" style={{ margin: 0 }}>
-          自動で返事ができなかったメッセージ（未返信）が届いたら、あなたの LINE にお知らせします（1件ごとに配信数を1通使います。同じ人からは10分に1回まで）。
-        </p>
+        <details className="more">
+          <summary>くわしく</summary>
+          <p className="hint">
+            自動で返事ができなかったメッセージ（未返信）が届いたら、あなたの LINE にお知らせします（1件ごとに配信数を1通使います。同じ人からは10分に1回まで）。
+          </p>
+        </details>
         {targets.length > 0 && (
           <div className="row">
             通知先：
@@ -68,7 +71,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
         ) : (
           <form action={issueNotifyCodeAction}>
-            <button className="ghost">通知を受け取る LINE を登録する</button>
+            <button>通知を受け取る LINE を登録する</button>
           </form>
         )}
       </div>
@@ -81,24 +84,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <input type="checkbox" name="enabled" defaultChecked={reportEnabled} /> 毎朝届ける
           </label>
           <input type="time" name="time" defaultValue={reportTime} />
-          <button className="ghost">保存</button>
+          <button>保存</button>
         </div>
-        <details>
-          <summary className="hint" style={{ cursor: "pointer" }}>くわしく</summary>
+        <details className="more">
+          <summary>くわしく</summary>
           <p className="hint">届け先は「新着の通知」に登録した LINE です。1人につき1日1通の配信数を使います（月に約30通）。</p>
           <pre className="pre hint" style={{ background: "var(--bg)", padding: 8, borderRadius: 6 }}>{reportSample}</pre>
         </details>
       </form>
 
-      <div className="panel stack">
-        <h2>この場所</h2>
+      <details className="panel stack fold">
+        <summary>この場所</summary>
         <form action={renameWorkspace} className="row">
           <input name="name" defaultValue={wsName} maxLength={40} style={{ minWidth: 240 }} aria-label="場所の名前" />
           <button className="ghost">名前を変える</button>
         </form>
         {ws !== MAIN && (
-          <details>
-            <summary className="hint" style={{ cursor: "pointer" }}>この場所を削除する</summary>
+          <details className="more">
+            <summary>この場所を削除する</summary>
             <form action={deleteWorkspaceAction} className="row" style={{ marginTop: 8 }}>
               <span className="hint">友だち・配信・設定などのデータがすべて消え、元に戻せません。確認のため「削除」と入力：</span>
               <input name="confirm" placeholder="削除" style={{ width: 80 }} />
@@ -106,7 +109,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </form>
           </details>
         )}
-      </div>
+      </details>
+      <details className="panel fold">
+        <summary>配信数の上限・AI自動応答</summary>
       <form action={saveSettings} className="stack">
         <div className="panel stack">
           <h2>LINE通数</h2>
@@ -114,10 +119,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             月のプッシュ上限
             <input type="number" name="pushLimit" min={0} defaultValue={limit} style={{ width: 100 }} /> 通
           </label>
-          <p className="hint">
-            無料のコミュニケーションプランは月200通。0にすると上限チェックを無効化（有料プラン用）。
-            上限に達するとプッシュは止まり、ステップ配信は自動的に「次の反応時に無料で届ける」方式に切り替わります。
-          </p>
+          <details className="more">
+            <summary>くわしく</summary>
+            <p className="hint">
+              無料のコミュニケーションプランは月200通。0にすると上限チェックを無効化（有料プラン用）。
+              上限に達するとプッシュは止まり、ステップ配信は自動的に「次の反応時に無料で届ける」方式に切り替わります。
+            </p>
+          </details>
         </div>
 
         <div className="panel stack">
@@ -156,10 +164,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
         <div><button>保存</button></div>
       </form>
+      </details>
 
-      <form id="stripe" action={saveStripeSettings} className="panel stack">
-        <h2 style={{ margin: 0 }}>決済の自動判定（Stripe）</h2>
-        <p style={{ margin: 0, fontSize: 15 }}>
+      <form id="stripe" action={saveStripeSettings} className="panel">
+        <details className="stack fold">
+          <summary>決済の自動判定（Stripe）</summary>
+        <p style={{ margin: 0 }}>
           {stripeReady ? "✅ 設定済み：支払った友だちに「購入済み」タグが自動で付きます" : "未設定"}
         </p>
         <label className="stack" style={{ gap: 4 }}>
@@ -182,8 +192,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </label>
           )}
         </div>
-        <details>
-          <summary className="hint" style={{ cursor: "pointer" }}>設定のしかた</summary>
+        <details className="more">
+          <summary>設定のしかた</summary>
           <ol className="hint" style={{ lineHeight: 1.8 }}>
             <li>Stripe のダッシュボード →「開発者」→「Webhook」→「送信先を追加」</li>
             <li>上の URL を貼り、イベントは「checkout.session.completed」を選ぶ</li>
@@ -192,10 +202,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </ol>
           <p className="hint">支払いリンクを計測リンク経由で開くと、誰が払ったかが分かる印が自動で付きます。</p>
         </details>
+        </details>
       </form>
 
-      <div className="panel stack">
-        <h2>連携状況</h2>
+      <details className="panel stack fold">
+        <summary>連携状況</summary>
         <div>Webhook URL: <code>{base}/api/line/webhook</code></div>
         <div>管理者のLINEユーザーID: {(await adminLineIds()).join(", ") || "未登録（最初にログインした人が管理者になります）"}</div>
         <div>
@@ -203,7 +214,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
         <div>流入経路（LIFF）: LIFF_ID {env("LIFF_ID")} / LINE_LOGIN_CHANNEL_ID {env("LINE_LOGIN_CHANNEL_ID")} / LINE_ADD_FRIEND_URL {env("LINE_ADD_FRIEND_URL")}</div>
         <div>データの保存先: {process.env.DATABASE_URL?.startsWith("libsql") ? "Turso（消えません）" : "一時保存（消える可能性あり）"}</div>
-      </div>
+      </details>
     </>
   );
 }

@@ -22,7 +22,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const t = await crossTable(row, col);
   const max = Math.max(1, ...t.rows.flatMap((r) => t.cols.map((c) => t.counts[r]?.[c] ?? 0)));
   const Select = ({ name, value }: { name: string; value: Dim }) => (
-    <select name={name} defaultValue={value} style={{ fontSize: 15 }}>
+    <select name={name} defaultValue={value}>
       {dims.map(([k, label]) => (
         <option key={k} value={k}>
           {label}
@@ -34,9 +34,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     <>
       <h1>クロス分析</h1>
       <form className="panel row" style={{ gap: 10 }}>
-        <span style={{ fontSize: 15 }}>行</span>
+        <span>行</span>
         <Select name="row" value={row} />
-        <span style={{ fontSize: 15 }}>× 列</span>
+        <span>× 列</span>
         <Select name="col" value={col} />
         <select name="pct" defaultValue={pct ? "1" : "0"}>
           <option value="1">人数と割合</option>
@@ -68,7 +68,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
                     const n = t.counts[r]?.[c] ?? 0;
                     return (
                       <td key={c} style={{ background: n ? `rgba(6,199,85,${(0.08 + (0.5 * n) / max).toFixed(2)})` : undefined, textAlign: "right" }}>
-                        <b style={{ fontSize: 15 }}>{n || ""}</b>
+                        <b>{n || ""}</b>
                         {pct && n > 0 && <div className="muted" style={{ fontSize: 11 }}>{Math.round((n / t.rowTotals[r]) * 100)}%</div>}
                       </td>
                     );
@@ -92,8 +92,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
             </tbody>
           </table>
         )}
-        <details style={{ marginTop: 8 }}>
-          <summary className="hint" style={{ cursor: "pointer" }}>くわしく</summary>
+        <details className="more" style={{ marginTop: 8 }}>
+          <summary>くわしく</summary>
           <p className="hint">
             ブロックしていない友だちを数えます。割合は「その行の人数のうち何%か」です。タグや複数選択の答えは1人が複数の列に入るので、列を足しても合計と合わないことがあります。
           </p>

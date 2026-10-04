@@ -145,9 +145,7 @@ export default function AreaEditor({
       </div>
       <input type="hidden" name="generatedImage" value={generated} />
       <canvas ref={canvasRef} style={{ width: "100%", maxWidth: 520, borderRadius: 8, border: "1px solid var(--border)" }} />
-      <p className="hint" style={{ margin: 0 }}>
-        ボタンの文字を入れると、上の画像がそのままメニューになります（自分で作った画像を使うときは下で選んでください）
-      </p>
+      <p className="hint" style={{ margin: 0 }}>この画像がそのままメニューになります</p>
     </div>
   );
 }

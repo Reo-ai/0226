@@ -145,8 +145,8 @@ export default async function FriendPage({
             </div>
           </form>
           {replyTemplates.length > 0 && (
-            <details>
-              <summary className="hint" style={{ cursor: "pointer" }}>定型文の管理</summary>
+            <details className="more">
+              <summary>定型文の管理</summary>
               {replyTemplates.map((t) => (
                 <form key={t.id} action={deleteReplyTemplate} className="row" style={{ gap: 6 }}>
                   {hidden}

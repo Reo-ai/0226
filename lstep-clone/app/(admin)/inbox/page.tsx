@@ -59,7 +59,10 @@ export default async function InboxPage() {
             )}
           </tbody>
         </table>
-        <p className="hint">キーワードの自動応答・習慣・AI で返事ができなかったメッセージが並びます。友だち詳細から返信すると自動で消えます。</p>
+        <details className="more">
+          <summary>くわしく</summary>
+          <p className="hint">キーワードの自動応答・習慣・AI で返事ができなかったメッセージが並びます。友だち詳細から返信すると自動で消えます。</p>
+        </details>
       </div>
     </>
   );

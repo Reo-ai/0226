@@ -28,7 +28,7 @@ export default async function LinePage({ searchParams }: { searchParams: Promise
           <div className="row" style={{ gap: 14 }}>
             {cfg.pictureUrl && <img src={cfg.pictureUrl} alt="" className="avatar" style={{ width: 48, height: 48 }} />}
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{cfg.displayName || "（名前未取得）"}</div>
+              <div style={{ fontWeight: 700 }}>{cfg.displayName || "（名前未取得）"}</div>
               <div className="muted">{cfg.basicId}</div>
             </div>
           </div>
@@ -70,10 +70,13 @@ export default async function LinePage({ searchParams }: { searchParams: Promise
           <li>「Channel ID」と「Channel secret」の「コピー」を押して、下に貼り付ける</li>
         </ol>
         <LineConnectForm connected={connected} />
-        <p className="hint">
-          連携すると、LINEからの受信先（Webhook）も自動で設定されます。連携より前の友だち一覧・トーク履歴は LINE
-          の仕様で取得できないため、連携後の友だち追加・メッセージから記録されます。
-        </p>
+        <details className="more">
+          <summary>くわしく</summary>
+          <p className="hint">
+            連携すると、LINEからの受信先（Webhook）も自動で設定されます。連携より前の友だち一覧・トーク履歴は LINE
+            の仕様で取得できないため、連携後の友だち追加・メッセージから記録されます。
+          </p>
+        </details>
       </div>
     </>
   );

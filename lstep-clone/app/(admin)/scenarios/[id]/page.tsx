@@ -53,7 +53,7 @@ export default async function ScenarioPage({
         <input type="hidden" name="id" value={s.id} />
         停止タグ（このタグが付いたら配信を止める。例: 購入済み）
         <TagSelect tags={tags} name="stopTagId" empty="（なし）" defaultValue={s.stop_tag_id} />
-        <button className="ghost">保存</button>
+        <button>保存</button>
       </form>
       <div className="panel">
         <table>
@@ -94,9 +94,12 @@ export default async function ScenarioPage({
             {steps.length === 0 && <tr><td colSpan={6} className="muted">ステップを追加してください</td></tr>}
           </tbody>
         </table>
-        <p className="hint">
-          「即時」のステップは友だち追加・タグ付与のきっかけになった操作への応答として<b className="free">無料</b>で届きます。
-        </p>
+        <details className="more">
+          <summary>くわしく</summary>
+          <p className="hint">
+            「即時」のステップは友だち追加・タグ付与のきっかけになった操作への応答として<b className="free">無料</b>で届きます。
+          </p>
+        </details>
       </div>
       <form action={addStep} className="panel stack">
         <h2>ステップを追加</h2>

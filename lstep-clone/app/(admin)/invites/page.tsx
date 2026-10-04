@@ -27,9 +27,12 @@ export default async function InvitesPage() {
         <input name="note" placeholder="誰に送るか（メモ。例：母、〇〇さん）" style={{ flex: 1, minWidth: 220 }} />
         <button>招待リンクを作る</button>
       </form>
-      <p className="hint">
-        招待リンクは1回だけ・7日間有効です。受け取った人が LINE でログインすると、その人専用の場所（自分の公式LINE用）ができます。あなたのデータは見えません。
-      </p>
+      <details className="more">
+        <summary>くわしく</summary>
+        <p className="hint">
+          招待リンクは1回だけ・7日間有効です。受け取った人が LINE でログインすると、その人専用の場所（自分の公式LINE用）ができます。あなたのデータは見えません。
+        </p>
+      </details>
       <div className="panel">
         <h2>招待リンク</h2>
         <table>

@@ -36,7 +36,10 @@ export default async function TagsPage() {
             ))}
           </tbody>
         </table>
-        <p className="hint">リッチメニューのボタン（ポストバック <code>tag=ID</code>）でもタグを付与できます。</p>
+        <details className="more">
+          <summary>くわしく</summary>
+          <p className="hint">リッチメニューのボタン（ポストバック <code>tag=ID</code>）でもタグを付与できます。</p>
+        </details>
       </div>
     </>
   );

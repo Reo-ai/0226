@@ -50,12 +50,15 @@ export default async function FieldsPage() {
             )}
           </tbody>
         </table>
-        <ul className="hint" style={{ lineHeight: 1.8 }}>
-          <li>友だちの詳細画面で、項目ごとに入力できます</li>
-          <li>回答フォームの質問名を項目名と同じにすると、回答がその友だちの情報として自動で保存されます</li>
-          <li>配信の本文に <code>{"{{field:項目名}}"}</code> と書くと、その友だちの値に置き換わります</li>
-          <li>友だち一覧・一斉配信の「くわしい条件」で、この項目で絞り込めます</li>
-        </ul>
+        <details className="more">
+          <summary>くわしく</summary>
+          <ul className="hint" style={{ lineHeight: 1.8 }}>
+            <li>友だちの詳細画面で、項目ごとに入力できます</li>
+            <li>回答フォームの質問名を項目名と同じにすると、回答がその友だちの情報として自動で保存されます</li>
+            <li>配信の本文に <code>{"{{field:項目名}}"}</code> と書くと、その友だちの値に置き換わります</li>
+            <li>友だち一覧・一斉配信の「くわしい条件」で、この項目で絞り込めます</li>
+          </ul>
+        </details>
       </div>
     </>
   );

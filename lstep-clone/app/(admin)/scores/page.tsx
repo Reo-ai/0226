@@ -38,14 +38,14 @@ export default async function ScoresPage({ searchParams }: { searchParams: Promi
           <tbody>
             {SCORE_KINDS.map((k) => (
               <tr key={k.kind}>
-                <td style={{ fontSize: 15 }}>{k.label}</td>
+                <td>{k.label}</td>
                 <td>
                   {actions
                     .filter((r) => r.kind === k.kind)
                     .map((r) => (
                       <form key={r.id} action={deleteScoreRule} className="row" style={{ gap: 6 }}>
                         <input type="hidden" name="id" value={r.id} />
-                        <b style={{ fontSize: 16 }}>{r.points > 0 ? `+${r.points}` : r.points}点</b>
+                        <b>{r.points > 0 ? `+${r.points}` : r.points}点</b>
                         <span className="muted">{refName(r.kind, r.ref_id)}</span>
                         <button className="ghost small">消す</button>
                       </form>
@@ -83,8 +83,8 @@ export default async function ScoresPage({ searchParams }: { searchParams: Promi
             ))}
           </tbody>
         </table>
-        <details>
-          <summary className="hint" style={{ cursor: "pointer" }}>くわしく</summary>
+        <details className="more">
+          <summary>くわしく</summary>
           <p className="hint">
             メッセージの点数は1日1回まで入ります。マイナスの点数も使えます（例：「配信停止」タグで −10）。友だちの画面から手で増減もできます。
           </p>
@@ -96,7 +96,7 @@ export default async function ScoresPage({ searchParams }: { searchParams: Promi
         {reach.map((r) => (
           <form key={r.id} action={deleteScoreRule} className="row" style={{ gap: 8 }}>
             <input type="hidden" name="id" value={r.id} />
-            <b style={{ fontSize: 16 }}>{r.points}点</b>
+            <b>{r.points}点</b>
             <span>→ タグ「{refName("tag", r.ref_id)}」</span>
             <button className="ghost small">消す</button>
           </form>
@@ -108,7 +108,10 @@ export default async function ScoresPage({ searchParams }: { searchParams: Promi
           <TagSelect tags={tags} name="tagId" empty="（タグを選ぶ）" />
           <button>追加</button>
         </form>
-        <p className="hint" style={{ margin: 0 }}>付いたタグでステップ配信を始めたり、リッチメニューを切り替えたりできます。</p>
+        <details className="more">
+          <summary>くわしく</summary>
+          <p className="hint">付いたタグでステップ配信を始めたり、リッチメニューを切り替えたりできます。</p>
+        </details>
       </div>
 
       <div className="panel">

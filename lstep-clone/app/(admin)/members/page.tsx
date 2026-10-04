@@ -43,8 +43,8 @@ export default async function MembersPage() {
             </form>
           </div>
         ))}
-        <details>
-          <summary className="hint" style={{ cursor: "pointer" }}>くわしく</summary>
+        <details className="more">
+          <summary>くわしく</summary>
           <p className="hint">リンクは1回だけ・7日間使えます。相手のスマホの LINE で開いてもらってください（パソコンで開くと、そのパソコンでログイン中の LINE で入ってしまうことがあります）。</p>
         </details>
       </div>
