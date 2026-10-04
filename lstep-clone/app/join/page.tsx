@@ -1,17 +1,17 @@
-import { notFound, redirect } from "next/navigation";
+import JoinClient from "./[code]/JoinClient";
 
-export const dynamic = "force-dynamic";
+// LIFF のリンク（liff.line.me/<LIFF ID>/habit）は /join?liff.state=/habit に戻ってくる。
+// 以前はここで /join/habit へ転送していたが、1往復ぶん遅くなるので、このページで直接処理する（静的なページ）
+export const dynamic = "force-static";
 
-// LIFF のリンク（liff.line.me/<LIFF ID>/habit など）は、まず /join?liff.state=/habit に戻ってくる。
-// その経路のページ（/join/habit）へ、ほかのパラメータ（?w= など）も付けたまま送る
-export default async function JoinEntry({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const sp = await searchParams;
-  const state = typeof sp["liff.state"] === "string" ? sp["liff.state"] : "";
-  const [path, query = ""] = state.split("?");
-  const code = path.replace(/^\/+/, "").split("/")[0];
-  if (!/^[\w-]+$/.test(code)) notFound();
-  const params = new URLSearchParams(query);
-  for (const [k, v] of Object.entries(sp)) if (k !== "liff.state" && typeof v === "string") params.set(k, v);
-  const q = params.toString();
-  redirect(`/join/${code}${q ? `?${q}` : ""}`);
+export default function JoinEntry() {
+  const addUrl = process.env.LINE_ADD_FRIEND_URL;
+  if (!addUrl) return <p style={{ padding: 32 }}>LINE_ADD_FRIEND_URL が未設定です。</p>;
+  return (
+    <>
+      <link rel="preconnect" href="https://static.line-scdn.net" />
+      <link rel="preload" as="script" href="https://static.line-scdn.net/liff/edge/2/sdk.js" />
+      <JoinClient liffId={process.env.LIFF_ID ?? ""} code={null} addUrl={addUrl} />
+    </>
+  );
 }

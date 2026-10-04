@@ -3,6 +3,7 @@ import { addTag } from "./tags";
 import type { Friend, Source } from "./types";
 
 const ATTRIBUTION_WINDOW = 7 * 86_400_000;
+const ANONYMOUS_WINDOW = 15 * 60_000;
 
 /** 流入経路の訪問を記録。既に友だちなら（経路未設定の場合）その場で紐付け */
 export async function recordVisit(source: Source, lineUserId: string | null) {
@@ -28,13 +29,20 @@ async function attribute(friendId: number, source: Source) {
 /** 友だち追加時: 直近の訪問履歴から流入経路を確定する */
 export async function attributeOnFollow(friend: Friend) {
   if (friend.source_id != null) return;
-  const visit = await get<{ id: number; source_id: number }>(
+  const visit = (await get<{ id: number; source_id: number }>(
     `SELECT id, source_id FROM source_visits
      WHERE line_user_id = ? AND attributed = 0 AND created_at >= ?
      ORDER BY created_at DESC LIMIT 1`,
     friend.line_user_id,
     Date.now() - ATTRIBUTION_WINDOW,
-  );
+  )) ??
+    // だれか分からない訪問（LINEアプリの外・読み込みが間に合わなかった人）は、直前15分以内のものを結びつける
+    (await get<{ id: number; source_id: number }>(
+      `SELECT id, source_id FROM source_visits
+       WHERE line_user_id IS NULL AND attributed = 0 AND created_at >= ?
+       ORDER BY created_at DESC LIMIT 1`,
+      Date.now() - ANONYMOUS_WINDOW,
+    ));
   if (!visit) return;
   const source = await get<Source>("SELECT * FROM sources WHERE id = ?", visit.source_id);
   if (!source) return;
