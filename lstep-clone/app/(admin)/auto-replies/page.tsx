@@ -2,6 +2,7 @@ import { createAutoReply, deleteAutoReply, toggleAutoReply } from "@/lib/actions
 import { all } from "@/lib/db";
 import type { AutoReply, Tag } from "@/lib/types";
 import { ContentHelp, ErrorBox, TagSelect } from "@/lib/ui";
+import Clamp from "../Clamp";
 
 export default async function AutoRepliesPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
@@ -35,7 +36,7 @@ export default async function AutoRepliesPage({ searchParams }: { searchParams: 
             {rules.map((r) => (
               <tr key={r.id}>
                 <td>{r.keyword} <span className="hint">({r.match_type === "exact" ? "完全" : "部分"})</span></td>
-                <td className="pre">{r.reply}</td>
+                <td className="pre"><Clamp text={r.reply} /></td>
                 <td>{r.add_tag_id ? tagName.get(r.add_tag_id) : "-"}</td>
                 <td>{r.hit_count}</td>
                 <td className="row">

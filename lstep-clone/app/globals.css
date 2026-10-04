@@ -209,3 +209,6 @@ details.more[open] > summary { margin-bottom: 6px; }
   th, td { min-width: 5.5em; }
   td.pre, td .pre { min-width: 14em; }
 }
+.grid { margin-bottom: 20px; }
+.panel .grid { margin-bottom: 0; }
+@media (max-width: 760px) { .grid { margin-bottom: 14px; } }

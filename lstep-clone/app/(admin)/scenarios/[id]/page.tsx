@@ -4,6 +4,7 @@ import { all, get } from "@/lib/db";
 import { fmtDelay } from "@/lib/format";
 import type { Scenario, ScenarioStep, Tag } from "@/lib/types";
 import { ContentHelp, ErrorBox, TagSelect } from "@/lib/ui";
+import Clamp from "../../Clamp";
 
 export default async function ScenarioPage({
   params,
@@ -71,7 +72,7 @@ export default async function ScenarioPage({
                     </div>
                   )}
                 </td>
-                <td className="pre">{st.content}</td>
+                <td className="pre"><Clamp text={st.content} /></td>
                 <td>{sent.get(st.id)?.n ?? 0}（{sent.get(st.id)?.free ?? 0}）</td>
                 <td>
                   {sent.get(st.id)?.n ? (
