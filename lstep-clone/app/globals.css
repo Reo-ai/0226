@@ -149,3 +149,6 @@ label.row input[type=radio], label.row input[type=checkbox] { margin-top: 3px; f
   .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat .value { font-size: 22px; }
 }
+/* 長い選択肢（シナリオ名など）でも横にはみ出さない */
+select { max-width: 100%; }
+.grid > .panel { margin-bottom: 0; }
