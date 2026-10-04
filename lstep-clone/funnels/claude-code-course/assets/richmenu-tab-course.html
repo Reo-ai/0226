@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="rpg-menu.css">
+<style>
+/* タブ式の冒険メニュー：上260pxがタブ、下1426pxに6枚（3×2）を画面いっぱいに並べる。
+   タブの区切り（0-889 / 889-1597 / 1597-2500）は lib/actions.ts の createTabMenus の押せる範囲と同じ */
+body{height:1686px}
+.tabs{position:absolute;top:0;left:0;width:2500px;height:260px;display:flex;gap:0;padding:18px 18px 10px;background:#05081a}
+.tab{display:flex;align-items:center;justify-content:center;gap:26px;border-radius:18px;margin:0 9px;font-family:"Hiragino Mincho ProN",serif;font-weight:700;font-size:92px;letter-spacing:6px;
+  border:6px solid #8c6b2a;background:linear-gradient(180deg,#18234d,#0d1533);color:#e8c878;box-shadow:inset 0 0 0 3px rgba(243,213,138,.25)}
+.tab.on{background:linear-gradient(180deg,#f7dd92,#c9952f);color:#2a1800;border-color:#fff1bf;box-shadow:0 0 30px rgba(255,214,120,.45)}
+.tab.done{background:linear-gradient(180deg,#2fbf6a,#157a40);color:#fff;border-color:#9ff0c0;font-family:"Hiragino Sans",sans-serif;font-weight:800}
+.tab small{font-size:60px}
+.g{position:absolute;top:260px;left:0;width:2500px;height:1426px;border:none;padding:14px;gap:14px;
+   grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr)}
+.g .t{font-size:104px}.g .t.long{font-size:90px}
+.g .txt{bottom:52px}.g .tag{top:36px}
+</style></head><body>
+<div class="tabs">
+  <div class="tab on" style="width:853px">⚔ 冒険メニュー</div>
+  <div class="tab done" style="width:690px">✅ できた</div>
+  <div class="tab" style="width:885px">🔥 習慣メニュー <small>›</small></div>
+</div>
+<div class="g" style="display:grid">
+<div class="c main" style="background-image:url(richmenu-art/map.png);background-position:center 32%;background-size:cover">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+<div class="tag">ITEM</div><div class="txt"><div class="t">冒険の地図</div><div class="s">登録特典を受け取る</div></div></div><div class="c" style="background-image:url(richmenu-art/quest.png);background-position:center 32%;background-size:cover">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+<div class="tag">QUEST</div><div class="txt"><div class="t long">最初のクエスト</div><div class="s">無料で相棒と出会う</div></div></div><div class="c" style="background-image:url(richmenu-art/book.png);background-position:center 32%;background-size:cover">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+<div class="tag">BOOK</div><div class="txt"><div class="t">冒険の書</div><div class="s">講座の全体を見る</div></div></div><div class="c" style="background-image:url(richmenu-art/card.png);background-position:center 32%;background-size:cover">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+<div class="tag">STATUS</div><div class="txt"><div class="t">冒険者カード</div><div class="s">30秒アンケート</div></div></div><div class="c" style="background-image:url(richmenu-art/guild.png);background-position:center 32%;background-size:cover">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+<div class="tag">GUILD</div><div class="txt"><div class="t">講師に相談</div><div class="s">なんでも質問できる</div></div></div><div class="c" style="background-image:url(richmenu-art/entry.png);background-position:center 32%;background-size:cover">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+<div class="tag">ENTRY</div><div class="txt"><div class="t">冒険者登録</div><div class="s">購入した方はこちら</div></div></div>
+</div></body></html>

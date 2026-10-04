@@ -643,7 +643,8 @@ export async function createTabMenus() {
   if (!base) redirect(`/rich-menus?error=${enc("元になる通常メニュー（大・6分割）が見つかりません")}`);
   const baseAreas = JSON.parse(base.areas) as RichMenuArea[];
 
-  // 冒険メニュー：上のタブ（冒険／できた／習慣へ）＋ 元の6分割を縮小して中央に配置した画像
+  // 冒険メニュー：上のタブ（冒険／できた／習慣へ）＋ 元の6分割を画面いっぱいに並べた画像
+  //（画像は funnels/claude-code-course/assets/richmenu-tab-course.html から書き出す）
   const unit = (2500 - 44 - 28) / 2.8;
   const tabsA: [Box, object][] = [
     // 表示中のタブは押しても何も送らない（会話の邪魔をしない）
@@ -651,9 +652,7 @@ export async function createTabMenus() {
     [{ x: Math.round(22 + unit), y: 0, width: Math.round(14 + unit * 0.8), height: TAB_H }, { type: "message", text: "できた" }],
     [{ x: Math.round(36 + unit * 1.8), y: 0, width: 2500 - Math.round(36 + unit * 1.8), height: TAB_H }, switchTo("habit")],
   ];
-  const bodyW = Math.round((2500 * (1686 - TAB_H)) / 1686);
-  const offX = Math.round((2500 - bodyW) / 2);
-  const cellW = bodyW / 3;
+  const cellW = 2500 / 3;
   const cellH = (1686 - TAB_H) / 2;
   const bodyA: [Box, object][] = [];
   baseAreas.forEach((a, i) => {
@@ -661,8 +660,8 @@ export async function createTabMenus() {
     if (!act) return;
     const c = i % 3;
     const r = Math.floor(i / 3);
-    const x0 = c === 0 ? 0 : Math.round(offX + c * cellW);
-    const x1 = c === 2 ? 2500 : Math.round(offX + (c + 1) * cellW);
+    const x0 = Math.round(c * cellW);
+    const x1 = c === 2 ? 2500 : Math.round((c + 1) * cellW);
     bodyA.push([{ x: x0, y: Math.round(TAB_H + r * cellH), width: x1 - x0, height: Math.round(cellH) }, act]);
   });
 
