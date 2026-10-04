@@ -1,6 +1,8 @@
 import { aiConfig, aiMonthlyUsage } from "@/lib/ai";
 import { all, get } from "@/lib/db";
-import { jstDateKey, jstMonthStart, pct, yen } from "@/lib/format";
+import Link from "next/link";
+import { jstDateKey, jstDayStart, jstMonthStart, pct, yen } from "@/lib/format";
+import { unrepliedCount } from "@/lib/inbox";
 import { getQuota } from "@/lib/line";
 import { pushLimit, pushUsed } from "@/lib/quota";
 import { SOURCE_LABEL } from "@/lib/ui";
@@ -123,9 +125,33 @@ export default async function Dashboard() {
      FROM sources s ORDER BY friends DESC`,
   );
 
+  // 今日やること：未返信・今日の予約・新しい友だち（まず一番上に、大きく）
+  const dayStart = jstDayStart(Date.now());
+  const unreplied = await unrepliedCount();
+  const todayBookings = (await get<{ n: number }>(
+    `SELECT COUNT(*) n FROM bookings b JOIN booking_slots s ON s.id = b.slot_id
+     WHERE b.status = 'booked' AND s.starts_at >= ? AND s.starts_at < ?`,
+    dayStart,
+    dayStart + 86400_000,
+  ))?.n ?? 0;
+  const newFriends = (await get<{ n: number }>("SELECT COUNT(*) n FROM friends WHERE followed_at >= ?", dayStart - 86400_000))?.n ?? 0;
   return (
     <>
       <h1>ダッシュボード</h1>
+      <div className="today">
+        <Link href="/inbox" className={`today-card${unreplied ? " alert" : ""}`}>
+          <span>未返信</span>
+          <b>{unreplied}</b>
+        </Link>
+        <Link href="/bookings" className="today-card">
+          <span>今日の予約</span>
+          <b>{todayBookings}</b>
+        </Link>
+        <Link href="/friends" className="today-card">
+          <span>新しい友だち（昨日から）</span>
+          <b>{newFriends}</b>
+        </Link>
+      </div>
       <div className="grid">
         <div className="panel stat">
           <div className="label">今月のプッシュ通数（無料枠）</div>

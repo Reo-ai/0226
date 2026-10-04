@@ -20,6 +20,7 @@ import { friendTags, getFriend } from "@/lib/friends";
 import { pushRemaining } from "@/lib/quota";
 import type { Message, Scenario, Tag } from "@/lib/types";
 import ReplyTemplates from "../../ReplyTemplates";
+import ScrollToBottom from "../../ScrollToBottom";
 import { CHANNEL_LABEL, ContentHelp, ErrorBox, SOURCE_LABEL, TagChip, TagSelect } from "@/lib/ui";
 
 export default async function FriendPage({
@@ -95,82 +96,10 @@ export default async function FriendPage({
         ) : null}
       </h1>
       <ErrorBox error={error} />
-      <div className="panel">
-        <h2>ひと目でわかるまとめ</h2>
-        <div className="grid">
-          <div>
-            <div className="hint">友だち追加</div>
-            <div>{fmtDateTime(friend.followed_at)}</div>
-          </div>
-          <div>
-            <div className="hint">行動スコア</div>
-            <form action={adjustScore} className="row" style={{ gap: 6 }}>
-              <input type="hidden" name="id" value={friend.id} />
-              <b style={{ fontSize: 20 }}>{friend.score ?? 0}</b>点
-              <input name="delta" type="number" placeholder="±" style={{ width: 60 }} />
-              <button className="ghost small">増減</button>
-            </form>
-          </div>
-          <div>
-            <div className="hint">流入元</div>
-            <div>{source?.name ?? "（直接・不明）"}</div>
-          </div>
-          <div>
-            <div className="hint">最後のメッセージ</div>
-            <div>{friend.last_message_at ? fmtDateTime(friend.last_message_at) : "-"}</div>
-          </div>
-          <div>
-            <div className="hint">習慣</div>
-            <div>
-              {habit?.action ? (
-                <>
-                  {habit.action}：🔥{habit.streak}日連続（最高{habit.best_streak}日）／累計{habit.total}日
-                  <div className="hint">
-                    バッジ{habit.badges ? habit.badges.split(",").length : 0}個・通知
-                    {habit.remind_enabled && habit.remind_time ? ` ${habit.remind_time}` : "オフ"}・最終記録 {habit.last_done_date ?? "-"}
-                    {" "}
-                    <a href={`/h/${friend.token}`} target="_blank" rel="noreferrer">
-                      記録ページ ↗
-                    </a>
-                  </div>
-                </>
-              ) : (
-                <span className="muted">未設定</span>
-              )}
-            </div>
-          </div>
-        </div>
-        {fieldDefs.length > 0 && (
-          <form action={saveFriendFields} className="stack" style={{ marginTop: 12, gap: 6 }}>
-            <input type="hidden" name="friendId" value={friend.id} />
-            <div className="hint">友だち情報</div>
-            <div className="grid">
-              {fieldDefs.map((fd) => (
-                <label key={fd.id} className="stack" style={{ gap: 2 }}>
-                  <span className="hint">{fd.name}</span>
-                  <input name={`field_${fd.id}`} defaultValue={fd.value ?? ""} />
-                </label>
-              ))}
-            </div>
-            <div>
-              <button className="ghost small">友だち情報を保存</button>
-            </div>
-          </form>
-        )}
-        <div className="hint" style={{ marginTop: 10 }}>タグの付いた日</div>
-        <div className="row" style={{ marginTop: 4 }}>
-          {tagDates.length === 0 && <span className="muted">タグなし</span>}
-          {tagDates.map((t) => (
-            <span key={t.name} className="tag" style={{ background: t.color }}>
-              {t.name}・{jstDateKey(t.created_at).slice(5).replace("-", "/")}
-            </span>
-          ))}
-        </div>
-      </div>
       <div className="grid2">
         <div className="panel stack">
           <h2>トーク</h2>
-          <div className="chat">
+          <div className="chat" id="chat">
             {messages.map((m) => (
               <div key={m.id} className={`bubble ${m.direction}`}>
                 {m.content}
@@ -197,6 +126,7 @@ export default async function FriendPage({
               ))}
             </div>
           )}
+          <ScrollToBottom id="chat" />
           <form action={sendManual} className="stack">
             {hidden}
             <ReplyTemplates templates={replyTemplates} />
@@ -230,6 +160,78 @@ export default async function FriendPage({
         </div>
 
         <div>
+          <div className="panel">
+            <h2>ひと目でわかるまとめ</h2>
+            <div className="grid">
+              <div>
+                <div className="hint">友だち追加</div>
+                <div>{fmtDateTime(friend.followed_at)}</div>
+              </div>
+              <div>
+                <div className="hint">行動スコア</div>
+                <form action={adjustScore} className="row" style={{ gap: 6 }}>
+                  <input type="hidden" name="id" value={friend.id} />
+                  <b style={{ fontSize: 20 }}>{friend.score ?? 0}</b>点
+                  <input name="delta" type="number" placeholder="±" style={{ width: 60 }} />
+                  <button className="ghost small">増減</button>
+                </form>
+              </div>
+              <div>
+                <div className="hint">流入元</div>
+                <div>{source?.name ?? "（直接・不明）"}</div>
+              </div>
+              <div>
+                <div className="hint">最後のメッセージ</div>
+                <div>{friend.last_message_at ? fmtDateTime(friend.last_message_at) : "-"}</div>
+              </div>
+              <div>
+                <div className="hint">習慣</div>
+                <div>
+                  {habit?.action ? (
+                    <>
+                      {habit.action}：🔥{habit.streak}日連続（最高{habit.best_streak}日）／累計{habit.total}日
+                      <div className="hint">
+                        バッジ{habit.badges ? habit.badges.split(",").length : 0}個・通知
+                        {habit.remind_enabled && habit.remind_time ? ` ${habit.remind_time}` : "オフ"}・最終記録 {habit.last_done_date ?? "-"}
+                        {" "}
+                        <a href={`/h/${friend.token}`} target="_blank" rel="noreferrer">
+                          記録ページ ↗
+                        </a>
+                      </div>
+                    </>
+                  ) : (
+                    <span className="muted">未設定</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {fieldDefs.length > 0 && (
+              <form action={saveFriendFields} className="stack" style={{ marginTop: 12, gap: 6 }}>
+                <input type="hidden" name="friendId" value={friend.id} />
+                <div className="hint">友だち情報</div>
+                <div className="grid">
+                  {fieldDefs.map((fd) => (
+                    <label key={fd.id} className="stack" style={{ gap: 2 }}>
+                      <span className="hint">{fd.name}</span>
+                      <input name={`field_${fd.id}`} defaultValue={fd.value ?? ""} />
+                    </label>
+                  ))}
+                </div>
+                <div>
+                  <button className="ghost small">友だち情報を保存</button>
+                </div>
+              </form>
+            )}
+            <div className="hint" style={{ marginTop: 10 }}>タグの付いた日</div>
+            <div className="row" style={{ marginTop: 4 }}>
+              {tagDates.length === 0 && <span className="muted">タグなし</span>}
+              {tagDates.map((t) => (
+                <span key={t.name} className="tag" style={{ background: t.color }}>
+                  {t.name}・{jstDateKey(t.created_at).slice(5).replace("-", "/")}
+                </span>
+              ))}
+            </div>
+          </div>
           <div className="panel stack">
             <h2>プロフィール</h2>
             <div className="muted">{friend.status_message}</div>

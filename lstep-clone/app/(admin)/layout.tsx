@@ -8,28 +8,54 @@ import AdminNav from "./AdminNav";
 
 export const dynamic = "force-dynamic";
 
-const NAV = [
-  ["/dashboard", "ダッシュボード"],
-  ["/inbox", "未返信"],
-  ["/friends", "友だち"],
-  ["/broadcasts", "一斉配信"],
-  ["/scenarios", "ステップ配信"],
-  ["/templates", "導線テンプレート"],
-  ["/auto-replies", "自動応答"],
-  ["/rich-menus", "リッチメニュー"],
-  ["/forms", "回答フォーム"],
-  ["/bookings", "予約の受付"],
-  ["/sources", "流入経路"],
-  ["/links", "計測リンク"],
-  ["/tags", "タグ"],
-  ["/fields", "友だち情報欄"],
-  ["/scores", "行動スコア"],
-  ["/analytics", "クロス分析"],
-  ["/members", "メンバー"],
-  ["/line", "LINE連携"],
-  ["/settings", "設定・AI"],
-  ["/guide", "使い方"],
-] as const;
+// メニュー：用途ごとにまとめる（項目が多いので、探しやすさ優先）
+const NAV_GROUPS: { title: string; items: (readonly [string, string])[] }[] = [
+  {
+    title: "よく使う",
+    items: [
+      ["/dashboard", "ダッシュボード"],
+      ["/inbox", "未返信"],
+      ["/friends", "友だち"],
+      ["/bookings", "予約の受付"],
+    ],
+  },
+  {
+    title: "配信",
+    items: [
+      ["/broadcasts", "一斉配信"],
+      ["/scenarios", "ステップ配信"],
+      ["/auto-replies", "自動応答"],
+      ["/rich-menus", "リッチメニュー"],
+      ["/forms", "回答フォーム"],
+      ["/templates", "導線テンプレート"],
+    ],
+  },
+  {
+    title: "集客・分析",
+    items: [
+      ["/sources", "流入経路"],
+      ["/links", "計測リンク"],
+      ["/analytics", "クロス分析"],
+      ["/scores", "行動スコア"],
+    ],
+  },
+  {
+    title: "友だちの情報",
+    items: [
+      ["/tags", "タグ"],
+      ["/fields", "友だち情報欄"],
+    ],
+  },
+  {
+    title: "設定",
+    items: [
+      ["/line", "LINE連携"],
+      ["/settings", "設定・AI"],
+      ["/members", "メンバー"],
+      ["/guide", "使い方"],
+    ],
+  },
+];
 
 const OWNER_ONLY = new Set(["/line", "/settings", "/templates", "/scores", "/members"]);
 
@@ -42,15 +68,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const canInvite = await canCreateWorkspaces(user);
   // スタッフには、設定・連携などオーナーだけの画面を出さない
   const role = await currentRole();
-  const base = role === "staff" ? NAV.filter(([href]) => !OWNER_ONLY.has(href)) : NAV;
-  const items = canInvite ? [...base, ["/invites", "招待"] as const] : base;
-  const current = mine.find((m) => m.id === ws);
   const unreplied = await unrepliedCount();
   const flash = (await cookies()).get(FLASH_COOKIE)?.value;
-  const navItems = items.map(([href, label]) => [href, href === "/inbox" && unreplied > 0 ? `${label}（${unreplied}）` : label] as const);
+  const current = mine.find((m) => m.id === ws);
+  const groups = NAV_GROUPS.map((g) => ({
+    title: g.title,
+    items: g.items
+      .filter(([href]) => role !== "staff" || !OWNER_ONLY.has(href))
+      .map(([href, label]) => [href, href === "/inbox" && unreplied > 0 ? `${label}（${unreplied}）` : label] as const),
+  }));
+  if (canInvite) groups[groups.length - 1].items.push(["/invites", "招待"] as const);
   return (
     <div className="shell">
-      <AdminNav items={navItems} workspaceName={current?.name} workspaces={mine.length > 1 ? mine : []} currentWs={ws}>
+      <AdminNav groups={groups} workspaceName={current?.name} workspaces={mine.length > 1 ? mine : []} currentWs={ws}>
         <form action={logout}>
           <button className="ghost small" style={{ color: "inherit" }}>
             {guest ? "閲覧を終える" : "ログアウト"}

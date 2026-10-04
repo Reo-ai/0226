@@ -6,13 +6,13 @@ import { useEffect, useState } from "react";
 
 /** 管理画面のメニュー。スマホでは「☰ メニュー」で開閉し、ページを移ったら自動で閉じる */
 export default function AdminNav({
-  items,
+  groups,
   children,
   workspaceName,
   workspaces = [],
   currentWs,
 }: {
-  items: readonly (readonly [string, string])[];
+  groups: { title: string; items: readonly (readonly [string, string])[] }[];
   children: React.ReactNode;
   workspaceName?: string;
   workspaces?: { id: string; name: string }[];
@@ -49,11 +49,18 @@ export default function AdminNav({
         </div>
       )}
       <div className="side-links">
-        {items.map(([href, label]) => (
-          <Link key={href} href={href} className={path === href || path.startsWith(`${href}/`) ? "active" : undefined}>
-            {label}
-          </Link>
-        ))}
+        {groups
+          .filter((g) => g.items.length > 0)
+          .map((g) => (
+            <div key={g.title} className="side-group">
+              <div className="side-group-title">{g.title}</div>
+              {g.items.map(([href, label]) => (
+                <Link key={href} href={href} className={path === href || path.startsWith(`${href}/`) ? "active" : undefined}>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          ))}
         {children}
       </div>
     </nav>
