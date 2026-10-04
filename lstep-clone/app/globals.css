@@ -152,3 +152,5 @@ label.row input[type=radio], label.row input[type=checkbox] { margin-top: 3px; f
 /* 長い選択肢（シナリオ名など）でも横にはみ出さない */
 select { max-width: 100%; }
 .grid > .panel { margin-bottom: 0; }
+.menu-grid input, .menu-grid select { width: 100%; min-width: 0; }
+@media (max-width: 760px) { .menu-grid { grid-template-columns: 1fr !important; } }

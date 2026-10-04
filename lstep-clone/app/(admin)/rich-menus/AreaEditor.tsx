@@ -104,7 +104,7 @@ export default function AreaEditor({
           ))}
         </select>
       </label>
-      <div className="menu-grid" style={{ gridTemplateColumns: `repeat(${l.cols}, 1fr)` }}>
+      <div className="menu-grid" style={{ gridTemplateColumns: `repeat(${l.cols}, minmax(0, 1fr))` }}>
         {cells.map((i) => {
           const t = types[i] ?? "message";
           return (
