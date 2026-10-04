@@ -42,7 +42,11 @@ export default async function RichMenusPage({ searchParams }: { searchParams: Pr
           表示対象タグ: <TagSelect tags={tags} name="tagId" empty="なし（デフォルト用）" />
         </div>
         <AreaEditor layouts={LAYOUTS} tags={tags} forms={forms} />
-        <input type="file" name="image" accept="image/png,image/jpeg" required />
+        <details>
+          <summary className="hint" style={{ cursor: "pointer" }}>自分で作った画像を使う</summary>
+          <input type="file" name="image" accept="image/png,image/jpeg" />
+          <p className="hint">大：2500×1686px／小：2500×843px（PNG・JPEG・1MB以下）</p>
+        </details>
         <div><button>LINEに登録</button></div>
       </form>
       <div className="grid">

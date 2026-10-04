@@ -7,7 +7,9 @@ import type { Broadcast } from "./types";
 export async function sendBroadcast(b: Broadcast) {
   const claimed = await run("UPDATE broadcasts SET status = 'sending' WHERE id = ? AND status = 'scheduled'", b.id);
   if (claimed.changes === 0) return; // 他プロセスが処理中
-  const friends = await segmentFriends(parseSegment(b.tag_ids));
+  let friends = await segmentFriends(parseSegment(b.tag_ids));
+  // A/Bテスト：友だちの番号で半分ずつに分ける（同じ人は毎回同じ側）
+  if (b.ab_group && b.ab_variant) friends = friends.filter((f) => ((f.id + b.ab_group!) % 2 === 0) === (b.ab_variant === "A"));
   try {
     if (b.delivery === "reply") {
       // 無料配信: 次に反応があった時に応答メッセージで届ける

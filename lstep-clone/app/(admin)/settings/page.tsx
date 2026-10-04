@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { adminLineIds, lineConnected } from "@/lib/lineConfig";
 import { baseUrl } from "@/lib/env";
-import { deleteWorkspaceAction, issueNotifyCodeAction, removeNotifyTargetAction, renameWorkspace, saveSettings, saveStripeSettings } from "@/lib/actions";
+import { deleteWorkspaceAction, issueNotifyCodeAction, removeNotifyTargetAction, renameWorkspace, saveReportSettings, saveSettings, saveStripeSettings } from "@/lib/actions";
+import { buildReport, REPORT_ENABLED, REPORT_TIME } from "@/lib/report";
 import { STRIPE_SECRET_KEY, STRIPE_THANKS_KEY, stripeWebhookSecret } from "@/lib/stripe";
 import { requireOwnerPage, sessionUser, workspacesOf } from "@/lib/auth";
 import { all, getSetting } from "@/lib/db";
@@ -15,6 +16,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   await requireOwnerPage();
   const { saved, error } = await searchParams;
   const ws = await currentWorkspace();
+  const reportEnabled = (await getSetting(REPORT_ENABLED)) === "1";
+  const reportTime = (await getSetting(REPORT_TIME)) || "08:00";
+  const reportSample = await buildReport();
   const stripeSaved = Boolean(await getSetting(STRIPE_SECRET_KEY));
   const stripeReady = Boolean(await stripeWebhookSecret());
   const stripeThanks = await getSetting(STRIPE_THANKS_KEY);
@@ -68,6 +72,23 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </form>
         )}
       </div>
+
+      <form action={saveReportSettings} className="panel stack">
+        <h2 style={{ margin: 0 }}>毎朝の数字レポート</h2>
+        <p style={{ margin: 0 }}>友だちの増減・未返信・今日の予約を、通知先の LINE に毎朝お届けします。</p>
+        <div className="row">
+          <label className="row">
+            <input type="checkbox" name="enabled" defaultChecked={reportEnabled} /> 毎朝届ける
+          </label>
+          <input type="time" name="time" defaultValue={reportTime} />
+          <button className="ghost">保存</button>
+        </div>
+        <details>
+          <summary className="hint" style={{ cursor: "pointer" }}>くわしく</summary>
+          <p className="hint">届け先は「新着の通知」に登録した LINE です。1人につき1日1通の配信数を使います（月に約30通）。</p>
+          <pre className="pre hint" style={{ background: "var(--bg)", padding: 8, borderRadius: 6 }}>{reportSample}</pre>
+        </details>
+      </form>
 
       <div className="panel stack">
         <h2>この場所</h2>

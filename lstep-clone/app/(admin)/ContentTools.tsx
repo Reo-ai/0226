@@ -62,10 +62,59 @@ export default function ContentTools() {
     }
   }
 
+  /** 写真を選ぶ → 長い辺1600pxまで縮めて JPEG にし、アップロードして本文に「image:URL」を入れる */
+  async function upload(file: File) {
+    const area = ref.current?.closest("form")?.querySelector<HTMLTextAreaElement>("textarea[name=content], textarea[name=reply]");
+    if (!area) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const bmp = await createImageBitmap(file);
+      const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bmp.width * scale);
+      canvas.height = Math.round(bmp.height * scale);
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      let dataUrl = "";
+      for (const q of [0.85, 0.7, 0.55, 0.4]) {
+        dataUrl = canvas.toDataURL("image/jpeg", q);
+        if (dataUrl.length * 0.75 < 950_000) break;
+      }
+      const res = await fetch("/api/upload", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dataUrl }) });
+      const j = (await res.json()) as { url?: string; error?: string };
+      if (!j.url) return setNote({ ok: false, text: j.error ?? "アップロードできませんでした" });
+      const block = `image:${j.url}`;
+      area.value = area.value.trim() ? `${area.value.trimEnd()}\n---\n${block}` : block;
+      area.dispatchEvent(new Event("input", { bubbles: true }));
+      setNote({ ok: true, text: "✓ 画像を入れました" });
+    } catch {
+      setNote({ ok: false, text: "この画像は読み込めませんでした（JPEG・PNG・HEIC 以外は不可）" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const last = msgs?.[msgs.length - 1];
   return (
     <div ref={ref} className="pv">
       <div className="row">
+        <label className={`btn ghost small${busy ? " disabled" : ""}`} style={{ cursor: "pointer" }}>
+          🖼 画像を入れる
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void upload(f);
+            }}
+          />
+        </label>
         <button type="button" className="ghost small" disabled={busy} onClick={() => run(false)}>
           プレビュー
         </button>

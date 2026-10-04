@@ -14,8 +14,9 @@ const STATUS: Record<Broadcast["status"], string> = {
 };
 
 export default async function BroadcastsPage() {
-  const list = await all<Broadcast & { delivered: number }>(
-    `SELECT b.*, (SELECT COUNT(*) FROM messages m WHERE m.source = 'broadcast' AND m.ref_id = b.id) delivered
+  const list = await all<Broadcast & { delivered: number; clicked: number }>(
+    `SELECT b.*, (SELECT COUNT(*) FROM messages m WHERE m.source = 'broadcast' AND m.ref_id = b.id) delivered,
+            (SELECT COUNT(DISTINCT c.friend_id) FROM link_clicks c WHERE c.message_source = 'broadcast' AND c.ref_id = b.id) clicked
      FROM broadcasts b ORDER BY scheduled_at DESC LIMIT 100`,
   );
   const tags = new Map((await all<Tag>("SELECT * FROM tags")).map((t) => [t.id, t.name]));
@@ -27,7 +28,7 @@ export default async function BroadcastsPage() {
       </div>
       <div className="panel">
         <table>
-          <thead><tr><th>タイトル</th><th>対象</th><th>方式</th><th>配信日時</th><th>状態</th><th>到達/対象</th><th /></tr></thead>
+          <thead><tr><th>タイトル</th><th>対象</th><th>方式</th><th>配信日時</th><th>状態</th><th>到達/対象</th><th>クリックした人</th><th /></tr></thead>
           <tbody>
             {list.map((b) => {
               const seg = parseSegment(b.tag_ids);
@@ -49,6 +50,7 @@ export default async function BroadcastsPage() {
                   <td>{fmtDateTime(b.sent_at ?? b.scheduled_at)}</td>
                   <td>{STATUS[b.status]}</td>
                   <td>{b.status === "sent" || b.status === "canceled" ? `${b.delivered} / ${b.recipient_count}` : "-"}</td>
+                  <td>{b.delivered ? <><b>{b.clicked}</b>人（{Math.round((b.clicked / b.delivered) * 100)}%）</> : "-"}</td>
                   <td>
                     {cancellable && (
                       <form action={cancelBroadcast}>
@@ -60,7 +62,7 @@ export default async function BroadcastsPage() {
                 </tr>
               );
             })}
-            {list.length === 0 && <tr><td colSpan={7} className="muted">まだ配信はありません</td></tr>}
+            {list.length === 0 && <tr><td colSpan={8} className="muted">まだ配信はありません</td></tr>}
           </tbody>
         </table>
       </div>

@@ -84,6 +84,8 @@ export interface Broadcast {
   sent_at: number | null;
   recipient_count: number;
   created_at: number;
+  ab_group?: number | null;
+  ab_variant?: "A" | "B" | null;
 }
 
 export interface Link {

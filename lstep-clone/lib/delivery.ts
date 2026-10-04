@@ -55,7 +55,7 @@ export class Outbox {
   ) {}
 
   add(content: string, source: MessageSource, refId: number | null = null) {
-    this.items.push({ rendered: render(content, this.friend, source, this.ws, this.fields), content, source, refId });
+    this.items.push({ rendered: render(content, this.friend, source, this.ws, this.fields, refId), content, source, refId });
   }
 
   get size() {
@@ -131,7 +131,7 @@ export async function pushToFriend(
   refId: number | null = null,
 ) {
   await assertPushQuota(1);
-  const r = render(content, friend, source, await currentWorkspace(), await fieldValuesOf(friend.id));
+  const r = render(content, friend, source, await currentWorkspace(), await fieldValuesOf(friend.id), refId);
   await push(friend.line_user_id, r.messages);
   await batch([logStmt(friend.id, "out", r.text, source, "push", refId)]);
 }
@@ -149,7 +149,7 @@ export async function pushToMany(
   if (isPersonalized(content)) {
     for (const f of friends) {
       try {
-        const r = render(content, f, source, ws, await fieldValuesOf(f.id));
+        const r = render(content, f, source, ws, await fieldValuesOf(f.id), refId);
         await push(f.line_user_id, r.messages);
         await batch([logStmt(f.id, "out", r.text, source, "push", refId)]);
       } catch (e) {
@@ -158,7 +158,7 @@ export async function pushToMany(
     }
     return;
   }
-  const r = render(content, null, source, ws);
+  const r = render(content, null, source, ws, {}, refId);
   await multicast(
     friends.map((f) => f.line_user_id),
     r.messages,

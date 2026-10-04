@@ -11,12 +11,15 @@ import {
   stopEnrollment,
   toggleFriendAi,
   adjustScore,
+  deleteReplyTemplate,
+  saveReplyTemplate,
 } from "@/lib/actions";
 import { all, get } from "@/lib/db";
 import { fmtDateTime, jstDateKey } from "@/lib/format";
 import { friendTags, getFriend } from "@/lib/friends";
 import { pushRemaining } from "@/lib/quota";
 import type { Message, Scenario, Tag } from "@/lib/types";
+import ReplyTemplates from "../../ReplyTemplates";
 import { CHANNEL_LABEL, ContentHelp, ErrorBox, SOURCE_LABEL, TagChip, TagSelect } from "@/lib/ui";
 
 export default async function FriendPage({
@@ -75,6 +78,7 @@ export default async function FriendPage({
     friend.id,
   );
   const hidden = <input type="hidden" name="friendId" value={friend.id} />;
+  const replyTemplates = await all<{ id: number; title: string; content: string }>("SELECT id, title, content FROM reply_templates ORDER BY id");
 
   return (
     <>
@@ -195,6 +199,7 @@ export default async function FriendPage({
           )}
           <form action={sendManual} className="stack">
             {hidden}
+            <ReplyTemplates templates={replyTemplates} />
             <textarea name="content" placeholder="メッセージ" required />
             <ContentHelp />
             <div className="row">
@@ -204,8 +209,24 @@ export default async function FriendPage({
               <button name="mode" value="push" className="ghost" disabled={!!friend.blocked || remaining < 1}>
                 今すぐ送る（1通消費・残り{Number.isFinite(remaining) ? remaining : "∞"}）
               </button>
+              <button formAction={saveReplyTemplate} formNoValidate className="ghost small">
+                この文を定型文にする
+              </button>
             </div>
           </form>
+          {replyTemplates.length > 0 && (
+            <details>
+              <summary className="hint" style={{ cursor: "pointer" }}>定型文の管理</summary>
+              {replyTemplates.map((t) => (
+                <form key={t.id} action={deleteReplyTemplate} className="row" style={{ gap: 6 }}>
+                  {hidden}
+                  <input type="hidden" name="id" value={t.id} />
+                  <b>{t.title}</b>
+                  <button className="ghost small">消す</button>
+                </form>
+              ))}
+            </details>
+          )}
         </div>
 
         <div>

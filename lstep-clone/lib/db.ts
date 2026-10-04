@@ -222,6 +222,18 @@ CREATE TABLE IF NOT EXISTS bookings (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_bookings_slot ON bookings(slot_id, status);
+CREATE TABLE IF NOT EXISTS images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mime TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS reply_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS score_rules (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   kind TEXT NOT NULL,
@@ -247,6 +259,11 @@ const MIGRATIONS = [
   "ALTER TABLE friends ADD COLUMN needs_reply_at INTEGER",
   // 行動スコア
   "ALTER TABLE friends ADD COLUMN score INTEGER NOT NULL DEFAULT 0",
+  // 配信ごとの成果：どの配信（一斉配信の番号・ステップの番号）から押されたか
+  "ALTER TABLE link_clicks ADD COLUMN ref_id INTEGER",
+  // A/Bテスト：同じ組の配信（ab_group）を、友だちを半分ずつに分けて A・B の文面で送る
+  "ALTER TABLE broadcasts ADD COLUMN ab_group INTEGER",
+  "ALTER TABLE broadcasts ADD COLUMN ab_variant TEXT",
 ];
 
 /** main だけの表への追加 */

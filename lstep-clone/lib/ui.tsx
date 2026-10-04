@@ -30,14 +30,17 @@ export function ErrorBox({ error }: { error?: string }) {
 export function ContentHelp() {
   return (
     <>
-      <div className="hint">
-        「---」だけの行で吹き出しを分割（最大5つ・何個でも1通扱い）／「image:https://〜」で画像／変数 {"{{name}}"}{" "}
-        {"{{link:コード}}"} {"{{form:ID}}"}
-        <br />
-        「選択肢: A / B / C」の行でタップできるボタン／「カード: タイトル」で始めると画像とボタン付きのカード（本文の下に「画像: URL」「ボタン:
-        表示=送る文字 / 表示=https://〜」。1つの吹き出しに複数書くと横スクロール）
-      </div>
       <ContentTools />
+      <details>
+        <summary className="hint" style={{ cursor: "pointer" }}>書き方</summary>
+        <ul className="hint" style={{ lineHeight: 1.8, margin: "4px 0 0", paddingLeft: 18 }}>
+          <li>「---」だけの行で吹き出しを分ける（最大5つ・何個でも1通）</li>
+          <li>「🖼 画像を入れる」で写真を選ぶと画像の吹き出しになる</li>
+          <li>{"{{name}}"} 名前／{"{{link:コード}}"} 計測リンク／{"{{form:番号}}"} フォーム／{"{{booking}}"} 予約ページ／{"{{field:項目名}}"} 友だち情報欄</li>
+          <li>「選択肢: A / B / C」の行 → タップできるボタン</li>
+          <li>「カード: タイトル」で始める → 画像とボタン付きのカード（「画像: URL」「ボタン: 表示=送る文字 / 表示=https://〜」）</li>
+        </ul>
+      </details>
     </>
   );
 }

@@ -26,7 +26,8 @@ export default async function SourcesPage() {
   const qrs = await Promise.all(sources.map((s) => QRCode.toDataURL(urlOf(s.code), { margin: 1, width: 160 })));
   // 最近の訪問：LINEのだれか分かったか・友だちと結びついたか（うまく計測できているかの確認用）
   const visits = await all<{ id: number; created_at: number; source: string; line_user_id: string | null; attributed: number; friend: string | null }>(
-    `SELECT v.id, v.created_at, s.name source, v.line_user_id, v.attributed,
+    `SELECT v.id, v.created_at, s.name source, v.line_user_id,
+            (v.attributed = 1 OR EXISTS (SELECT 1 FROM friends f WHERE f.line_user_id = v.line_user_id AND f.source_id = v.source_id)) attributed,
             (SELECT COALESCE(display_name, '（名前なし）') FROM friends f WHERE f.line_user_id = v.line_user_id) friend
      FROM source_visits v JOIN sources s ON s.id = v.source_id ORDER BY v.id DESC LIMIT 10`,
   );

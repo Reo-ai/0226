@@ -142,6 +142,7 @@ export function renderVars(
   source: MessageSource,
   ws = "main",
   fields: Record<string, string> = {},
+  refId: number | null = null,
 ): string {
   const base = baseUrl();
   const w = wsQuery(ws);
@@ -151,6 +152,8 @@ export function renderVars(
     .replace(/\{\{\s*link:([\w-]+)\s*\}\}/g, (_, code: string) => {
       const params = new URLSearchParams({ s: source });
       if (friend) params.set("f", friend.token);
+      // どの配信（一斉配信・ステップ）から押されたかを残す（配信ごとの成果に使う）
+      if (refId) params.set("m", String(refId));
       return `${base}/r/${code}?${params}${w ? `&${w}` : ""}`;
     })
     .replace(/\{\{\s*form:(\d+)\s*\}\}/g, (_, id: string) => {
@@ -172,8 +175,9 @@ export function render(
   source: MessageSource,
   ws = "main",
   fields: Record<string, string> = {},
+  refId: number | null = null,
 ): Rendered {
-  const blocks = splitBlocks(renderVars(content, friend, source, ws, fields)).slice(0, MAX_BUBBLES);
+  const blocks = splitBlocks(renderVars(content, friend, source, ws, fields, refId)).slice(0, MAX_BUBBLES);
   const messages: LineMessage[] = blocks.map((raw) => {
     const choices = raw.match(CHOICES);
     const b = raw.replace(CHOICES, "").trim();

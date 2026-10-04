@@ -35,6 +35,7 @@ import { saveAnswersToFields, setFieldValue } from "./fields";
 import { segmentFriends, segmentFrom } from "./segment";
 import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
 import { installTemplate } from "./templates";
+import { REPORT_ENABLED, REPORT_TIME } from "./report";
 import { STRIPE_SECRET_KEY, STRIPE_THANKS_KEY } from "./stripe";
 import { addScore, changeScore } from "./score";
 import { book, BOOKING_SETTINGS, BookingError, cancelBooking, createSlots } from "./bookings";
@@ -197,16 +198,30 @@ export async function createBroadcast(fd: FormData) {
       throw e;
     }
   }
-  const { lastId } = await run(
-    "INSERT INTO broadcasts (title, content, tag_ids, delivery, status, scheduled_at, created_at) VALUES (?, ?, ?, ?, 'scheduled', ?, ?)",
-    str(fd, "title") || content.slice(0, 20),
-    content,
-    JSON.stringify(segment),
-    delivery,
-    scheduledAt,
-    Date.now(),
-  );
-  if (now) await sendBroadcast((await get<Broadcast>("SELECT * FROM broadcasts WHERE id = ?", lastId))!);
+  const title = str(fd, "title") || content.slice(0, 20);
+  const contentB = str(fd, "contentB");
+  if (contentB) {
+    const errB = validateContent(contentB);
+    if (errB) redirect(`/broadcasts/new?error=${enc(`B案：${errB}`)}`);
+  }
+  // A/Bテスト：A案・B案の2件を同じ組で作り、送る時に友だちを半分ずつに分ける
+  const group = contentB ? Date.now() % 1_000_000 : null;
+  const ids: number[] = [];
+  for (const [variant, body] of contentB ? ([["A", content], ["B", contentB]] as const) : ([[null, content]] as const)) {
+    const { lastId } = await run(
+      "INSERT INTO broadcasts (title, content, tag_ids, delivery, status, scheduled_at, created_at, ab_group, ab_variant) VALUES (?, ?, ?, ?, 'scheduled', ?, ?, ?, ?)",
+      variant ? `${title}（${variant}案）` : title,
+      body,
+      JSON.stringify(segment),
+      delivery,
+      scheduledAt,
+      Date.now(),
+      group,
+      variant,
+    );
+    ids.push(lastId);
+  }
+  if (now) for (const id of ids) await sendBroadcast((await get<Broadcast>("SELECT * FROM broadcasts WHERE id = ?", id))!);
   revalidatePath("/broadcasts");
   redirect("/broadcasts");
 }
@@ -363,15 +378,22 @@ export async function createRichMenu(fd: FormData) {
   const name = str(fd, "name") || "メニュー";
   const chatBarText = str(fd, "chatBarText") || "メニュー";
   const layout = layoutOf(str(fd, "layout"));
-  const image = fd.get("image");
-  if (!(image instanceof File) || image.size === 0) redirect(`/rich-menus?error=${enc("画像を選択してください")}`);
+  // 自分の画像があればそれを、なければ画面で作った画像（ボタンの文字から描いたもの）を使う
+  let image = fd.get("image");
+  if (!(image instanceof File) || image.size === 0) {
+    const gen = str(fd, "generatedImage").match(/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/);
+    if (!gen) redirect(`/rich-menus?error=${enc("ボタンの文字を入れるか、画像を選んでください")}`);
+    image = new File([Buffer.from(gen[1], "base64")], "menu.jpg", { type: "image/jpeg" });
+  }
   if (!["image/png", "image/jpeg"].includes(image.type)) redirect(`/rich-menus?error=${enc("画像はPNGかJPEGにしてください")}`);
   if (image.size > 1024 * 1024) redirect(`/rich-menus?error=${enc("画像は1MB以下にしてください")}`);
 
-  const areas: RichMenuArea[] = Array.from({ length: layout.cols * layout.rows }, (_, i) => ({
-    type: (str(fd, `area${i}_type`) || "none") as RichMenuArea["type"],
-    value: str(fd, `area${i}_value`),
-  }));
+  const areas: RichMenuArea[] = Array.from({ length: layout.cols * layout.rows }, (_, i) => {
+    const type = (str(fd, `area${i}_type`) || "none") as RichMenuArea["type"];
+    // 「テキスト送信」で送る文字が空なら、ボタンの文字（先頭の絵文字を除く）を送る
+    const label = str(fd, `area${i}_label`).replace(/^\p{Extended_Pictographic}[\uFE0F\u200D\p{Extended_Pictographic}]*\s*/u, "");
+    return { type, value: str(fd, `area${i}_value`) || (type === "message" ? label : "") };
+  });
   const data = new Uint8Array(await image.arrayBuffer());
   let lineId: string | null = null;
   try {
@@ -911,4 +933,31 @@ export async function saveStripeSettings(fd: FormData) {
   await setSetting(STRIPE_THANKS_KEY, str(fd, "thanks").slice(0, 1000));
   revalidatePath("/settings");
   redirect(`/settings?saved=${enc(formatJst(Date.now()))}#stripe`);
+}
+
+// ---- 返信の定型文（スタッフも使える） ----
+export async function saveReplyTemplate(fd: FormData) {
+  await requireAuth();
+  const content = str(fd, "content").slice(0, 5000);
+  const friendId = num(fd, "friendId");
+  if (!content) redirect(`/friends/${friendId}?error=${enc("定型文にする文を入力してください")}`);
+  const title = (str(fd, "templateTitle") || content.replace(/\s+/g, " ")).slice(0, 20);
+  await run("INSERT INTO reply_templates (title, content, created_at) VALUES (?, ?, ?)", title, content, Date.now());
+  revalidatePath(`/friends/${friendId}`);
+}
+
+export async function deleteReplyTemplate(fd: FormData) {
+  await requireAuth();
+  await run("DELETE FROM reply_templates WHERE id = ?", num(fd, "id"));
+  revalidatePath(`/friends/${num(fd, "friendId")}`);
+}
+
+// ---- 毎朝の数字レポート ----
+export async function saveReportSettings(fd: FormData) {
+  await requireOwner();
+  await setSetting(REPORT_ENABLED, fd.get("enabled") ? "1" : "0");
+  const time = str(fd, "time");
+  if (/^\d{2}:\d{2}$/.test(time)) await setSetting(REPORT_TIME, time);
+  revalidatePath("/settings");
+  redirect(`/settings?saved=${enc(formatJst(Date.now()))}`);
 }

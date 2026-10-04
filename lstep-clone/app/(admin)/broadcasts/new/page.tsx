@@ -31,6 +31,11 @@ export default async function NewBroadcastPage({ searchParams }: { searchParams:
           placeholder={"{{name}}さん、こんにちは！\n---\nimage:https://example.com/banner.jpg\n---\n詳細はこちら → {{link:CODE}}"}
         />
         <ContentHelp />
+        <details>
+          <summary style={{ cursor: "pointer" }}>A/Bテストにする（B案を書く）</summary>
+          <p className="hint">送る相手を半分ずつに分けて、上の文（A案）と下の文（B案）を送ります。結果は一斉配信の一覧で「クリックした人」を比べてください。</p>
+          <textarea name="contentB" style={{ minHeight: 140 }} placeholder="B案の本文（空なら普通の一斉配信）" />
+        </details>
         {links.length > 0 && <div className="hint">計測リンク: {links.map((l) => `{{link:${l.code}}}`).join(" ")}</div>}
         <div className="stack" style={{ gap: 4 }}>
           <b>送る相手（何も選ばなければ全員 {active}人）</b>

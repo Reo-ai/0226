@@ -23,9 +23,11 @@ export default async function ScenarioPage({
   const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
   const sent = new Map(
     (
-      await all<{ ref_id: number; n: number; free: number }>(
-        `SELECT ref_id, COUNT(*) n, SUM(channel = 'reply') free FROM messages
-         WHERE source = 'step' AND ref_id IN (SELECT id FROM scenario_steps WHERE scenario_id = ?) GROUP BY ref_id`,
+      await all<{ ref_id: number; n: number; free: number; clicked: number }>(
+        `SELECT m.ref_id, COUNT(*) n, SUM(m.channel = 'reply') free,
+                (SELECT COUNT(DISTINCT c.friend_id) FROM link_clicks c WHERE c.message_source = 'step' AND c.ref_id = m.ref_id) clicked
+         FROM messages m
+         WHERE m.source = 'step' AND m.ref_id IN (SELECT id FROM scenario_steps WHERE scenario_id = ?) GROUP BY m.ref_id`,
         s.id,
       )
     ).map((r) => [r.ref_id, r]),
@@ -55,7 +57,7 @@ export default async function ScenarioPage({
       </form>
       <div className="panel">
         <table>
-          <thead><tr><th>タイミング（開始から）</th><th>届け方</th><th>内容</th><th>送信数（うち無料）</th><th /></tr></thead>
+          <thead><tr><th>タイミング（開始から）</th><th>届け方</th><th>内容</th><th>送信数（うち無料）</th><th>クリックした人</th><th /></tr></thead>
           <tbody>
             {steps.map((st) => (
               <tr key={st.id}>
@@ -72,6 +74,15 @@ export default async function ScenarioPage({
                 <td className="pre">{st.content}</td>
                 <td>{sent.get(st.id)?.n ?? 0}（{sent.get(st.id)?.free ?? 0}）</td>
                 <td>
+                  {sent.get(st.id)?.n ? (
+                    <>
+                      <b>{sent.get(st.id)!.clicked}</b>人（{Math.round((sent.get(st.id)!.clicked / sent.get(st.id)!.n) * 100)}%）
+                    </>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td>
                   <form action={deleteStep}>
                     <input type="hidden" name="id" value={st.id} />
                     <input type="hidden" name="scenarioId" value={s.id} />
@@ -80,7 +91,7 @@ export default async function ScenarioPage({
                 </td>
               </tr>
             ))}
-            {steps.length === 0 && <tr><td colSpan={5} className="muted">ステップを追加してください</td></tr>}
+            {steps.length === 0 && <tr><td colSpan={6} className="muted">ステップを追加してください</td></tr>}
           </tbody>
         </table>
         <p className="hint">

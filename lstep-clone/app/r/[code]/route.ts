@@ -17,10 +17,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
   const token = url.searchParams.get("f");
   const friend = token ? await getFriendByToken(token) : undefined;
   await run(
-    "INSERT INTO link_clicks (link_id, friend_id, message_source, created_at) VALUES (?, ?, ?, ?)",
+    "INSERT INTO link_clicks (link_id, friend_id, message_source, ref_id, created_at) VALUES (?, ?, ?, ?, ?)",
     link.id,
     friend?.id ?? null,
     url.searchParams.get("s"),
+    Number(url.searchParams.get("m")) || null,
     Date.now(),
   );
   if (friend && link.add_tag_id) await addTag(friend.id, link.add_tag_id);
