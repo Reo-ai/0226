@@ -35,5 +35,6 @@ export function proxy(req: NextRequest) {
 const KEEP = 60 * 60 * 24 * 90;
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|richmenu/|brand/|gift/).*)"],
+  // 友だち追加ページ（/join・/join/〜）は静的で速さが命なので通さない（場所の判定は /api/join で行う）
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|richmenu/|brand/|gift/|join$|join/).*)"],
 };
