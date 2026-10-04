@@ -154,3 +154,6 @@ select { max-width: 100%; }
 .grid > .panel { margin-bottom: 0; }
 .menu-grid input, .menu-grid select { width: 100%; min-width: 0; }
 @media (max-width: 760px) { .menu-grid { grid-template-columns: 1fr !important; } }
+@media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.grid > * { min-width: 0; }
+img.thumb { max-width: 100%; height: auto; }
