@@ -36,6 +36,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
         u.searchParams.set("client_reference_id", friend.token);
         dest = u.toString();
       }
+      // 講座サイトなら、章クリアを /api/progress に知らせてもらうため友だちのトークンを渡す
+      const courseOrigins = (process.env.COURSE_ORIGINS || "https://skillquest-v2.pages.dev,https://sho-claude-code-course.pages.dev").split(",");
+      if (courseOrigins.map((o) => o.trim()).includes(u.origin)) {
+        u.searchParams.set("sq", friend.token);
+        dest = u.toString();
+      }
     } catch {
       // URL として読めなければそのまま転送する
     }

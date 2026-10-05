@@ -245,6 +245,15 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+-- 講座の章クリア（LINEの「第3章クリア」報告 report と、講座サイトからの通知 site）
+CREATE TABLE IF NOT EXISTS course_progress (
+  friend_id INTEGER NOT NULL,
+  course TEXT NOT NULL DEFAULT '',
+  chapter INTEGER NOT NULL,
+  source TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (friend_id, course, chapter)
+);
 `;
 
 /** 既存DBに後から足した列（CREATE TABLE IF NOT EXISTS では追加されない） */
@@ -264,6 +273,9 @@ const MIGRATIONS = [
   // A/Bテスト：同じ組の配信（ab_group）を、友だちを半分ずつに分けて A・B の文面で送る
   "ALTER TABLE broadcasts ADD COLUMN ab_group INTEGER",
   "ALTER TABLE broadcasts ADD COLUMN ab_variant TEXT",
+  // 止まっている人への声かけ（lib/nudge.ts）：何段階目まで送ったか・最後に送った時刻
+  "ALTER TABLE friends ADD COLUMN nudge_stage INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE friends ADD COLUMN nudged_at INTEGER",
 ];
 
 /** main だけの表への追加 */
