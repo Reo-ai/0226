@@ -12,10 +12,13 @@ import { createClient } from "@libsql/client";
 
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith("--"));
-const REPLACE = args.includes("--replace");
+// --text-only：シナリオは作り直さず、ステップの文面だけを差し替える（配信中の人の進み具合を保つ）。
+//              キーワード応答・フォーム・計測リンクの中身は --replace と同じく更新する
+const TEXT_ONLY = args.includes("--text-only");
+const REPLACE = args.includes("--replace") || TEXT_ONLY;
 const DRY = args.includes("--dry-run");
 if (!file) {
-  console.error("使い方: node scripts/seed-funnel.mjs <funnel.mjs> [--replace] [--dry-run]");
+  console.error("使い方: node scripts/seed-funnel.mjs <funnel.mjs> [--replace | --text-only] [--dry-run]");
   process.exit(1);
 }
 
@@ -176,6 +179,19 @@ for (const r of autoReplies) {
 
 for (const sc of scenarios) {
   const existing = await one("SELECT id FROM scenarios WHERE name = ?", sc.name);
+  if (existing && TEXT_ONLY) {
+    const steps = await q("SELECT id FROM scenario_steps WHERE scenario_id = ? ORDER BY id", existing.id);
+    if (steps.length !== sc.steps.length) {
+      console.error(`✖ シナリオ: ${sc.name} はステップ数が変わっています（今 ${steps.length} → 新 ${sc.steps.length}）。--replace で作り直してください`);
+      continue;
+    }
+    await db.batch(
+      sc.steps.map((st, i) => ({ sql: "UPDATE scenario_steps SET content = ? WHERE id = ?", args: [resolve(st.content), steps[i].id] })),
+      "write",
+    );
+    console.log(`↻ シナリオ: ${sc.name}（${sc.steps.length}ステップの文面を更新・進み具合はそのまま）`);
+    continue;
+  }
   if (existing && !REPLACE) {
     log("シナリオ", sc.name, false);
     continue;
