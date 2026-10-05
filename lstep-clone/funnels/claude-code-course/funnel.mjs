@@ -29,14 +29,21 @@ export const CONFIG = {
     "営業プロフィール文テンプレ集（クラウドワークス用の自己PR・提案文の型）",
     "リサーチ案件用プロンプト集（依頼の読解〜検品・納品報告まで9本）",
   ],
+  // 購入者だけが開ける（「購入済み」タグを /p/ で確かめる）。{{token}} は友だちごとに置き換わる
   bonusUrls: {
-    profile: `${APP_URL}/gift/skillquest-bonus-profile.pdf`,
-    prompts: `${APP_URL}/gift/skillquest-bonus-prompts.pdf`,
+    profile: `${APP_URL}/p/profile?f={{token}}`,
+    prompts: `${APP_URL}/p/prompts?f={{token}}`,
   },
+  // 公式LINEのベーシックID（決済リンクが無い間の「申し込みたい」送信用）
+  lineBasicId: "@701xxsjg",
   // 受講生の声（講座ページに掲載がないため空。集まったら追加すると Day3 に表示される）
   testimonials: [],
 };
 const C = CONFIG;
+// 決済リンクが未設定の間は、押すとLINEに「申し込みたい」と入力された状態で開く（講師が個別に案内する）
+const CHECKOUT_URL = C.checkoutUrl.startsWith("要設定")
+  ? `https://line.me/R/oaMessage/${C.lineBasicId}/?${encodeURIComponent("申し込みたい")}`
+  : C.checkoutUrl;
 const bonusList = C.bonuses.map((b) => `🎁【装備】${b}`).join("\n");
 
 // ============================================================
@@ -57,7 +64,9 @@ export const tags = [
   { name: "LP閲覧", color: "#ef4444" },
   { name: "決済ページ閲覧", color: "#b91c1c" },
   { name: "質問あり", color: "#0ea5e9" },
-  { name: "購入済み", color: "#16a34a" },
+  { name: "購入済み", color: "#16a34a" }, // Stripe の決済完了でだけ付く（受講登録フォームでは付かない）
+  { name: "受講登録済み", color: "#0d9488" },
+  { name: "申込希望", color: "#dc2626" }, // 決済リンクが無い間に「申し込みたい」と送った人（講師が個別に案内）
 ];
 
 // ============================================================
@@ -66,7 +75,7 @@ export const tags = [
 export const links = [
   { code: "lp", name: "講座ページ", url: C.lpUrl, tag: "LP閲覧" },
   { code: "world1", name: "World1 無料体験", url: C.world1Url, tag: "World1体験" },
-  { code: "checkout", name: "決済ページ", url: C.checkoutUrl, tag: "決済ページ閲覧" },
+  { code: "checkout", name: "決済ページ", url: CHECKOUT_URL, tag: "決済ページ閲覧" },
   { code: "gift", name: "登録特典", url: C.giftUrl, tag: "特典受取" },
 ];
 
@@ -117,8 +126,8 @@ export const forms = [
       "決済に使ったメールアドレス | email | | 必須",
       "この冒険で達成したいこと | textarea",
     ].join("\n"),
-    tag: "購入済み",
-    thanks: "🛡 冒険者登録が完了しました。LINEに戻ってください。守護者が旅の始まりを案内します。",
+    tag: "受講登録済み",
+    thanks: "🛡 冒険者登録を受け付けました。お支払いの確認ができしだい、LINEに冒険者メニューと特典が届きます。",
   },
 ];
 
@@ -208,8 +217,12 @@ ${firstQuest}`,
 
 知っている人と、やったことがある人。その差は、ここから少しずつ開いていきます」
 ---
-続きは冒険の書の「続きから学ぶ」から再開できます（進み具合は使っているブラウザに保存されます）。
+📜【次のクエスト】
+同じ冒険の書で、第2章「持ち物と年齢・費用を確かめる」へ。
+パソコン・アカウント・使えるプランを、今のうちに確かめておくと、相棒の村がぐっと進めやすくなります。
+{{link:world1}}
 
+（進み具合は使っているブラウザに保存され、「続きから学ぶ」で再開できます）
 明日の夜、また書が開きます。`,
   },
   {
@@ -244,8 +257,20 @@ ${firstQuest}`,
 ご購入ありがとうございます、{{name}}さん」
 ---
 受講サポートを始めるため、冒険者登録（受講登録）をお願いします。1分で終わります👇
-{{form:@buyer}}`,
+{{form:@buyer}}
+
+※お支払いが確認できると、冒険者メニューと特典が自動で届きます。届かないときは「質問」と送ってください。`,
   })),
+  // 決済リンクが無い間、招待状の「旅立ちの手続き」を押すとこの言葉が入力された状態で開く
+  {
+    keyword: "申し込みたい",
+    match: "exact",
+    tag: "申込希望",
+    reply: `🛡 ギルドの受付より
+
+「旅立ちの申し出、確かに受け取りました、{{name}}さん。
+お申し込みの手続きは、講師から個別にこのLINEでご案内します。少しだけお待ちください」`,
+  },
   {
     keyword: "アンケート",
     match: "contains",

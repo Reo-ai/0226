@@ -148,6 +148,8 @@ export function renderVars(
   const w = wsQuery(ws);
   return content
     .replace(/\{\{\s*name\s*\}\}/g, friend?.display_name || "")
+    // 友だちごとのトークン（購入者限定ページ /p/ などで本人を確かめる）
+    .replace(/\{\{\s*token\s*\}\}/g, friend?.token ?? "")
     .replace(/\{\{\s*field:([^}]+?)\s*\}\}/g, (_, name: string) => fields[name.trim()] ?? "")
     .replace(/\{\{\s*link:([\w-]+)\s*\}\}/g, (_, code: string) => {
       const params = new URLSearchParams({ s: source });
