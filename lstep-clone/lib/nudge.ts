@@ -1,6 +1,6 @@
 // 止まっている人への声かけ（講座の購入者と、習慣トラッカーを使っている人）
 //   毎晩20時台に判定し、その日に何も進めていない人へ1通送る（毎日。文面は止まった日数に応じて日替わり）。
-//   進めた＝メッセージ・リンク・フォーム・習慣の「できた」・章クリア。進めた日は送らず、日数も数え直す。
+//   進めた＝メッセージ・リンク・フォーム・習慣の「できた」・章クリア・講座サイトの済ミッションが前より増えた。進めた日は送らず、日数も数え直す。
 //   習慣だけ使っていて毎日のリマインドを設定している人には送らない（二重送信を避ける）。
 //   章クリアは、LINEで「第3章クリア」と送る報告と、講座サイトからの進捗通知（/api/progress）の両方で記録する
 import { all, get, run } from "./db";
@@ -16,6 +16,21 @@ const SEND_HOURS = [20];
 const PURCHASE_TAG = process.env.PURCHASE_TAG_NAME || "購入済み";
 
 const jstHour = (ms: number) => new Date(ms + 9 * 3600_000).getUTCHours();
+
+/** 講座サイトの済ミッション数を記録する。前より増えた時だけ「進めた」として時刻を更新し true */
+export async function recordMissions(friendId: number, course: string, quest: number, done: number) {
+  const r = await run(
+    `INSERT INTO mission_progress (friend_id, course, quest, done, updated_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(friend_id, course, quest) DO UPDATE SET done = excluded.done, updated_at = excluded.updated_at
+     WHERE excluded.done > mission_progress.done`,
+    friendId,
+    course,
+    quest,
+    done,
+    Date.now(),
+  );
+  return r.changes > 0;
+}
 
 /** 章クリアを記録する（同じ章は1回だけ）。新しく記録できたら true */
 export async function recordChapter(friendId: number, chapter: number, source: "report" | "site", course = "") {
@@ -81,7 +96,8 @@ function targets() {
          COALESCE((SELECT MAX(c.created_at) FROM link_clicks c WHERE c.friend_id = f.id), 0),
          COALESCE((SELECT MAX(r.created_at) FROM form_responses r WHERE r.friend_id = f.id), 0),
          COALESCE((SELECT MAX(l.created_at) FROM habit_logs l WHERE l.friend_id = f.id), 0),
-         COALESCE((SELECT MAX(p.created_at) FROM course_progress p WHERE p.friend_id = f.id), 0)
+         COALESCE((SELECT MAX(p.created_at) FROM course_progress p WHERE p.friend_id = f.id), 0),
+         COALESCE((SELECT MAX(mp.updated_at) FROM mission_progress mp WHERE mp.friend_id = f.id), 0)
        ) AS last_progress
      FROM friends f
      WHERE f.blocked = 0

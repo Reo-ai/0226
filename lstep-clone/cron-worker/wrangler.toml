@@ -1,0 +1,14 @@
+# スキルステップの定期処理（ステップ配信・予約配信・リマインド・声かけ）を5分ごとに呼ぶ Cloudflare Worker。
+# GitHub Actions の定期実行は数時間おきにしか動かないため、こちらに移した。
+#   公開: npx wrangler deploy（このフォルダで）
+#   合言葉: npx wrangler secret put CRON_SECRET（Vercel の CRON_SECRET と同じ値）
+name = "skill-step-cron"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[vars]
+APP_URL = "https://skill-step-hazel.vercel.app"
+
+[triggers]
+crons = ["*/5 * * * *"]

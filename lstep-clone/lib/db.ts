@@ -254,6 +254,15 @@ CREATE TABLE IF NOT EXISTS course_progress (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (friend_id, course, chapter)
 );
+-- 講座サイトの済ミッション数（QUESTごと）。数が増えた時だけ updated_at を更新する＝その日に進めた
+CREATE TABLE IF NOT EXISTS mission_progress (
+  friend_id INTEGER NOT NULL,
+  course TEXT NOT NULL DEFAULT '',
+  quest INTEGER NOT NULL,
+  done INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (friend_id, course, quest)
+);
 `;
 
 /** 既存DBに後から足した列（CREATE TABLE IF NOT EXISTS では追加されない） */
