@@ -1,16 +1,22 @@
-<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="rpg-menu.css"></head><body>
-<!-- 通常メニュー（全員・4分割）。左上=特典「特典」／右上=講座「講座」／左下=質問フォーム／右下=「購入しました」 -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="rpg-menu.css">
+<style>
+/* 何が起きるかを大きく（.t）、世界観の名前は上の札（.tag）に小さく */
+.tag.jp{font-family:"Hiragino Mincho ProN",serif;font-weight:700;font-size:46px;letter-spacing:6px;padding:8px 30px 8px 36px}
+.t{font-family:"Hiragino Sans",sans-serif;font-weight:800;font-size:112px;letter-spacing:4px}
+.s{font-size:50px}
+</style></head><body>
+<!-- 通常メニュー（全員・4分割）。左上=「特典」／右上=「購入しました」／左下=「講座」／右下=質問フォーム -->
 <div class="g" style="grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr)">
 <div class="c main" style="background-image:url(richmenu-art/map.png);background-position:center 30%;background-size:cover">
 <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-<div class="tag">ITEM</div><div class="txt"><div class="t">冒険の地図</div><div class="s">登録特典を受け取る</div></div></div>
-<div class="c" style="background-image:url(richmenu-art/book.png);background-position:center 30%;background-size:cover">
-<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-<div class="tag">BOOK</div><div class="txt"><div class="t">冒険の書</div><div class="s">講座を見る・無料で始める</div></div></div>
-<div class="c" style="background-image:url(richmenu-art/guild.png);background-position:center 32%;background-size:cover">
-<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-<div class="tag">GUILD</div><div class="txt"><div class="t">講師に相談</div><div class="s">なんでも質問できる</div></div></div>
+<div class="tag jp">冒険の地図</div><div class="txt"><div class="t">特典を受け取る</div><div class="s">スタートガイドPDFが届く</div></div></div>
 <div class="c" style="background-image:url(richmenu-art/entry.png);background-position:center 30%;background-size:cover">
 <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-<div class="tag">ENTRY</div><div class="txt"><div class="t">冒険者登録</div><div class="s">購入した方はこちら</div></div></div>
+<div class="tag jp">冒険者登録</div><div class="txt"><div class="t">購入・受講登録</div><div class="s">購入した方はこちら</div></div></div>
+<div class="c" style="background-image:url(richmenu-art/book.png);background-position:center 30%;background-size:cover">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+<div class="tag jp">冒険の書</div><div class="txt"><div class="t">講座ページを開く</div><div class="s">講座のURLが届く</div></div></div>
+<div class="c" style="background-image:url(richmenu-art/guild.png);background-position:center 32%;background-size:cover">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+<div class="tag jp">ギルド</div><div class="txt"><div class="t">講師に質問</div><div class="s">質問フォームが届く</div></div></div>
 </div></body></html>

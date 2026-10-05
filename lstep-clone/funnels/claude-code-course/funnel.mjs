@@ -74,7 +74,7 @@ export const tags = [
 // ============================================================
 export const links = [
   { code: "lp", name: "講座ページ", url: C.lpUrl, tag: "LP閲覧" },
-  { code: "world1", name: "World1 無料体験", url: C.world1Url, tag: "World1体験" },
+  { code: "world1", name: "最初のクエスト（講座ページ）", url: C.world1Url, tag: "World1体験" },
   { code: "checkout", name: "決済ページ", url: CHECKOUT_URL, tag: "決済ページ閲覧" },
   { code: "gift", name: "登録特典", url: C.giftUrl, tag: "特典受取" },
 ];
@@ -291,9 +291,9 @@ ${firstQuest}`,
   {
     keyword: "講座",
     match: "contains",
-    reply: `📖 冒険の書（講座）の全体はこちらです👇
+    reply: `📖 講座ページはこちらです（タップで開きます）👇
 {{link:lp}}
-
+---
 🗺 World 1｜最初の冒険
 ✦ 相棒の村 … AIの相棒（Claude Code / Codex）と出会う
 ⚔ 営業の工房 … 営業武器（プロフィール・営業プロンプト）を作る
