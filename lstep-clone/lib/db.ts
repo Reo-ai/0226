@@ -322,6 +322,16 @@ CREATE TABLE IF NOT EXISTS workspace_members (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (workspace_id, line_user_id)
 );
+CREATE TABLE IF NOT EXISTS login_requests (
+  rid TEXT PRIMARY KEY,
+  secret_hash TEXT NOT NULL,
+  code TEXT NOT NULL,
+  line_user_id TEXT,
+  display_name TEXT,
+  approved INTEGER NOT NULL DEFAULT 0,
+  used INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS invites (
   code TEXT PRIMARY KEY,
   note TEXT NOT NULL DEFAULT '',
