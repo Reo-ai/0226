@@ -35,6 +35,8 @@ import { saveAnswersToFields, setFieldValue } from "./fields";
 import { segmentFriends, segmentFrom } from "./segment";
 import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
 import { installTemplate } from "./templates";
+import { claimByLineKeys, ClaimError } from "./claim";
+import { pendingName } from "./loginFlow";
 import { REPORT_ENABLED, REPORT_TIME } from "./report";
 import { STRIPE_SECRET_KEY, STRIPE_THANKS_KEY } from "./stripe";
 import { addScore, changeScore } from "./score";
@@ -580,6 +582,8 @@ export async function saveLineConnection(_: string | null, fd: FormData): Promis
     displayName: info.displayName,
     pictureUrl: info.pictureUrl ?? "",
   });
+  // 同じ公式LINEの鍵でログインした人を、この場所に入れられるように記録しておく
+  if ((await currentWorkspace()) !== MAIN) await mainRun("UPDATE workspaces SET line_basic_id = ? WHERE id = ?", info.basicId, await currentWorkspace());
   try {
     // ワークスペースごとの受信先（main は従来どおり /api/line/webhook）
     const ws = await currentWorkspace();
@@ -962,4 +966,24 @@ export async function saveReportSettings(fd: FormData) {
   if (/^\d{2}:\d{2}$/.test(time)) await setSetting(REPORT_TIME, time);
   revalidatePath("/settings");
   redirect(`/settings?saved=${enc(formatJst(Date.now()))}`);
+}
+
+// ---- 公式LINEの鍵で使い始める（招待なし）----
+export async function claimWorkspaceAction(_: string | null, fd: FormData): Promise<string | null> {
+  const user = await sessionUser();
+  if (!user) redirect("/login");
+  const channelId = str(fd, "channelId").replace(/\s/g, "");
+  const channelSecret = str(fd, "channelSecret").replace(/\s/g, "");
+  if (!/^\d{6,}$/.test(channelId) || !/^[0-9a-f]{32}$/i.test(channelSecret)) {
+    return "Channel ID（数字）と Channel secret（32文字）を入れてください";
+  }
+  let result: Awaited<ReturnType<typeof claimByLineKeys>>;
+  try {
+    result = await claimByLineKeys(user, (await pendingName()) ?? "", channelId, channelSecret);
+  } catch (e) {
+    if (e instanceof ClaimError) return e.message;
+    throw e;
+  }
+  await setWorkspaceCookie(result.ws);
+  redirect(result.created ? "/line?welcome=1" : "/dashboard");
 }

@@ -93,6 +93,14 @@ export async function acceptInvite(code: string, lineUserId: string, displayName
     await mainRun("UPDATE invites SET workspace_id = ? WHERE code = ?", invite.target_ws, code);
     return invite.target_ws;
   }
+  const id = await createWorkspaceFor(lineUserId, displayName);
+  await mainRun("UPDATE invites SET workspace_id = ? WHERE code = ?", id, code);
+  return id;
+}
+
+
+/** その人がオーナーの新しい場所（専用データベース）を作り、IDを返す */
+export async function createWorkspaceFor(lineUserId: string, displayName: string): Promise<string> {
   const id = newWorkspaceId();
   const db = await provisionDatabase(id);
   const now = Date.now();
@@ -112,7 +120,6 @@ export async function acceptInvite(code: string, lineUserId: string, displayName
     displayName,
     now,
   );
-  await mainRun("UPDATE invites SET workspace_id = ? WHERE code = ?", id, code);
   return id;
 }
 

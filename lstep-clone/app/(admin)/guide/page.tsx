@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { baseUrl } from "@/lib/env";
 
-// 使い方（招待された人・構築代行のお客さんに渡せる手順書）
+// 使い方（使い始める人・構築代行のお客さんに渡せる手順書）
 export default function GuidePage() {
   const base = baseUrl();
   return (
@@ -10,7 +10,7 @@ export default function GuidePage() {
       <div className="panel stack guide">
         <h2>はじめに（最初の1回だけ）</h2>
         <ol>
-          <li>招待リンクを開き、「LINEでログインして始める」を押す（あなた専用の管理画面ができます）</li>
+          <li>スキルステップを開き、「公式LINEアカウントでログイン」→ 公式LINEの Channel ID と Channel secret を入れる（あなた専用の管理画面ができます）</li>
           <li>
             <a href="https://manager.line.biz/" target="_blank" rel="noreferrer">
               公式LINEの管理画面 ↗
@@ -103,7 +103,7 @@ image:https://〜/banner.jpg        ← 画像
         <ul>
           <li>返事が来ない：公式LINEの「応答設定」で Webhook がオンか、LINE連携の画面で「連携中」になっているかを確認</li>
           <li>返事が二重に届く：公式LINEの「応答メッセージ」「あいさつメッセージ」をオフにする</li>
-          <li>ログインできない：招待リンクは1回だけ・7日間有効です。招待した人に新しいリンクをもらってください</li>
+          <li>ログインできない：公式LINEの Channel ID と Channel secret が正しいか、LINE Developers の「チャネル基本設定」で確かめる</li>
         </ul>
         <p className="hint">このツールの住所：{base}</p>
       </div>

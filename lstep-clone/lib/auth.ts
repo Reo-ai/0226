@@ -160,6 +160,8 @@ export async function requireViewer(): Promise<{ guest: boolean }> {
     if (mine.length > 0 && (!isValidWorkspaceId(ws) || !mine.some((m) => m.id === ws))) {
       redirect(`/api/workspace/switch?ws=${mine[0].id}`);
     }
+    // まだどの場所にも入っていない人は、公式LINEの鍵を入れる画面へ
+    if (mine.length === 0) redirect("/start");
   }
   redirect("/login");
 }

@@ -300,6 +300,8 @@ const CONTROL_MIGRATIONS = [
   // スタッフ招待：既存の場所（target_ws）へ、役割（role）付きで招待する
   "ALTER TABLE invites ADD COLUMN target_ws TEXT",
   "ALTER TABLE invites ADD COLUMN role TEXT",
+  // その場所につないだ公式LINEのID（@xxxx）。同じ公式LINEの鍵を入れた人を同じ場所に入れるのに使う
+  "ALTER TABLE workspaces ADD COLUMN line_basic_id TEXT",
 ];
 
 export type Arg = InValue;

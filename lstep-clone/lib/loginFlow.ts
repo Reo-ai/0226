@@ -8,10 +8,16 @@ import { setSession, WS_COOKIE, workspacesOf } from "./auth";
 import { mainGet, mainRun } from "./db";
 import { acceptInvite, INVITE_COOKIE, validInvite } from "./invites";
 import { authorizeAdmin } from "./lineConfig";
-import { DENIED_COOKIE } from "./lineLogin";
 import { MAIN, runInWorkspace } from "./workspace";
 
 export const REQUEST_COOKIE = "login_req";
+const NAME_COOKIE = "login_name";
+
+/** 公式LINEをつなぐ前の人の LINE の表示名（新しい場所の名前に使う） */
+export async function pendingName(): Promise<string | null> {
+  const v = (await cookies()).get(NAME_COOKIE)?.value;
+  return v ? decodeURIComponent(v) : null;
+}
 const TTL_MS = 10 * 60 * 1000;
 
 const hash = (v: string) => crypto.createHash("sha256").update(v).digest("hex");
@@ -102,9 +108,10 @@ export async function finishLogin(userId: string, name: string): Promise<string>
   await runInWorkspace(MAIN, () => authorizeAdmin(userId));
   const mine = await workspacesOf(userId);
   if (mine.length === 0) {
-    // 招待されていない人。本人にだけ自分のIDを見せる（Cookie 経由・5分）
-    jar.set(DENIED_COOKIE, userId, { ...cookieOpts, path: "/login", maxAge: 300 });
-    return "/login?line=denied";
+    // まだどの場所にも入っていない人：ログインだけ済ませて、公式LINEの鍵を入れる画面へ（招待は要らない）
+    await setSession(userId);
+    jar.set(NAME_COOKIE, encodeURIComponent(name).slice(0, 300), { ...cookieOpts, maxAge: 3600 });
+    return "/start";
   }
   const last = jar.get(WS_COOKIE)?.value;
   const ws = mine.find((m) => m.id === last)?.id ?? mine[0].id;
