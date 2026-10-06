@@ -20,7 +20,7 @@ export interface Invite {
   role: string | null;
 }
 
-export async function createInvite(createdBy: string, note: string, target?: { ws: string; role: "staff" }): Promise<string> {
+export async function createInvite(createdBy: string, note: string, target?: { ws: string; role: "staff" | "owner" }): Promise<string> {
   const code = crypto.randomBytes(12).toString("base64url");
   const now = Date.now();
   await mainRun(

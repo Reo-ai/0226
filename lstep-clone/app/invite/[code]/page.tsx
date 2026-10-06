@@ -24,7 +24,8 @@ export default async function InvitePage({ params }: { params: Promise<{ code: s
           <>
             {staffOf ? (
               <p style={{ margin: 0, fontSize: 17 }}>
-                「{staffOf}」の<b>スタッフ</b>として招待されています。LINEでログインすると、友だちへの返信などができるようになります。
+                「{staffOf}」の<b>{invite?.role === "owner" ? "オーナー" : "スタッフ"}</b>として招待されています。LINEでログインすると、
+                {invite?.role === "owner" ? "すべての機能が使えるようになります。" : "友だちへの返信などができるようになります。"}
               </p>
             ) : (
               <>

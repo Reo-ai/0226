@@ -1,6 +1,6 @@
 import { createStaffInvite, removeStaff, revokeStaffInvite } from "@/lib/actions";
-import { requireOwnerPage } from "@/lib/auth";
-import { mainAll } from "@/lib/db";
+import { requireOwnerPage, sessionUser } from "@/lib/auth";
+import { mainAll, mainGet } from "@/lib/db";
 import { baseUrl } from "@/lib/env";
 import { fmtDateTime } from "@/lib/format";
 import { currentWorkspace } from "@/lib/workspace";
@@ -11,12 +11,14 @@ export const dynamic = "force-dynamic";
 export default async function MembersPage() {
   await requireOwnerPage();
   const ws = await currentWorkspace();
+  const me = await sessionUser();
+  const founder = (await mainGet<{ owner_line_user_id: string }>("SELECT owner_line_user_id FROM workspaces WHERE id = ?", ws))?.owner_line_user_id;
   const members = await mainAll<{ line_user_id: string; display_name: string; role: string; created_at: number }>(
     "SELECT * FROM workspace_members WHERE workspace_id = ? ORDER BY role = 'staff', created_at",
     ws,
   );
-  const invites = await mainAll<{ code: string; note: string; expires_at: number }>(
-    "SELECT code, note, expires_at FROM invites WHERE target_ws = ? AND used_by IS NULL AND expires_at > ? ORDER BY created_at DESC",
+  const invites = await mainAll<{ code: string; note: string; expires_at: number; role: string | null }>(
+    "SELECT code, note, expires_at, role FROM invites WHERE target_ws = ? AND used_by IS NULL AND expires_at > ? ORDER BY created_at DESC",
     ws,
     Date.now(),
   );
@@ -25,16 +27,21 @@ export default async function MembersPage() {
     <>
       <h1>メンバー</h1>
       <div className="panel stack">
-        <h2 style={{ margin: 0 }}>スタッフを招待する</h2>
-        <p style={{ margin: 0 }}>スタッフは、友だちへの返信・タグ・メモ・予約の管理ができます。配信や設定は変えられません。</p>
+        <h2 style={{ margin: 0 }}>メンバーを招待する</h2>
         <form action={createStaffInvite} className="row">
-          <input name="note" placeholder="だれ用か（例：妹）" maxLength={50} />
+          <select name="role" defaultValue="staff" aria-label="役割">
+            <option value="staff">スタッフ（返信・タグ・予約だけ）</option>
+            <option value="owner">オーナー（すべて操作できる）</option>
+          </select>
+          <input name="note" placeholder="だれ用か（例：自分のスマホ）" maxLength={50} />
           <button>招待リンクを作る</button>
         </form>
         {invites.map((i) => (
           <div key={i.code} className="row" style={{ justifyContent: "space-between" }}>
             <div className="stack" style={{ gap: 2 }}>
-              <b>{i.note || "スタッフ招待"}</b>
+              <b>
+                {i.note || "招待"}（{i.role === "owner" ? "オーナー" : "スタッフ"}）
+              </b>
               <code style={{ userSelect: "all", wordBreak: "break-all" }}>{`${base}/invite/${i.code}`}</code>
             </div>
             <form action={revokeStaffInvite}>
@@ -67,7 +74,7 @@ export default async function MembersPage() {
                 </td>
                 <td>{fmtDateTime(m.created_at)}</td>
                 <td>
-                  {m.role === "staff" && (
+                  {m.line_user_id !== me && m.line_user_id !== founder && (
                     <form action={removeStaff}>
                       <input type="hidden" name="user" value={m.line_user_id} />
                       <button className="danger small">外す</button>
@@ -79,7 +86,7 @@ export default async function MembersPage() {
             {members.length === 0 && (
               <tr>
                 <td colSpan={4} className="muted">
-                  まだスタッフはいません（オーナーはあなたです）
+                  まだメンバーはいません（オーナーはあなたです）
                 </td>
               </tr>
             )}

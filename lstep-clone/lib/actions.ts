@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { canCreateWorkspaces, clearSession, guestViewEnabled, requireAuth, requireOwner, sessionUser, setGuestSession, setWorkspaceCookie, workspacesOf } from "./auth";
 import { sendBroadcast } from "./broadcasts";
 import { validateContent } from "./content";
-import { batch, get, mainRun, run, setSetting } from "./db";
+import { batch, get, mainGet, mainRun, run, setSetting } from "./db";
 import { pushToFriend, queuePending } from "./delivery";
 import { parseFields } from "./forms";
 import { fmtDateTime as formatJst, parseJstLocal } from "./format";
@@ -899,7 +899,9 @@ export async function adjustScore(fd: FormData) {
 export async function createStaffInvite(fd: FormData) {
   await requireOwner();
   const user = (await sessionUser())!;
-  await createInvite(user, str(fd, "note"), { ws: await currentWorkspace(), role: "staff" });
+  // オーナー招待：自分の別の LINE アカウント（スマホ用など）や共同運営者を、すべて操作できる立場で入れる
+  const role = str(fd, "role") === "owner" ? "owner" : "staff";
+  await createInvite(user, str(fd, "note"), { ws: await currentWorkspace(), role });
   revalidatePath("/members");
 }
 
@@ -911,12 +913,13 @@ export async function revokeStaffInvite(fd: FormData) {
 
 export async function removeStaff(fd: FormData) {
   await requireOwner();
-  // 外せるのはスタッフだけ（オーナーは外せない）
-  await mainRun(
-    "DELETE FROM workspace_members WHERE workspace_id = ? AND line_user_id = ? AND role = 'staff'",
-    await currentWorkspace(),
-    str(fd, "user"),
-  );
+  // 自分自身と、この場所を作った人（最初のオーナー）は外せない
+  const ws = await currentWorkspace();
+  const target = str(fd, "user");
+  const me = await sessionUser();
+  const founder = await mainGet<{ owner_line_user_id: string }>("SELECT owner_line_user_id FROM workspaces WHERE id = ?", ws);
+  if (target === me || target === founder?.owner_line_user_id) return;
+  await mainRun("DELETE FROM workspace_members WHERE workspace_id = ? AND line_user_id = ?", ws, target);
   revalidatePath("/members");
 }
 
