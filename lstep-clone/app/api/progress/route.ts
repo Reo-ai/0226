@@ -1,5 +1,5 @@
 import { getFriendByToken } from "@/lib/friends";
-import { recordChapter, recordMissions } from "@/lib/nudge";
+import { onMissionProgress, onQuestCleared, recordChapter, recordMissions } from "@/lib/nudge";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,8 +43,10 @@ export async function POST(req: Request) {
   if (body.missions !== undefined) {
     if (!Number.isInteger(missions) || missions < 1 || missions > 99) return Response.json({ ok: false }, { status: 400, headers });
     const fresh = await recordMissions(friend.id, course, chapter, missions);
+    if (fresh) await onMissionProgress(friend);
     return Response.json({ ok: true, fresh }, { headers });
   }
   const fresh = await recordChapter(friend.id, chapter, "site", course);
+  if (fresh) await onQuestCleared(friend, course, chapter);
   return Response.json({ ok: true, fresh }, { headers });
 }

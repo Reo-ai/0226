@@ -1,10 +1,12 @@
 // 止まっている人への声かけ（講座の購入者と、習慣トラッカーを使っている人）
 //   毎晩20時台に判定し、その日に何も進めていない人へ1通送る（毎日。文面は止まった日数に応じて日替わり）。
 //   進めた＝メッセージ・リンク・フォーム・習慣の「できた」・章クリア・講座サイトの済ミッションが前より増えた。進めた日は送らず、日数も数え直す。
+//   その日に講座サイトで進めた人には、代わりに「今日の旅の記録」を送る。
+//   講座サイトでQUESTをクリアした瞬間は祝福、止まっていた人がミッションを進めた瞬間は「おかえり」を送る。
 //   習慣だけ使っていて毎日のリマインドを設定している人には送らない（二重送信を避ける）。
 //   章クリアは、LINEで「第3章クリア」と送る報告と、講座サイトからの進捗通知（/api/progress）の両方で記録する
 import { all, get, run } from "./db";
-import { pushToFriend } from "./delivery";
+import { pushToFriend, queuePending } from "./delivery";
 import { jstDateKey, jstDayStart } from "./format";
 import { QuotaError } from "./quota";
 import type { Outbox } from "./delivery";
@@ -19,6 +21,12 @@ const jstHour = (ms: number) => new Date(ms + 9 * 3600_000).getUTCHours();
 
 /** 講座サイトの済ミッション数を記録する。前より増えた時だけ「進めた」として時刻を更新し true */
 export async function recordMissions(friendId: number, course: string, quest: number, done: number) {
+  const before = (await get<{ done: number }>(
+    "SELECT done FROM mission_progress WHERE friend_id = ? AND course = ? AND quest = ?",
+    friendId,
+    course,
+    quest,
+  ))?.done ?? 0;
   const r = await run(
     `INSERT INTO mission_progress (friend_id, course, quest, done, updated_at) VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(friend_id, course, quest) DO UPDATE SET done = excluded.done, updated_at = excluded.updated_at
@@ -29,7 +37,64 @@ export async function recordMissions(friendId: number, course: string, quest: nu
     done,
     Date.now(),
   );
+  if (r.changes > 0) await addDaily(friendId, { missions: done - before });
   return r.changes > 0;
+}
+
+/** その日に進めた数を足す */
+async function addDaily(friendId: number, d: { missions?: number; quests?: number }) {
+  await run(
+    `INSERT INTO progress_daily (friend_id, date, missions, quests) VALUES (?, ?, ?, ?)
+     ON CONFLICT(friend_id, date) DO UPDATE SET missions = missions + excluded.missions, quests = quests + excluded.quests`,
+    friendId,
+    jstDateKey(Date.now()),
+    Math.max(0, d.missions ?? 0),
+    d.quests ?? 0,
+  );
+}
+
+/** プッシュで送る。今月の通数が足りなければ、次に話しかけてくれた時に無料で届ける */
+async function pushOrQueue(friend: Friend, content: string) {
+  try {
+    await pushToFriend(friend, content, "auto");
+  } catch (e) {
+    if (e instanceof QuotaError) await queuePending([friend.id], [{ content, source: "auto", refId: null }]);
+    else console.error("メッセージを送れませんでした", e);
+  }
+}
+
+/** 講座サイトで済ミッションが増えた時：止まっていた人（声かけを受けていた人）なら「おかえり」を送る */
+export async function onMissionProgress(friend: Friend & { nudge_stage?: number }) {
+  if (!friend.nudge_stage) return;
+  await run("UPDATE friends SET nudge_stage = 0 WHERE id = ?", friend.id);
+  await pushOrQueue(
+    friend,
+    `🔥 おかえりなさい、{{name}}さん！
+
+「止まっていた冒険の書が、また動き出しました。
+再開できる冒険者は強い。今日の1歩は、止まる前の1歩よりずっと価値があります」
+
+この調子で、続きの1操作へ👇
+{{link:lp}}`,
+  );
+}
+
+/** 講座サイトでQUESTのミッションをすべて済にした時：祝福と次のクエスト */
+export async function onQuestCleared(friend: Friend, course: string, quest: number) {
+  await addDaily(friend.id, { quests: 1 });
+  const total = (await get<{ n: number }>("SELECT COUNT(*) n FROM course_progress WHERE friend_id = ?", friend.id))?.n ?? 1;
+  await pushOrQueue(
+    friend,
+    `✨ QUEST CLEAR ✨
+${course ? `${course}-` : ""}QUEST ${quest} をクリアしました！
+これまでに ${total} のQUESTを踏破しています。
+
+「見事です、{{name}}さん。一歩ずつ進んだ分だけ、冒険の書は確かに厚くなっています」
+---
+📜【次のクエスト】
+${course ? `${course}-` : ""}QUEST ${quest + 1} へ。続きはここから👇
+{{link:lp}}`,
+  );
 }
 
 /** 章クリアを記録する（同じ章は1回だけ）。新しく記録できたら true */
@@ -53,6 +118,7 @@ export async function handleChapterReport(box: Outbox, friend: Friend, raw: stri
   if (!m) return false;
   const chapter = Number(m[1]);
   const fresh = await recordChapter(friend.id, chapter, "report");
+  if (fresh) await addDaily(friend.id, { quests: 1 });
   const cleared = (await get<{ n: number }>("SELECT COUNT(*) n FROM course_progress WHERE friend_id = ?", friend.id))?.n ?? 1;
   box.add(
     `✨ CHAPTER CLEAR ✨
@@ -79,6 +145,8 @@ interface Target extends Friend {
   habit_action: string | null;
   habit_remind: number | null;
   chapters: number;
+  today_missions: number | null;
+  today_quests: number | null;
 }
 
 /** 声かけの対象と「最後に進めた時」をまとめて読む */
@@ -89,6 +157,8 @@ function targets() {
        (SELECT h.remind_enabled FROM habits h WHERE h.friend_id = f.id AND h.action != '') AS habit_remind,
        (SELECT COUNT(*) FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id WHERE ft.friend_id = f.id AND t.name = ?) AS purchased,
        (SELECT COUNT(*) FROM course_progress p WHERE p.friend_id = f.id) AS chapters,
+       (SELECT d.missions FROM progress_daily d WHERE d.friend_id = f.id AND d.date = ?) AS today_missions,
+       (SELECT d.quests FROM progress_daily d WHERE d.friend_id = f.id AND d.date = ?) AS today_quests,
        MAX(
          f.followed_at,
          COALESCE((SELECT MAX(ft.created_at) FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id WHERE ft.friend_id = f.id AND t.name = ?), 0),
@@ -104,6 +174,8 @@ function targets() {
        AND (EXISTS (SELECT 1 FROM friend_tags ft JOIN tags t ON t.id = ft.tag_id WHERE ft.friend_id = f.id AND t.name = ?)
             OR EXISTS (SELECT 1 FROM habits h WHERE h.friend_id = f.id AND h.action != ''))`,
     PURCHASE_TAG,
+    jstDateKey(Date.now()),
+    jstDateKey(Date.now()),
     PURCHASE_TAG,
     PURCHASE_TAG,
   );
@@ -168,6 +240,17 @@ export function nudgeMessage(t: Pick<Target, "purchased" | "habit_action" | "cha
   return messages[Math.min(idleIndex, messages.length - 1)];
 }
 
+/** 夜の「今日の旅の記録」（その日に講座サイトで進めた人へ） */
+export function dailyRecordMessage(missions: number, quests: number, totalQuests: number): string {
+  const lines = [missions > 0 ? `・ミッション ${missions}個 を済にした` : "", quests > 0 ? `・QUEST ${quests}個 をクリアした` : ""].filter(Boolean);
+  return `🌙 今日の旅の記録
+
+{{name}}さん、今日も冒険の書が進みました。
+${lines.join("\n")}${totalQuests > 0 ? `\n（これまでに踏破したQUEST：${totalQuests}）` : ""}
+
+「よく歩きましたね。明日も、続きの1操作から始めましょう」`;
+}
+
 /** 定期実行から呼ぶ：その日に何も進めていない人に、夜1通声をかける（毎日） */
 export async function sendNudges(now = Date.now()) {
   if (!SEND_HOURS.includes(jstHour(now))) return;
@@ -177,9 +260,19 @@ export async function sendNudges(now = Date.now()) {
     // 習慣だけの人で、毎日のリマインドを設定している人はリマインドに任せる
     if (!t.purchased && t.habit_remind) continue;
     if (t.nudged_at && jstDateKey(t.nudged_at) === today) continue;
-    // 今日進めていたら送らない。止まった日数も数え直す
+    // 今日進めていたら声かけはしない（止まった日数も数え直す）。講座を進めた人には「今日の旅の記録」を送る
     if (t.last_progress >= todayStart) {
       if (t.nudge_stage) await run("UPDATE friends SET nudge_stage = 0 WHERE id = ?", t.id);
+      const m = t.today_missions ?? 0, q = t.today_quests ?? 0;
+      if (m > 0 || q > 0) {
+        try {
+          await pushToFriend(t, dailyRecordMessage(m, q, t.chapters), "auto");
+          await run("UPDATE friends SET nudge_stage = 0, nudged_at = ? WHERE id = ?", now, t.id);
+        } catch (e) {
+          if (e instanceof QuotaError) return;
+          console.error("今日の旅の記録を送れませんでした", e);
+        }
+      }
       continue;
     }
     // 止まった日数（今日を1日目として0から）：前回の声かけ以降に進めていなければ続きから

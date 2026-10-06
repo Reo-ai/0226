@@ -263,6 +263,14 @@ CREATE TABLE IF NOT EXISTS mission_progress (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (friend_id, course, quest)
 );
+-- 講座サイトでその日に進めた数（夜の「今日の旅の記録」に使う）
+CREATE TABLE IF NOT EXISTS progress_daily (
+  friend_id INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  missions INTEGER NOT NULL DEFAULT 0,
+  quests INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (friend_id, date)
+);
 `;
 
 /** 既存DBに後から足した列（CREATE TABLE IF NOT EXISTS では追加されない） */
