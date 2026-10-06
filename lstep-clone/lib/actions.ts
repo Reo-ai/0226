@@ -35,6 +35,7 @@ import { saveAnswersToFields, setFieldValue } from "./fields";
 import { segmentFriends, segmentFrom } from "./segment";
 import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
 import { installTemplate } from "./templates";
+import { redeemHandoffCode } from "./handoff";
 import { claimByLineKeys, ClaimError } from "./claim";
 import { pendingName } from "./loginFlow";
 import { REPORT_ENABLED, REPORT_TIME } from "./report";
@@ -986,4 +987,11 @@ export async function claimWorkspaceAction(_: string | null, fd: FormData): Prom
   }
   await setWorkspaceCookie(result.ws);
   redirect(result.created ? "/line?welcome=1" : "/dashboard");
+}
+
+// ---- スマホへの引き継ぎ：ログイン画面で6桁の番号を入れる ----
+export async function loginWithHandoffCode(_: string | null, fd: FormData): Promise<string | null> {
+  const code = str(fd, "code").replace(/\D/g, "");
+  if (!(await redeemHandoffCode(code))) return "番号が違うか、時間切れです。パソコンの「スマホで開く」で新しい番号を出してください";
+  redirect("/dashboard");
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CodeLogin from "./CodeLogin";
 import LineLoginButton from "./LineLoginButton";
 
 type Props = { lineEnabled: boolean; lineMessage: string | null };
@@ -18,6 +19,8 @@ export default function LoginForm({ lineEnabled, lineMessage }: Props) {
             公式LINEアカウントでログイン（準備中）
           </button>
         )}
+
+        <CodeLogin />
 
         {lineMessage && <div className="pre" style={{ color: "var(--danger)" }}>{lineMessage}</div>}
       </div>

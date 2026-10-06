@@ -324,6 +324,15 @@ CREATE TABLE IF NOT EXISTS workspace_members (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (workspace_id, line_user_id)
 );
+CREATE TABLE IF NOT EXISTS handoffs (
+  token_hash TEXT PRIMARY KEY,
+  code TEXT NOT NULL,
+  line_user_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0,
+  fails INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS login_requests (
   rid TEXT PRIMARY KEY,
   secret_hash TEXT NOT NULL,

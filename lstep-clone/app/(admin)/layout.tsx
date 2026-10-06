@@ -49,6 +49,7 @@ const NAV_GROUPS: { title: string; items: (readonly [string, string])[] }[] = [
   {
     title: "設定",
     items: [
+      ["/handoff", "📱 スマホで開く"],
       ["/line", "LINE連携"],
       ["/settings", "設定・AI"],
       ["/members", "メンバー"],
