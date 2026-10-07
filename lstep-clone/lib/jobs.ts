@@ -3,6 +3,7 @@ import { processDueBroadcasts } from "./broadcasts";
 import { mainAll, run } from "./db";
 import { sendHabitReminders } from "./habits";
 import { sendNudges } from "./nudge";
+import { sendApplyReminders } from "./applies";
 import { sendDailyReport } from "./report";
 import { processDueSteps } from "./scenarios";
 import { currentWorkspace, MAIN, runInWorkspace } from "./workspace";
@@ -18,6 +19,7 @@ export async function runDueJobs() {
     await processDueBroadcasts();
     await processDueSteps();
     await sendHabitReminders();
+    await sendApplyReminders();
     await sendNudges();
     await sendBookingReminders();
     await sendDailyReport();

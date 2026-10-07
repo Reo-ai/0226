@@ -167,7 +167,8 @@ function targets() {
          COALESCE((SELECT MAX(r.created_at) FROM form_responses r WHERE r.friend_id = f.id), 0),
          COALESCE((SELECT MAX(l.created_at) FROM habit_logs l WHERE l.friend_id = f.id), 0),
          COALESCE((SELECT MAX(p.created_at) FROM course_progress p WHERE p.friend_id = f.id), 0),
-         COALESCE((SELECT MAX(mp.updated_at) FROM mission_progress mp WHERE mp.friend_id = f.id), 0)
+         COALESCE((SELECT MAX(mp.updated_at) FROM mission_progress mp WHERE mp.friend_id = f.id), 0),
+         COALESCE((SELECT MAX(al.updated_at) FROM apply_logs al WHERE al.friend_id = f.id), 0)
        ) AS last_progress
      FROM friends f
      WHERE f.blocked = 0

@@ -263,6 +263,25 @@ CREATE TABLE IF NOT EXISTS mission_progress (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (friend_id, course, quest)
 );
+-- 応募カウンター（lib/applies.ts）：1日の目標・リマインド・目標達成の連続
+CREATE TABLE IF NOT EXISTS apply_goals (
+  friend_id INTEGER PRIMARY KEY,
+  goal INTEGER NOT NULL DEFAULT 20,
+  remind_enabled INTEGER NOT NULL DEFAULT 1,
+  streak INTEGER NOT NULL DEFAULT 0,
+  best_streak INTEGER NOT NULL DEFAULT 0,
+  last_hit_date TEXT,
+  last_noon_date TEXT,
+  last_night_date TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS apply_logs (
+  friend_id INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (friend_id, date)
+);
 -- 講座サイトでその日に進めた数（夜の「今日の旅の記録」に使う）
 CREATE TABLE IF NOT EXISTS progress_daily (
   friend_id INTEGER NOT NULL,
