@@ -12,7 +12,7 @@ export default function AreaEditor({
   tags,
   forms,
 }: {
-  layouts: { key: string; label: string; cols: number; rows: number; size: string }[];
+  layouts: { key: string; label: string; cols: number; rows: number; size: string; strip?: number }[];
   tags: Opt[];
   forms: Opt[];
 }) {
@@ -23,7 +23,9 @@ export default function AreaEditor({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [generated, setGenerated] = useState("");
   const l = layouts.find((x) => x.key === key)!;
-  const cells = Array.from({ length: l.cols * l.rows }, (_, i) => i);
+  // マス目＋（あれば）下の細い帯。帯は最後のボタン
+  const grid = l.cols * l.rows;
+  const cells = Array.from({ length: grid + (l.strip ? 1 : 0) }, (_, i) => i);
 
   // ボタンの文字と色から、メニュー画像（2500×1686 / 843）をその場で描く
   useEffect(() => {
@@ -35,12 +37,14 @@ export default function AreaEditor({
     c.height = H;
     const ctx = c.getContext("2d")!;
     const th = THEMES.find((t) => t.key === theme)!;
-    const cw = W / l.cols;
-    const ch = H / l.rows;
+    const gridH = H - (l.strip ?? 0);
     cells.forEach((i) => {
-      const x = (i % l.cols) * cw;
-      const y = Math.floor(i / l.cols) * ch;
-      ctx.fillStyle = (Math.floor(i / l.cols) + (i % l.cols)) % 2 === 0 ? th.bg : th.bg2;
+      const isStrip = i >= grid;
+      const cw = isStrip ? W : W / l.cols;
+      const ch = isStrip ? (l.strip ?? 0) : gridH / l.rows;
+      const x = isStrip ? 0 : (i % l.cols) * cw;
+      const y = isStrip ? gridH : Math.floor(i / l.cols) * ch;
+      ctx.fillStyle = isStrip ? th.bg2 : (Math.floor(i / l.cols) + (i % l.cols)) % 2 === 0 ? th.bg : th.bg2;
       ctx.fillRect(x, y, cw, ch);
       const text = (labels[i] ?? "").trim();
       if (!text) return;
@@ -70,14 +74,15 @@ export default function AreaEditor({
     ctx.lineWidth = 6;
     for (let k = 1; k < l.cols; k++) {
       ctx.beginPath();
-      ctx.moveTo(k * cw, 0);
-      ctx.lineTo(k * cw, H);
+      ctx.moveTo((k * W) / l.cols, 0);
+      ctx.lineTo((k * W) / l.cols, gridH);
       ctx.stroke();
     }
-    for (let k = 1; k < l.rows; k++) {
+    for (let k = 1; k < l.rows + (l.strip ? 1 : 0); k++) {
+      const yy = k < l.rows ? (k * gridH) / l.rows : gridH;
       ctx.beginPath();
-      ctx.moveTo(0, k * ch);
-      ctx.lineTo(W, k * ch);
+      ctx.moveTo(0, yy);
+      ctx.lineTo(W, yy);
       ctx.stroke();
     }
     const any = cells.some((i) => (labels[i] ?? "").trim());

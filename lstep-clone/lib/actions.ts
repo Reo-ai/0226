@@ -25,7 +25,7 @@ import {
   uploadRichMenuImage,
 } from "./line";
 import { assertPushQuota, QuotaError } from "./quota";
-import { action as richAction, buildDefinition, layoutOf, syncRichMenuForTag } from "./richmenu";
+import { action as richAction, areaCount, buildDefinition, layoutOf, syncRichMenuForTag } from "./richmenu";
 import { enroll } from "./scenarios";
 import { addTag, removeTag } from "./tags";
 import type { Broadcast, Form, FormField, RichMenu, RichMenuArea } from "./types";
@@ -391,7 +391,7 @@ export async function createRichMenu(fd: FormData) {
   if (!["image/png", "image/jpeg"].includes(image.type)) redirect(`/rich-menus?error=${enc("画像はPNGかJPEGにしてください")}`);
   if (image.size > 1024 * 1024) redirect(`/rich-menus?error=${enc("画像は1MB以下にしてください")}`);
 
-  const areas: RichMenuArea[] = Array.from({ length: layout.cols * layout.rows }, (_, i) => {
+  const areas: RichMenuArea[] = Array.from({ length: areaCount(layout) }, (_, i) => {
     const type = (str(fd, `area${i}_type`) || "none") as RichMenuArea["type"];
     // 「テキスト送信」で送る文字が空なら、ボタンの文字（先頭の絵文字を除く）を送る
     const label = str(fd, `area${i}_label`).replace(/^\p{Extended_Pictographic}[\uFE0F\u200D\p{Extended_Pictographic}]*\s*/u, "");

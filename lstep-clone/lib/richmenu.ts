@@ -8,11 +8,14 @@ export interface Layout {
   size: "full" | "half";
   cols: number;
   rows: number;
+  /** 下に付ける細い帯の高さ（px）。帯は最後のボタン（マス目の次）になる */
+  strip?: number;
 }
 
 export const LAYOUTS: Layout[] = [
   { key: "full-6", label: "大・6分割（3×2）", size: "full", cols: 3, rows: 2 },
   { key: "full-4", label: "大・4分割（2×2）", size: "full", cols: 2, rows: 2 },
+  { key: "full-4-strip", label: "大・4分割（2×2）＋下の細い帯", size: "full", cols: 2, rows: 2, strip: 240 },
   { key: "full-3", label: "大・3分割（縦長3列）", size: "full", cols: 3, rows: 1 },
   { key: "full-2", label: "大・2分割（上下）", size: "full", cols: 1, rows: 2 },
   { key: "full-1", label: "大・1枚", size: "full", cols: 1, rows: 1 },
@@ -23,6 +26,11 @@ export const LAYOUTS: Layout[] = [
 
 export function layoutOf(key: string): Layout {
   return LAYOUTS.find((l) => l.key === key) ?? LAYOUTS[0];
+}
+
+/** ボタンの数（マス目＋細い帯） */
+export function areaCount(l: Pick<Layout, "cols" | "rows" | "strip">) {
+  return l.cols * l.rows + (l.strip ? 1 : 0);
 }
 
 export function imageSize(l: Layout) {
@@ -48,8 +56,10 @@ export function action(a: RichMenuArea) {
 export function buildDefinition(name: string, chatBarText: string, layoutKey: string, areas: RichMenuArea[]) {
   const l = layoutOf(layoutKey);
   const size = imageSize(l);
+  // 細い帯があれば、マス目はその上の高さに収める
+  const gridH = size.height - (l.strip ?? 0);
   const w = Math.floor(size.width / l.cols);
-  const h = Math.floor(size.height / l.rows);
+  const h = Math.floor(gridH / l.rows);
   const bounds = [];
   for (let r = 0; r < l.rows; r++) {
     for (let c = 0; c < l.cols; c++) {
@@ -61,11 +71,16 @@ export function buildDefinition(name: string, chatBarText: string, layoutKey: st
           x: c * w,
           y: r * h,
           width: c === l.cols - 1 ? size.width - c * w : w,
-          height: r === l.rows - 1 ? size.height - r * h : h,
+          height: r === l.rows - 1 ? gridH - r * h : h,
         },
         action: act,
       });
     }
+  }
+  if (l.strip) {
+    const a = areas[l.cols * l.rows];
+    const act = a && action(a);
+    if (act) bounds.push({ bounds: { x: 0, y: gridH, width: size.width, height: l.strip }, action: act });
   }
   return { size, selected: true, name: name.slice(0, 300), chatBarText: chatBarText.slice(0, 14), areas: bounds };
 }
