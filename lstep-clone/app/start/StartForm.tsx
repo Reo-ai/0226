@@ -30,19 +30,21 @@ export default function StartForm() {
   );
   return (
     <form action={action} className="stack" style={{ gap: 14 }}>
-      <label className="stack" style={{ gap: 6 }}>
-        <span className="row" style={{ gap: 6 }}>
-          Channel ID {q}
-        </span>
-        <input name="channelId" inputMode="numeric" autoComplete="off" placeholder="例：2001234567" required />
-      </label>
+      <div className="stack" style={{ gap: 6 }}>
+        <div className="row" style={{ gap: 6 }}>
+          <label htmlFor="channelId">Channel ID</label>
+          {q}
+        </div>
+        <input id="channelId" name="channelId" inputMode="numeric" autoComplete="off" placeholder="例：2001234567" required />
+      </div>
       {help && <Help />}
-      <label className="stack" style={{ gap: 6 }}>
-        <span className="row" style={{ gap: 6 }}>
-          Channel secret {q}
-        </span>
-        <input name="channelSecret" type="password" autoComplete="off" placeholder="32文字の英数字" required />
-      </label>
+      <div className="stack" style={{ gap: 6 }}>
+        <div className="row" style={{ gap: 6 }}>
+          <label htmlFor="channelSecret">Channel secret</label>
+          {q}
+        </div>
+        <input id="channelSecret" name="channelSecret" type="password" autoComplete="off" placeholder="32文字の英数字" required />
+      </div>
       {error && <div style={{ color: "var(--danger)" }}>{error}</div>}
       <button disabled={pending} style={{ padding: 14 }}>
         {pending ? "確認しています…" : "つないで始める"}
