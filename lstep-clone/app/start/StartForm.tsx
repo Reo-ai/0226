@@ -37,36 +37,22 @@ export default function StartForm() {
     }
   };
   return (
-    <form action={action} className="stack" style={{ gap: 18 }}>
+    <form action={action} className="stack" style={{ gap: 20 }}>
       <Step n={1} title="公式LINEの管理画面を開く">
-        <a className="btn ghost" href="https://manager.line.biz/" target="_blank" rel="noopener noreferrer" style={{ textAlign: "center", width: "100%" }}>
+        <a className="btn ghost" href="https://manager.line.biz/" target="_blank" rel="noopener noreferrer" style={{ textAlign: "center" }}>
           管理画面を開く ↗
         </a>
-        <div className="hint">LINEでログインして、つなぎたい公式LINEを選びます</div>
       </Step>
 
-      <Step n={2} title="「設定」→「Messaging API」を開く">
-        <div className="hint">右上の「設定」を押し、左のメニュー（スマホは ≡ の中）から選びます</div>
-        <details className="more">
-          <summary>「Messaging API を利用する」と出たら</summary>
-          <div className="hint">
-            そのボタンを押して、表示にしたがって進めてください（プロバイダーは自分の名前などで大丈夫です）。終わると Channel ID と Channel secret が表示されます。
-          </div>
-        </details>
-      </Step>
-
-      <Step n={3} title="Channel ID をコピーして貼り付け">
+      <Step n={2} title="「設定 → Messaging API」の2つを貼り付け">
         <div className="row" style={{ flexWrap: "nowrap" }}>
-          <input ref={idRef} name="channelId" inputMode="numeric" autoComplete="off" placeholder="例：2001234567" required style={{ flex: 1, minWidth: 0 }} />
+          <input ref={idRef} name="channelId" inputMode="numeric" autoComplete="off" placeholder="Channel ID" required style={{ flex: 1, minWidth: 0 }} />
           <button type="button" className="ghost" onClick={() => paste("id")}>
             貼り付け
           </button>
         </div>
-      </Step>
-
-      <Step n={4} title="Channel secret をコピーして貼り付け">
         <div className="row" style={{ flexWrap: "nowrap" }}>
-          <input ref={secretRef} name="channelSecret" type="password" autoComplete="off" placeholder="32文字の英数字" required style={{ flex: 1, minWidth: 0 }} />
+          <input ref={secretRef} name="channelSecret" type="password" autoComplete="off" placeholder="Channel secret" required style={{ flex: 1, minWidth: 0 }} />
           <button type="button" className="ghost" onClick={() => paste("secret")}>
             貼り付け
           </button>
