@@ -12,7 +12,7 @@ export default function AreaEditor({
   tags,
   forms,
 }: {
-  layouts: { key: string; label: string; cols: number; rows: number; size: string; strip?: number }[];
+  layouts: { key: string; label: string; cols: number; rows: number; size: string; strip?: number; stripAt?: string }[];
   tags: Opt[];
   forms: Opt[];
 }) {
@@ -38,12 +38,13 @@ export default function AreaEditor({
     const ctx = c.getContext("2d")!;
     const th = THEMES.find((t) => t.key === theme)!;
     const gridH = H - (l.strip ?? 0);
+    const top = l.strip && l.stripAt === "top" ? l.strip : 0;
     cells.forEach((i) => {
       const isStrip = i >= grid;
       const cw = isStrip ? W : W / l.cols;
       const ch = isStrip ? (l.strip ?? 0) : gridH / l.rows;
       const x = isStrip ? 0 : (i % l.cols) * cw;
-      const y = isStrip ? gridH : Math.floor(i / l.cols) * ch;
+      const y = isStrip ? (top ? 0 : gridH) : top + Math.floor(i / l.cols) * ch;
       ctx.fillStyle = isStrip ? th.bg2 : (Math.floor(i / l.cols) + (i % l.cols)) % 2 === 0 ? th.bg : th.bg2;
       ctx.fillRect(x, y, cw, ch);
       const text = (labels[i] ?? "").trim();
@@ -74,12 +75,12 @@ export default function AreaEditor({
     ctx.lineWidth = 6;
     for (let k = 1; k < l.cols; k++) {
       ctx.beginPath();
-      ctx.moveTo((k * W) / l.cols, 0);
-      ctx.lineTo((k * W) / l.cols, gridH);
+      ctx.moveTo((k * W) / l.cols, top);
+      ctx.lineTo((k * W) / l.cols, top + gridH);
       ctx.stroke();
     }
     for (let k = 1; k < l.rows + (l.strip ? 1 : 0); k++) {
-      const yy = k < l.rows ? (k * gridH) / l.rows : gridH;
+      const yy = k < l.rows ? top + (k * gridH) / l.rows : top ? top : gridH;
       ctx.beginPath();
       ctx.moveTo(0, yy);
       ctx.lineTo(W, yy);

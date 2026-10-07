@@ -8,13 +8,16 @@ export interface Layout {
   size: "full" | "half";
   cols: number;
   rows: number;
-  /** 下に付ける細い帯の高さ（px）。帯は最後のボタン（マス目の次）になる */
+  /** 細い帯の高さ（px）。帯は最後のボタン（マス目の次）になる */
   strip?: number;
+  /** 帯の位置（省略時は下） */
+  stripAt?: "top" | "bottom";
 }
 
 export const LAYOUTS: Layout[] = [
   { key: "full-6", label: "大・6分割（3×2）", size: "full", cols: 3, rows: 2 },
   { key: "full-4", label: "大・4分割（2×2）", size: "full", cols: 2, rows: 2 },
+  { key: "full-4-strip-top", label: "大・4分割（2×2）＋上の細い帯", size: "full", cols: 2, rows: 2, strip: 240, stripAt: "top" },
   { key: "full-4-strip", label: "大・4分割（2×2）＋下の細い帯", size: "full", cols: 2, rows: 2, strip: 240 },
   { key: "full-3", label: "大・3分割（縦長3列）", size: "full", cols: 3, rows: 1 },
   { key: "full-2", label: "大・2分割（上下）", size: "full", cols: 1, rows: 2 },
@@ -56,8 +59,9 @@ export function action(a: RichMenuArea) {
 export function buildDefinition(name: string, chatBarText: string, layoutKey: string, areas: RichMenuArea[]) {
   const l = layoutOf(layoutKey);
   const size = imageSize(l);
-  // 細い帯があれば、マス目はその上の高さに収める
+  // 細い帯があれば、マス目は帯を除いた高さに収める（帯が上なら、マス目はその下から）
   const gridH = size.height - (l.strip ?? 0);
+  const top = l.strip && l.stripAt === "top" ? l.strip : 0;
   const w = Math.floor(size.width / l.cols);
   const h = Math.floor(gridH / l.rows);
   const bounds = [];
@@ -69,7 +73,7 @@ export function buildDefinition(name: string, chatBarText: string, layoutKey: st
       bounds.push({
         bounds: {
           x: c * w,
-          y: r * h,
+          y: top + r * h,
           width: c === l.cols - 1 ? size.width - c * w : w,
           height: r === l.rows - 1 ? gridH - r * h : h,
         },
@@ -80,7 +84,7 @@ export function buildDefinition(name: string, chatBarText: string, layoutKey: st
   if (l.strip) {
     const a = areas[l.cols * l.rows];
     const act = a && action(a);
-    if (act) bounds.push({ bounds: { x: 0, y: gridH, width: size.width, height: l.strip }, action: act });
+    if (act) bounds.push({ bounds: { x: 0, y: top ? 0 : gridH, width: size.width, height: l.strip }, action: act });
   }
   return { size, selected: true, name: name.slice(0, 300), chatBarText: chatBarText.slice(0, 14), areas: bounds };
 }
