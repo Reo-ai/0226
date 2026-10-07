@@ -36,6 +36,7 @@ import { segmentFriends, segmentFrom } from "./segment";
 import { clearNeedsReply, issueNotifyCode, removeNotifyTarget } from "./inbox";
 import { installTemplate } from "./templates";
 import { redeemHandoffCode } from "./handoff";
+import { JoinError, requestJoin } from "./joinRequest";
 import { claimByLineKeys, ClaimError } from "./claim";
 import { pendingName } from "./loginFlow";
 import { REPORT_ENABLED, REPORT_TIME } from "./report";
@@ -994,4 +995,17 @@ export async function loginWithHandoffCode(_: string | null, fd: FormData): Prom
   const code = str(fd, "code").replace(/\D/g, "");
   if (!(await redeemHandoffCode(code))) return "番号が違うか、時間切れです。パソコンの「スマホで開く」で新しい番号を出してください";
   redirect("/dashboard");
+}
+
+// ---- 管理者に許可をもらって入る（鍵なし）----
+export async function requestJoinAction(_: string | null, fd: FormData): Promise<string | null> {
+  const user = await sessionUser();
+  if (!user) redirect("/login");
+  try {
+    await requestJoin(user, (await pendingName()) ?? "", str(fd, "basicId"));
+  } catch (e) {
+    if (e instanceof JoinError) return e.message;
+    throw e;
+  }
+  return "sent";
 }

@@ -343,6 +343,16 @@ CREATE TABLE IF NOT EXISTS workspace_members (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (workspace_id, line_user_id)
 );
+CREATE TABLE IF NOT EXISTS join_requests (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  line_user_id TEXT NOT NULL,
+  display_name TEXT NOT NULL DEFAULT '',
+  secret_hash TEXT NOT NULL,
+  approve_hash TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS handoffs (
   token_hash TEXT PRIMARY KEY,
   code TEXT NOT NULL,

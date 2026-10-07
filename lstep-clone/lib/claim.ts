@@ -12,7 +12,7 @@ import { MAIN, runInWorkspace } from "./workspace";
 export class ClaimError extends Error {}
 
 /** 公式LINEのID（@xxxx）がすでに登録されている場所を探す */
-async function findWorkspaceByBasicId(basicId: string): Promise<string | null> {
+export async function findWorkspaceByBasicId(basicId: string): Promise<string | null> {
   if ((await runInWorkspace(MAIN, lineConfig)).basicId === basicId) return MAIN;
   const hit = await mainGet<{ id: string }>("SELECT id FROM workspaces WHERE line_basic_id = ?", basicId);
   if (hit) return hit.id;
