@@ -212,3 +212,8 @@ details.more[open] > summary { margin-bottom: 6px; }
 .grid { margin-bottom: 20px; }
 .panel .grid { margin-bottom: 0; }
 @media (max-width: 760px) { .grid { margin-bottom: 14px; } }
+/* 手順（番号付き） */
+.step { display: flex; gap: 12px; align-items: flex-start; }
+.step-n { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 15px; margin-top: 1px; }
+.step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.step-title { font-weight: 700; font-size: 17px; }
