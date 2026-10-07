@@ -217,3 +217,7 @@ details.more[open] > summary { margin-bottom: 6px; }
 .step-n { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 15px; margin-top: 1px; }
 .step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .step-title { font-weight: 700; font-size: 17px; }
+/* 「？」ボタンと、押すと出る説明 */
+.q-btn { width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 13px; font-weight: 700; line-height: 1; background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.help-box { background: var(--bg); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.help-box ol { margin: 0; padding-left: 18px; line-height: 1.8; }

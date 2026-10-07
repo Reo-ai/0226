@@ -13,10 +13,9 @@ export default async function StartPage() {
   const mine = await workspacesOf(user);
   return (
     <div style={{ maxWidth: 440, margin: "6vh auto", padding: 16 }}>
-      <h1 style={{ marginBottom: 4 }}>公式LINEをつなぐ</h1>
-      <p className="muted" style={{ margin: "0 0 20px" }}>最初の1回だけです</p>
-
-      <div className="panel">
+      <div className="panel stack" style={{ gap: 14 }}>
+        <h1 style={{ margin: 0 }}>公式LINEをつなぐ</h1>
+        <p style={{ margin: 0 }}>あなたの公式LINEの「Channel ID」と「Channel secret」を入れると使い始められます。</p>
         <StartForm />
       </div>
 
