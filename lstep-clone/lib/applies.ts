@@ -1,4 +1,4 @@
-// 応募リマインド：毎朝「今日20件応募しましょう」、毎晩「今日は20件応募できましたか？」を送る
+// 応募リマインド：毎朝「今日の20件を応募しましょう」、毎晩「今日は20件応募できましたか？」を送る
 //   「応募スタート」で始める（「応募リマインド オン」でも可）／「応募リマインド オフ」で止める
 import { all, get, run } from "./db";
 import { pushToFriend, queuePending } from "./delivery";
@@ -10,7 +10,7 @@ import type { Friend } from "./types";
 /** 送る時刻（日本時間・時）。その時を過ぎて最初の定期実行で1回だけ送る */
 const MORNING_HOUR = 9;
 const NIGHT_HOUR = 20;
-const MORNING = "今日20件応募しましょう";
+const MORNING = "今日の20件を応募しましょう";
 const NIGHT = "今日は20件応募できましたか？";
 
 interface ApplyGoal {
