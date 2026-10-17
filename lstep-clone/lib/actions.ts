@@ -251,11 +251,12 @@ export async function createScenario(fd: FormData) {
   if (!name) return;
   const trigger = str(fd, "trigger") as "follow" | "tag" | "manual";
   const { lastId } = await run(
-    "INSERT INTO scenarios (name, trigger, trigger_tag_id, stop_tag_id, created_at) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO scenarios (name, trigger, trigger_tag_id, stop_tag_id, mode, created_at) VALUES (?, ?, ?, ?, ?, ?)",
     name,
     trigger,
     trigger === "tag" ? optId(fd, "triggerTagId") : null,
     optId(fd, "stopTagId"),
+    str(fd, "mode") === "button" ? "button" : "time",
     Date.now(),
   );
   redirect(`/scenarios/${lastId}`);
@@ -293,6 +294,22 @@ export async function addStep(fd: FormData) {
   const content = str(fd, "content");
   const err = validateContent(content);
   if (err) redirect(`/scenarios/${scenarioId}?error=${enc(err)}`);
+  // ボタン式は「何通目か」の順番だけ（最後に足す）
+  if ((await get<{ mode: string }>("SELECT mode FROM scenarios WHERE id = ?", scenarioId))?.mode === "button") {
+    const last = await get<{ m: number | null }>("SELECT MAX(delay_minutes) m FROM scenario_steps WHERE scenario_id = ?", scenarioId);
+    const condTagId = optId(fd, "condTagId");
+    const condType = condTagId && ["has", "not"].includes(str(fd, "condType")) ? str(fd, "condType") : null;
+    await run(
+      "INSERT INTO scenario_steps (scenario_id, delay_minutes, delivery, fixed_time, content, cond_tag_id, cond_type) VALUES (?, ?, 'reply', 0, ?, ?, ?)",
+      scenarioId,
+      (last?.m ?? -1) + 1,
+      content,
+      condType ? condTagId : null,
+      condType,
+    );
+    revalidatePath(`/scenarios/${scenarioId}`);
+    return;
+  }
   const fixedTime = str(fd, "timing") === "fixed";
   const delay = fixedTime
     ? num(fd, "days") * 1440 + Math.min(23, num(fd, "atHour")) * 60 + Math.min(59, num(fd, "atMinute"))
@@ -1008,4 +1025,75 @@ export async function requestJoinAction(_: string | null, fd: FormData): Promise
     throw e;
   }
   return "sent";
+}
+
+// ---- ボタン式のステップ配信の設定 ----
+export async function saveButtonSettings(fd: FormData) {
+  await requireOwner();
+  const id = num(fd, "id");
+  const label = str(fd, "nextLabel").slice(0, 20) || "次へ進む";
+  await run("UPDATE scenarios SET next_label = ?, nudge_hours = ? WHERE id = ?", label, Math.max(0, Math.min(720, num(fd, "nudgeHours"))), id);
+  revalidatePath(`/scenarios/${id}`);
+}
+
+// ---- 日替わりで受け取る ----
+export async function createDailySet(fd: FormData) {
+  await requireOwner();
+  const name = str(fd, "name").slice(0, 40);
+  const keyword = str(fd, "keyword").slice(0, 20);
+  if (!name || !keyword) redirect(`/daily?error=${enc("名前と言葉を入れてください")}`);
+  const startType = str(fd, "startType") === "tag" ? "tag" : "follow";
+  const tagId = startType === "tag" ? optId(fd, "startTagId") : null;
+  if (startType === "tag" && !tagId) redirect(`/daily?error=${enc("始まりのタグを選んでください")}`);
+  const { lastId } = await run(
+    "INSERT INTO daily_sets (name, keyword, start_type, start_tag_id, created_at) VALUES (?, ?, ?, ?, ?)",
+    name,
+    keyword,
+    startType,
+    tagId,
+    Date.now(),
+  );
+  redirect(`/daily/${lastId}`);
+}
+
+export async function saveDailySet(fd: FormData) {
+  await requireOwner();
+  const id = num(fd, "id");
+  await run(
+    "UPDATE daily_sets SET name = ?, keyword = ?, end_message = ?, enabled = ? WHERE id = ?",
+    str(fd, "name").slice(0, 40) || "日替わり",
+    str(fd, "keyword").slice(0, 20) || "今日のクエスト",
+    str(fd, "endMessage").slice(0, 3000),
+    fd.get("enabled") ? 1 : 0,
+    id,
+  );
+  revalidatePath(`/daily/${id}`);
+}
+
+export async function deleteDailySet(fd: FormData) {
+  await requireOwner();
+  const id = num(fd, "id");
+  await run("DELETE FROM daily_items WHERE set_id = ?", id);
+  await run("DELETE FROM daily_sets WHERE id = ?", id);
+  redirect("/daily");
+}
+
+export async function saveDailyItem(fd: FormData) {
+  await requireOwner();
+  const setId = num(fd, "setId");
+  const day = Math.max(1, Math.min(3650, num(fd, "day")));
+  const content = str(fd, "content");
+  const err = validateContent(content);
+  if (err) redirect(`/daily/${setId}?error=${enc(err)}`);
+  // 同じ日があれば書き換える
+  const exists = await get<{ id: number }>("SELECT id FROM daily_items WHERE set_id = ? AND day = ?", setId, day);
+  if (exists) await run("UPDATE daily_items SET content = ? WHERE id = ?", content, exists.id);
+  else await run("INSERT INTO daily_items (set_id, day, content) VALUES (?, ?, ?)", setId, day, content);
+  revalidatePath(`/daily/${setId}`);
+}
+
+export async function deleteDailyItem(fd: FormData) {
+  await requireOwner();
+  await run("DELETE FROM daily_items WHERE id = ?", num(fd, "id"));
+  revalidatePath(`/daily/${num(fd, "setId")}`);
 }

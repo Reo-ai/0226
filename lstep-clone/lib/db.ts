@@ -228,6 +228,22 @@ CREATE TABLE IF NOT EXISTS images (
   data TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS daily_sets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  keyword TEXT NOT NULL,
+  start_type TEXT NOT NULL DEFAULT 'follow',
+  start_tag_id INTEGER,
+  end_message TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS daily_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  set_id INTEGER NOT NULL,
+  day INTEGER NOT NULL,
+  content TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS reply_templates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
@@ -312,6 +328,11 @@ const MIGRATIONS = [
   // 止まっている人への声かけ（lib/nudge.ts）：何段階目まで送ったか・最後に送った時刻
   "ALTER TABLE friends ADD COLUMN nudge_stage INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE friends ADD COLUMN nudged_at INTEGER",
+  // ボタン式のステップ配信：「次へ進む」が押されたら次を返す（無料）。押されない人には一定時間後に1回だけお知らせ
+  "ALTER TABLE scenarios ADD COLUMN mode TEXT NOT NULL DEFAULT 'time'",
+  "ALTER TABLE scenarios ADD COLUMN next_label TEXT NOT NULL DEFAULT '次へ進む'",
+  "ALTER TABLE scenarios ADD COLUMN nudge_hours INTEGER NOT NULL DEFAULT 24",
+  "ALTER TABLE enrollments ADD COLUMN await_tap INTEGER NOT NULL DEFAULT 0",
 ];
 
 /** main だけの表への追加 */

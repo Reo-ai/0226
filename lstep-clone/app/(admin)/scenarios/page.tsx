@@ -25,6 +25,10 @@ export default async function ScenariosPage() {
           <option value="manual">手動で開始</option>
         </select>
         <TagSelect tags={tags} name="triggerTagId" empty="（タグ付与時のタグ）" />
+        <select name="mode" defaultValue="time" aria-label="進め方">
+          <option value="time">日数で自動に送る</option>
+          <option value="button">ボタンで受け取る（無料）</option>
+        </select>
         <TagSelect tags={tags} name="stopTagId" empty="（停止タグ：なし）" />
         <button>作成</button>
       </form>
@@ -40,7 +44,7 @@ export default async function ScenariosPage() {
                   {s.trigger === "tag" && s.trigger_tag_id ? `（${tagName.get(s.trigger_tag_id)}）` : ""}
                 </td>
                 <td>{s.stop_tag_id ? tagName.get(s.stop_tag_id) : "-"}</td>
-                <td>{s.steps}</td>
+                <td>{s.steps}{s.mode === "button" && <span className="badge on" style={{ marginLeft: 6 }}>ボタン式</span>}</td>
                 <td>{s.active}</td>
                 <td><span className={`badge ${s.enabled ? "on" : ""}`}>{s.enabled ? "有効" : "停止"}</span></td>
               </tr>

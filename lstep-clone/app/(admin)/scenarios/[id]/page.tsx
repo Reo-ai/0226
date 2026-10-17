@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { addStep, deleteScenario, deleteStep, setScenarioStopTag, toggleScenario } from "@/lib/actions";
+import { addStep, deleteScenario, deleteStep, saveButtonSettings, setScenarioStopTag, toggleScenario } from "@/lib/actions";
 import { all, get } from "@/lib/db";
 import { fmtDelay } from "@/lib/format";
 import type { Scenario, ScenarioStep, Tag } from "@/lib/types";
@@ -22,6 +22,7 @@ export default async function ScenarioPage({
     s.id,
   );
   const tags = await all<Tag>("SELECT * FROM tags ORDER BY name");
+  const button = s.mode === "button";
   const sent = new Map(
     (
       await all<{ ref_id: number; n: number; free: number; clicked: number }>(
@@ -56,13 +57,39 @@ export default async function ScenarioPage({
         <TagSelect tags={tags} name="stopTagId" empty="（なし）" defaultValue={s.stop_tag_id} />
         <button>保存</button>
       </form>
+      {button && (
+        <form action={saveButtonSettings} className="panel stack">
+          <input type="hidden" name="id" value={s.id} />
+          <h2 style={{ margin: 0 }}>
+            ボタンで受け取る <span className="badge on">無料</span>
+          </h2>
+          <div className="row">
+            ボタンの文字
+            <input name="nextLabel" defaultValue={s.next_label} maxLength={20} style={{ width: 160 }} />
+          </div>
+          <div className="row">
+            押されないまま
+            <input name="nudgeHours" type="number" min={0} max={720} defaultValue={s.nudge_hours} style={{ width: 80 }} />
+            時間たったら、1回だけお知らせ（0で知らせない）
+          </div>
+          <div>
+            <button>保存</button>
+          </div>
+          <details className="more">
+            <summary>くわしく</summary>
+            <p className="hint">
+              1通ごとに「{s.next_label}」ボタンを付けて送り、押されたら次を返します。押されたときの返事は無料なので、最後まで届けても配信数をほとんど使いません（お知らせだけ1通使います）。
+            </p>
+          </details>
+        </form>
+      )}
       <div className="panel">
         <table>
           <thead><tr><th>タイミング（開始から）</th><th>届け方</th><th>内容</th><th>送信数（うち無料）</th><th>クリックした人</th><th /></tr></thead>
           <tbody>
             {steps.map((st) => (
               <tr key={st.id}>
-                <td>{fmtDelay(st.delay_minutes, !!st.fixed_time)}</td>
+                <td>{button ? `${steps.indexOf(st) + 1}通目` : fmtDelay(st.delay_minutes, !!st.fixed_time)}</td>
                 <td>
                   {st.delivery === "reply" ? <span className="free">反応時に無料</span> : "プッシュ"}
                   {st.cond_tag_id && st.cond_type && (
@@ -105,6 +132,7 @@ export default async function ScenarioPage({
       <form action={addStep} className="panel stack">
         <h2>ステップを追加</h2>
         <input type="hidden" name="scenarioId" value={s.id} />
+        {!button && (<>
         <div className="row">
           開始から
           <input type="number" name="days" min={0} defaultValue={0} style={{ width: 70 }} /> 日
@@ -128,6 +156,8 @@ export default async function ScenarioPage({
             <input type="radio" name="delivery" value="reply" /> <span><b className="free">無料</b>：相手の次の反応を待って届ける</span>
           </label>
         </fieldset>
+        </>)}
+        {button && <p style={{ margin: 0 }}>{steps.length + 1}通目として最後に足します</p>}
         <fieldset className="row">
           <legend>送る条件（シナリオの分岐）</legend>
           <TagSelect tags={tags} name="condTagId" />

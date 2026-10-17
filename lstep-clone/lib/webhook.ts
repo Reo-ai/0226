@@ -10,7 +10,8 @@ import { handleApplyText } from "./applies";
 import { fieldValuesOf } from "./fields";
 import { handleNotifyCommand, markNeedsReply } from "./inbox";
 import { syncRichMenu } from "./richmenu";
-import { collectDueSteps, enrollByFollow } from "./scenarios";
+import { collectDueSteps, enrollByFollow, handleNextTap } from "./scenarios";
+import { handleDailyKeyword } from "./daily";
 import { attributeOnFollow } from "./sources";
 import { addTag } from "./tags";
 import type { AutoReply, Friend } from "./types";
@@ -61,6 +62,10 @@ async function handleText(box: Outbox, text: string) {
 
   // 習慣トラッカー（「習慣」「できた」「記録」「通知 21:00」など）を先に判定する
   if (await handleHabitText(box, friend, text)) return;
+
+  // ボタン式のステップ配信の「次へ進む」／日替わりで受け取る言葉（どちらも返事なので無料）
+  if (await handleNextTap(box, text)) return;
+  if (await handleDailyKeyword(box, text)) return;
 
   const rule = await matchAutoReply(text);
   if (rule) {

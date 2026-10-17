@@ -55,6 +55,11 @@ export interface Scenario {
   stop_tag_id: number | null;
   enabled: number;
   created_at: number;
+  /** time＝日数で自動に送る／button＝「次へ進む」が押されたら次を返す（無料） */
+  mode: "time" | "button";
+  next_label: string;
+  /** ボタン式で、押されないまま何時間たったら1回だけお知らせするか（0で知らせない） */
+  nudge_hours: number;
 }
 
 export type Delivery = "push" | "reply";

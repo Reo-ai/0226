@@ -24,6 +24,7 @@ const NAV_GROUPS: { title: string; items: (readonly [string, string])[] }[] = [
     items: [
       ["/broadcasts", "一斉配信"],
       ["/scenarios", "ステップ配信"],
+      ["/daily", "日替わりで受け取る"],
       ["/auto-replies", "自動応答"],
       ["/rich-menus", "リッチメニュー"],
       ["/forms", "回答フォーム"],
