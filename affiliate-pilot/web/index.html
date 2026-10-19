@@ -210,7 +210,7 @@ function render() {
   route = (location.hash || "#home").slice(1); if (!NAV.some(([k]) => k === route) && route !== "lesson") route = "home";
   nav();
   const v = document.getElementById("view");
-  if (!S.profile && route !== "settings") { v.innerHTML = onboarding(); bind(v); window.scrollTo(0, 0); return; }
+  if (!S.profile && route === "home") { v.innerHTML = onboarding(); bind(v); window.scrollTo(0, 0); return; }
   v.innerHTML = { home, learn, lesson, make, record, offers, settings }[route]();
   bind(v); window.scrollTo(0, 0);
 }
@@ -227,7 +227,7 @@ function onboarding() {
     </div>
     <button class="btn primary big" type="submit" style="align-self:flex-start">90日プランを作って始める</button>
   </form>
-  <p class="small muted">このブラウザ版は、入力したデータをあなたのブラウザの中にだけ保存します。別の端末には引き継がれません。</p>`;
+  <p class="small muted">このブラウザ版は、入力したデータをあなたのブラウザの中にだけ保存します。別の端末には引き継がれません。先に中身を見たい場合は、メニューの「学ぶ」「案件」などはこのままでも使えます。</p>`;
 }
 
 function home() {
@@ -293,7 +293,7 @@ function generate(type, o, target, point) {
   if (type === "x") return `${pr}${tgt}へ。${name}を使ってみた正直な感想。\n\n良かった点：${pt}\n気になった点：（正直に書く）\n\n詳しくはプロフィールのリンクから。`;
   if (type === "blog") return `${pr}【この記事は広告（アフィリエイトリンク）を含みます】\n\n「${tgt}」なら、${name}が選択肢に入ります。この記事では、公式情報と自分で使った範囲で分かったことだけをまとめます。\n\n## 結論\n${pt}\n\n## 向いている人・向いていない人\n- 向いている人：\n- 向いていない人：\n\n## 料金と始め方（公式サイトで確認した内容）\n`;
   if (type === "cta") return `公式サイトで料金と条件を確認する →（${name}）`;
-  return `${pr}${tgt}に向けて、${name}を紹介します。\n\n✔ ${pt}\n✔（2つ目の特徴）\n✔（3つ目の特徴）\n\n気になった点も正直に：\n（ここに書く）\n\n詳しくはプロフィールのリンクから。\n#${(S.profile.niche || "暮らし").replace(/\s/g, "")} #PR`;
+  return `${pr}${tgt}に向けて、${name}を紹介します。\n\n✔ ${pt}\n✔（2つ目の特徴）\n✔（3つ目の特徴）\n\n気になった点も正直に：\n（ここに書く）\n\n詳しくはプロフィールのリンクから。\n#${(S.profile?.niche || "暮らし").replace(/\s/g, "")} #PR`;
 }
 function lint(text) {
   const out = [];
@@ -333,7 +333,7 @@ function record() {
   <div class="kpi"><div><span>確定報酬 ${term("confirmed")}</span><strong>${yen(sum(mrec, "confirmed"))}</strong><em>今月</em></div><div><span>発生報酬 ${term("pending")}</span><strong>${yen(sum(mrec, "pending"))}</strong><em>今月</em></div><div><span>クリック ${term("clicks")}</span><strong>${clicks ?? "未計測"}</strong><em>今月</em></div><div><span>CTR ${term("ctr")}</span><strong>${pct(ratio(clicks, imp))}</strong><em>クリック ÷ 表示</em></div><div><span>CVR ${term("cvr")}</span><strong>${pct(ratio(conv, clicks))}</strong><em>成約 ÷ クリック</em></div></div>
   <section class="card"><h2>直近14日</h2>${S.records.length ? chart : '<p class="muted small" style="margin:0">記録がまだありません。下のフォームから昨日の数字を入れましょう。</p>'}</section>
   <form onsubmit="return false" class="card" id="rec" style="display:flex;flex-direction:column;gap:12px"><h2>記録する</h2>
-    <div class="grid2"><label class="f">日付<input id="r-date" type="date" value="${addDays(todayKey(), -1)}" required></label><label class="f">媒体<select id="r-pf">${Object.entries(PLATFORMS).map(([k, l]) => `<option value="${k}" ${k === S.profile.platform ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <div class="grid2"><label class="f">日付<input id="r-date" type="date" value="${addDays(todayKey(), -1)}" required></label><label class="f">媒体<select id="r-pf">${Object.entries(PLATFORMS).map(([k, l]) => `<option value="${k}" ${k === S.profile?.platform ? "selected" : ""}>${l}</option>`).join("")}</select></label>
     <label class="f">クリック数<input id="r-clicks" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">発生報酬（円）<input id="r-pending" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"><span class="hint">ASPの「発生」「未確定」の合計</span></label><label class="f">確定報酬（円）<input id="r-confirmed" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"><span class="hint">ASPで「承認」された分</span></label></div>
     <details class="more"><summary>くわしく入力する（表示回数・成約数・入金額・メモ）</summary><div class="grid2"><label class="f">表示回数<input id="r-imp" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">発生した成約数<input id="r-conv" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">入金額（円）<input id="r-paid" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">メモ<input id="r-note" maxlength="200"></label></div></details>
     <button class="btn primary big" type="submit" style="align-self:flex-start">記録する</button><p class="small muted" style="margin:0">同じ日・同じ媒体の記録は上書きされます。</p></form>
