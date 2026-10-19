@@ -1,5 +1,6 @@
-import { Bell, Bot } from "lucide-react";
+import { Bell, Bot, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
+import { setUiMode } from "@/lib/actions/settings";
 import { activeProvider } from "@/lib/ai";
 import { prisma } from "@/lib/db";
 import { Breadcrumbs } from "./breadcrumbs";
@@ -8,7 +9,7 @@ import { ThemeToggle } from "./theme-toggle";
 
 const PROVIDER_LABEL = { ollama: "ローカルAI", claude: "Claude", fallback: "AIなし" } as const;
 
-export async function Header() {
+export async function Header({ mode }: { mode: "simple" | "full" }) {
   const [status, recs, jobs, drafts] = await Promise.all([
     activeProvider(),
     prisma.aIRecommendation.count({ where: { status: "open" } }),
@@ -42,6 +43,12 @@ export async function Header() {
           </span>
         )}
       </Link>
+      <form action={setUiMode}>
+        <input type="hidden" name="mode" value={mode === "simple" ? "full" : "simple"} />
+        <button className="hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs hover:bg-muted sm:flex cursor-pointer" title={mode === "simple" ? "全機能を表示します" : "初心者向けの表示にします"}>
+          <SlidersHorizontal className="size-3.5" />{mode === "simple" ? "くわしい表示にする" : "かんたん表示にする"}
+        </button>
+      </form>
       <Hotkeys />
       <ThemeToggle />
     </header>

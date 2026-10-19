@@ -4,13 +4,16 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { isActive, MOBILE_NAV, NAV } from "@/lib/nav";
+import { isActive, MOBILE_NAV, NAV, SIMPLE_LABEL, SIMPLE_NAV } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
-export function MobileNav() {
+export function MobileNav({ mode }: { mode: "simple" | "full" }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const items = NAV.filter((n) => (MOBILE_NAV as readonly string[]).includes(n.href));
+  const simple = mode === "simple";
+  const items = simple
+    ? SIMPLE_NAV.filter((n) => n.href !== "/settings").map((n) => ({ href: n.href, label: n.short, icon: NAV.find((x) => x.href === n.href)!.icon }))
+    : NAV.filter((n) => (MOBILE_NAV as readonly string[]).includes(n.href)).map((n) => ({ href: n.href, label: n.label.replace("ダッシュボード", "ホーム").replace("コンテンツ工房", "工房"), icon: n.icon }));
   return (
     <nav
       aria-label="下部メニュー"
@@ -24,7 +27,7 @@ export function MobileNav() {
             <li key={href}>
               <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px]", active ? "text-primary font-medium" : "text-muted-foreground")}>
                 <Icon className="size-5" />
-                {label.replace("ダッシュボード", "ホーム").replace("コンテンツ工房", "工房")}
+                {label}
               </Link>
             </li>
           );
@@ -47,7 +50,7 @@ export function MobileNav() {
                   {NAV.map(({ href, label, icon: Icon }) => (
                     <li key={href}>
                       <Link href={href} onClick={() => setOpen(false)} className={cn("flex items-center gap-2 rounded-lg border p-3 text-sm", isActive(pathname, href) && "border-primary text-primary")}>
-                        <Icon className="size-4" /> {label}
+                        <Icon className="size-4" /> {simple ? SIMPLE_LABEL[href] ?? label : label}
                       </Link>
                     </li>
                   ))}

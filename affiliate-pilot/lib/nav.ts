@@ -20,6 +20,31 @@ export const NAV = [
 /** スマホ下部ナビ（残りは「メニュー」から） */
 export const MOBILE_NAV = ["/", "/coach", "/content", "/analytics"] as const;
 
+/** かんたん表示のメニュー（初心者向け・平易な言葉） */
+export const SIMPLE_NAV = [
+  { href: "/", label: "ホーム", short: "ホーム" },
+  { href: "/academy", label: "学ぶ", short: "学ぶ" },
+  { href: "/content", label: "投稿を作る", short: "作る" },
+  { href: "/analytics", label: "成果を記録", short: "記録" },
+  { href: "/settings", label: "設定", short: "設定" },
+] as const;
+
+/** かんたん表示での各画面の呼び方（くわしい表示の名前 → 平易な名前） */
+export const SIMPLE_LABEL: Record<string, string> = {
+  "/": "ホーム",
+  "/coach": "今日の作戦（AIに相談）",
+  "/roadmap": "90日の道のり",
+  "/challenge": "初月5万円チャレンジ",
+  "/accounts": "自分のSNS・ブログ",
+  "/accounts/assessment": "アカウント診断",
+  "/academy": "学ぶ",
+  "/offers": "紹介する商品を選ぶ",
+  "/content": "投稿を作る",
+  "/automation": "おまかせ機能",
+  "/analytics": "成果を記録",
+  "/settings": "設定",
+};
+
 /** パンくず用のラベル */
 export const SEGMENT_LABEL: Record<string, string> = {
   coach: "AI司令塔",

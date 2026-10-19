@@ -23,6 +23,13 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "収益分析" };
 
+/** まず入れてほしい3項目（残りは「くわしく入力」） */
+const QUICK_FIELDS: [string, string, string][] = [
+  ["clicks", "クリック数", "計測リンクやSNSの数字"],
+  ["pendingRevenue", "発生報酬（円）", "ASPの「発生」の合計"],
+  ["confirmedRevenue", "確定報酬（円）", "ASPで承認された分"],
+];
+
 const PERIODS = [
   ["month", "今月"],
   ["30", "30日"],
@@ -84,13 +91,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       </nav>
 
       <section aria-label="指標" className="mb-2 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiTile label="確定報酬" value={yen(t.confirmedRevenue)} delta={dl("confirmedRevenue")} deltaLabel={prevLabel} spark={daily.map((d) => d.confirmed)} hint={prev ? "前の期間の記録がないため比較なし" : undefined} />
-        <KpiTile label="発生報酬" value={yen(t.pendingRevenue)} delta={dl("pendingRevenue")} deltaLabel={prevLabel} spark={daily.map((d) => d.pending)} sparkColor="var(--chart-2)" hint={prev ? "前の期間の記録がないため比較なし" : undefined} />
+        <KpiTile label="確定報酬" help="confirmed" value={yen(t.confirmedRevenue)} delta={dl("confirmedRevenue")} deltaLabel={prevLabel} spark={daily.map((d) => d.confirmed)} hint={prev ? "前の期間の記録がないため比較なし" : undefined} />
+        <KpiTile label="発生報酬" help="pending" value={yen(t.pendingRevenue)} delta={dl("pendingRevenue")} deltaLabel={prevLabel} spark={daily.map((d) => d.pending)} sparkColor="var(--chart-2)" hint={prev ? "前の期間の記録がないため比較なし" : undefined} />
         <KpiTile label="クリック" value={num(t.clicks)} delta={dl("clicks")} deltaLabel={prevLabel} spark={daily.map((d) => d.clicks)} sparkColor="var(--chart-3)" hint={prev ? "前の期間の記録がないため比較なし" : undefined} />
-        <KpiTile label="入金額" value={yen(t.paidRevenue)} delta={dl("paidRevenue")} deltaLabel={prevLabel} hint="振り込まれた金額" />
-        <KpiTile label="CTR" value={pct(r.ctr, 2)} hint="クリック ÷ 表示回数" />
-        <KpiTile label="CVR" value={pct(r.cvr, 2)} hint="発生成約 ÷ クリック" />
-        <KpiTile label="承認率" value={pct(r.approvalRate, 0)} hint="承認済み ÷ 発生" />
+        <KpiTile label="入金額" help="paid" value={yen(t.paidRevenue)} delta={dl("paidRevenue")} deltaLabel={prevLabel} hint="振り込まれた金額" />
+        <KpiTile label="CTR" help="ctr" value={pct(r.ctr, 2)} hint="クリック ÷ 表示回数" />
+        <KpiTile label="CVR" help="cvr" value={pct(r.cvr, 2)} hint="発生成約 ÷ クリック" />
+        <KpiTile label="承認率" help="approval" value={pct(r.approvalRate, 0)} hint="承認済み ÷ 発生" />
         <KpiTile label="目標達成率（今月）" value={pct(achievement)} hint={`目標 ${yen(target)}`} />
       </section>
       <p className="mb-6 text-xs text-muted-foreground">
@@ -120,14 +127,22 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="日付" htmlFor="r-date"><Input id="r-date" name="recordDate" type="date" defaultValue={dateKey(addDays(today, -1))} required /></Field>
                 <Field label="媒体" htmlFor="r-platform"><Select id="r-platform" name="platform" defaultValue={profile.platforms[0] ?? "blog"}>{PLATFORMS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</Select></Field>
-                <Field label="アカウント" htmlFor="r-acc"><Select id="r-acc" name="channelAccountId" defaultValue=""><option value="">指定しない</option>{accounts.map((a) => <option key={a.id} value={a.id}>{platformLabel(a.platform)}：{a.accountName}</option>)}</Select></Field>
-                <Field label="案件" htmlFor="r-offer"><Select id="r-offer" name="affiliateOfferId" defaultValue=""><option value="">指定しない</option>{offers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</Select></Field>
-                <Field label="投稿（公開URL）" htmlFor="r-pub" className="sm:col-span-2"><Select id="r-pub" name="publicationId" defaultValue=""><option value="">指定しない</option>{pubs.map((p) => <option key={p.id} value={p.id}>{p.draft.title}（{fmtDate(p.publishedAt)}）</option>)}</Select></Field>
-                {RECORD_FIELDS.map(([k, l]) => (
-                  <Field key={k} label={l} htmlFor={`r-${k}`}><Input id={`r-${k}`} name={k} inputMode="numeric" placeholder="空欄＝未計測" /></Field>
+                {QUICK_FIELDS.map(([k, l, hint]) => (
+                  <Field key={k} label={l} htmlFor={`r-${k}`} hint={hint}><Input id={`r-${k}`} name={k} inputMode="numeric" placeholder="空欄＝未計測" /></Field>
                 ))}
-                <Field label="メモ" htmlFor="r-note" className="sm:col-span-2"><Input id="r-note" name="note" maxLength={500} /></Field>
               </div>
+              <details className="rounded-lg border p-3">
+                <summary className="cursor-pointer text-sm font-medium">くわしく入力する（案件・表示回数・成約数・入金額・作業時間など）</summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Field label="アカウント" htmlFor="r-acc"><Select id="r-acc" name="channelAccountId" defaultValue=""><option value="">指定しない</option>{accounts.map((a) => <option key={a.id} value={a.id}>{platformLabel(a.platform)}：{a.accountName}</option>)}</Select></Field>
+                  <Field label="案件" htmlFor="r-offer"><Select id="r-offer" name="affiliateOfferId" defaultValue=""><option value="">指定しない</option>{offers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</Select></Field>
+                  <Field label="投稿（公開URL）" htmlFor="r-pub" className="sm:col-span-2"><Select id="r-pub" name="publicationId" defaultValue=""><option value="">指定しない</option>{pubs.map((p) => <option key={p.id} value={p.id}>{p.draft.title}（{fmtDate(p.publishedAt)}）</option>)}</Select></Field>
+                  {RECORD_FIELDS.filter(([k]) => !QUICK_FIELDS.some(([q]) => q === k)).map(([k, l]) => (
+                    <Field key={k} label={l} htmlFor={`r-${k}`}><Input id={`r-${k}`} name={k} inputMode="numeric" placeholder="空欄＝未計測" /></Field>
+                  ))}
+                  <Field label="メモ" htmlFor="r-note" className="sm:col-span-2"><Input id="r-note" name="note" maxLength={500} /></Field>
+                </div>
+              </details>
               <SubmitButton className="self-start">記録する</SubmitButton>
             </ActionForm>
           </CardContent>

@@ -10,12 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input, Select } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { aiConfig, CLAUDE_MODELS, OLLAMA_MODELS } from "@/lib/ai";
-import { clearDemoAction, loadDemoAction, restoreBackup, saveAiConfig, saveSchedule } from "@/lib/actions/settings";
+import { clearDemoAction, loadDemoAction, restoreBackup, saveAiConfig, saveSchedule, setUiMode } from "@/lib/actions/settings";
 import { EXPERIENCE_LEVELS, platformLabel } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { fmtDate, minutesLabel, yen } from "@/lib/format";
 import { activeGoal, requireProfile } from "@/lib/profile";
 import { DEFAULT_SCHEDULE, describeNext, lastRunsSchema, scheduleSchema } from "@/lib/scheduler";
+import { getUiMode } from "@/lib/ui-mode";
 import { getSetting } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "設定" };
@@ -27,6 +28,7 @@ export default async function SettingsPage() {
     getSetting("schedule", scheduleSchema, DEFAULT_SCHEDULE), getSetting("schedule_last", lastRunsSchema, {}),
   ]);
   const next = describeNext(schedule, new Date(), lastRuns);
+  const mode = await getUiMode();
   const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY;
   return (
     <>
@@ -74,6 +76,20 @@ export default async function SettingsPage() {
                 <p className="mt-2 text-xs text-muted-foreground">目安を下回るPCでは応答が遅くなるか、生成に失敗します。その場合は軽いモデルにするか「AIを使わない」を選んでください。</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card id="display" className="lg:col-span-2">
+          <CardHeader><CardTitle>表示モード</CardTitle><CardDescription>初心者は「かんたん表示」がおすすめです。メニューが5つになり、入力欄も必要なものだけになります。全機能はいつでも「すべてのメニュー」から使えます。</CardDescription></CardHeader>
+          <CardContent>
+            <form action={setUiMode} className="flex flex-wrap gap-3">
+              {(["simple", "full"] as const).map((m) => (
+                <button key={m} name="mode" value={m} className={`rounded-xl border px-4 py-3 text-left text-sm transition-colors hover:border-primary cursor-pointer ${mode === m ? "border-primary bg-accent" : ""}`} aria-pressed={mode === m}>
+                  <strong>{m === "simple" ? "かんたん表示" : "くわしい表示"}</strong>
+                  <span className="block text-xs text-muted-foreground">{m === "simple" ? "メニュー5つ・今日の1歩が中心・入力は最小限" : "全メニュー・指標の詳細・すべての入力欄"}</span>
+                </button>
+              ))}
+            </form>
           </CardContent>
         </Card>
 

@@ -1,19 +1,20 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { Sparkline } from "./sparkline";
+import { Term, type TERMS } from "./term";
 import { cn } from "@/lib/utils";
 
 /**
  * 指標のタイル。前の期間との差（delta: 0〜1 の比率、null なら比較不能）と、小さな推移グラフを出せる。
  * 色は状態を表すときだけ使う（増えたら良い指標は up を good に）。
  */
-export function KpiTile({ label, value, delta, deltaLabel = "前期間比", spark, sparkColor, hint, className }: {
-  label: string; value: string; delta?: number | null; deltaLabel?: string; spark?: (number | null)[]; sparkColor?: string; hint?: string; className?: string;
+export function KpiTile({ label, value, delta, deltaLabel = "前期間比", spark, sparkColor, hint, help, className }: {
+  label: string; help?: keyof typeof TERMS; value: string; delta?: number | null; deltaLabel?: string; spark?: (number | null)[]; sparkColor?: string; hint?: string; className?: string;
 }) {
   const d = delta ?? null;
   return (
     <div className={cn("rounded-xl border bg-card p-4 shadow-card min-w-0", className)}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{help ? <Term k={help}>{label}</Term> : label}</p>
         {spark && <Sparkline values={spark} color={sparkColor} width={72} height={24} />}
       </div>
       <p className="tabular mt-1 text-xl font-bold leading-tight">{value}</p>

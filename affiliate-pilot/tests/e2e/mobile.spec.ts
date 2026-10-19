@@ -6,10 +6,10 @@ test("スマホ：下部ナビとメニューで各画面を開ける", async ({
   const nav = page.getByRole("navigation", { name: "下部メニュー" });
   await expect(nav).toBeVisible();
   await expect(page.getByRole("complementary")).toBeHidden(); // サイドバーは隠れる
-  await nav.getByRole("link", { name: "工房" }).click();
+  await nav.getByRole("link", { name: "作る" }).click();
   await expect(page.getByRole("heading", { name: "AIコンテンツ工房" })).toBeVisible();
   await nav.getByRole("button", { name: "メニュー" }).click();
-  await page.getByRole("dialog").getByRole("link", { name: "攻略大学" }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "学ぶ" }).click();
   await expect(page.getByRole("heading", { name: "アフィリエイト攻略大学" })).toBeVisible();
   // 横スクロールが出ない
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

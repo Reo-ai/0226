@@ -15,6 +15,8 @@ import { addDays, dateKey, daysBetween, fmtDate, jstDay, jstMonthStart, minutesL
 import { requireProfile } from "@/lib/profile";
 import { roadmapView } from "@/lib/roadmap";
 import { ensureToday } from "@/lib/tasks";
+import { getUiMode } from "@/lib/ui-mode";
+import { HomeSimple } from "@/components/home-simple";
 
 /** 連続で記録した日数（今日か昨日から数える） */
 function streak(days: Set<string>, today: Date): number {
@@ -47,6 +49,20 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const daysLeft = view ? daysBetween(new Date(), view.goal.targetDate) : null;
   const recordStreak = streak(new Set(recentDays.map((g) => g.key)), today);
+
+  if ((await getUiMode()) === "simple") {
+    const labels = view?.roadmap.mode === "challenge30" ? ["導線づくり", "作る", "改善", "集中"] : ["土台づくり", "案件を選ぶ", "発信する", "改善する"];
+    return (
+      <>
+        {welcome && (
+          <Card className="mx-auto mb-6 max-w-3xl border-primary/40 bg-accent">
+            <CardContent className="flex items-start gap-3 pt-5"><Sparkles className="mt-0.5 size-5 shrink-0 text-primary" /><p className="text-sm">準備ができました。「今日の1歩」から始めましょう。分からない言葉は右上の「?」か「学ぶ」で調べられます。</p></CardContent>
+          </Card>
+        )}
+        <HomeSimple tasks={tasks} stage={view?.phase?.no ?? 1} stageLabels={labels} confirmed={month.totals.confirmedRevenue} target={target} streak={recordStreak} dailyMinutes={profile.dailyWorkMinutes} recs={recs} />
+      </>
+    );
+  }
 
   return (
     <div className="fade-in flex flex-col gap-6">
@@ -86,8 +102,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       </section>
 
       <section aria-label="今月の実績" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="確定報酬（今月）" value={yen(month.totals.confirmedRevenue)} delta={delta(month.totals.confirmedRevenue, prev.confirmedRevenue)} deltaLabel="先月比" spark={spark.map((d) => d.confirmed)} hint="先月の記録がないため比較なし" />
-        <KpiTile label="発生報酬（承認前）" value={yen(month.totals.pendingRevenue)} delta={delta(month.totals.pendingRevenue, prev.pendingRevenue)} deltaLabel="先月比" spark={spark.map((d) => d.pending)} sparkColor="var(--chart-2)" hint="先月の記録がないため比較なし" />
+        <KpiTile label="確定報酬（今月）" help="confirmed" value={yen(month.totals.confirmedRevenue)} delta={delta(month.totals.confirmedRevenue, prev.confirmedRevenue)} deltaLabel="先月比" spark={spark.map((d) => d.confirmed)} hint="先月の記録がないため比較なし" />
+        <KpiTile label="発生報酬（承認前）" help="pending" value={yen(month.totals.pendingRevenue)} delta={delta(month.totals.pendingRevenue, prev.pendingRevenue)} deltaLabel="先月比" spark={spark.map((d) => d.pending)} sparkColor="var(--chart-2)" hint="先月の記録がないため比較なし" />
         <KpiTile label="クリック（今月）" value={month.totals.clicks === null ? "未計測" : month.totals.clicks.toLocaleString("ja-JP")} delta={delta(month.totals.clicks, prev.clicks)} deltaLabel="先月比" spark={spark.map((d) => d.clicks)} sparkColor="var(--chart-3)" hint="先月の記録がないため比較なし" />
         <KpiTile label="目標達成率" value={pct(month.achievement)} hint={`目標 ${yen(target)}${daysLeft !== null && daysLeft >= 0 ? `・あと${daysLeft}日` : ""}`} />
       </section>

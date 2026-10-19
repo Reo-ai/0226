@@ -75,3 +75,11 @@ export async function saveSchedule(_: ActionState, fd: FormData): Promise<Action
   revalidatePath("/settings");
   return { ok: p.data.enabled ? "定期実行の設定を保存しました（アプリを起動している間、自動で実行します）" : "定期実行を止めました" };
 }
+
+export async function setUiMode(fd: FormData) {
+  await requireProfile();
+  const mode = String(fd.get("mode"));
+  if (mode !== "simple" && mode !== "full") return;
+  await setSetting("ui_mode", mode);
+  revalidatePath("/", "layout");
+}

@@ -165,22 +165,25 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
                   {CONTENT_TYPES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </Select>
               </Field>
-              <Field label="媒体（CTA文案のとき）" htmlFor="g-platform">
-                <Select id="g-platform" name="platform" defaultValue=""><option value="">種類に合わせる</option>{PLATFORMS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</Select>
-              </Field>
-              <Field label="紹介する案件" htmlFor="g-offer">
+              <Field label="紹介する案件" htmlFor="g-offer" hint="案件を選ぶと、商品名とジャンルは自動で入ります">
                 <Select id="g-offer" name="affiliateOfferId" defaultValue={sp.offer ?? ""}><option value="">選ばない</option>{offers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</Select>
               </Field>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="ジャンル" htmlFor="g-genre"><Input id="g-genre" name="genre" defaultValue={profile.niche} /></Field>
-                <Field label="商品（案件を選ばないとき）" htmlFor="g-product"><Input id="g-product" name="product" /></Field>
-                <Field label="ターゲット" htmlFor="g-target" className="sm:col-span-2"><Input id="g-target" name="target" placeholder="例: 在宅勤務で運動不足の30代" /></Field>
-                <Field label="キーワード" htmlFor="g-kw"><Input id="g-kw" name="keywords" placeholder="例: 宅トレ 初心者" /></Field>
-                <Field label="文体" htmlFor="g-tone"><Input id="g-tone" name="tone" placeholder="例: やさしい・友だち口調" /></Field>
-                <Field label="訴求ポイント" htmlFor="g-appeal" className="sm:col-span-2"><Input id="g-appeal" name="appeal" placeholder="資料で確認できる特徴" /></Field>
-                <Field label="文字数の目安" htmlFor="g-len"><Input id="g-len" name="length" inputMode="numeric" placeholder="空欄で種類に合わせる" /></Field>
-              </div>
-              <Field label="根拠資料" htmlFor="g-ev" hint="ここに書かれていない数字・効果は書きません"><Textarea id="g-ev" name="evidence" className="min-h-24" placeholder="公式サイトの説明、料金、自分の使用メモなど" /></Field>
+              <Field label="ターゲット（誰に向けて？）" htmlFor="g-target"><Input id="g-target" name="target" placeholder="例: 在宅勤務で運動不足の30代" /></Field>
+              <details className="rounded-lg border p-3">
+                <summary className="cursor-pointer text-sm font-medium">くわしく指定する（商品名・キーワード・文体・根拠資料など）</summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Field label="媒体（CTA文案のとき）" htmlFor="g-platform" className="sm:col-span-2">
+                    <Select id="g-platform" name="platform" defaultValue=""><option value="">種類に合わせる</option>{PLATFORMS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</Select>
+                  </Field>
+                  <Field label="ジャンル" htmlFor="g-genre"><Input id="g-genre" name="genre" defaultValue={profile.niche} /></Field>
+                  <Field label="商品（案件を選ばないとき）" htmlFor="g-product"><Input id="g-product" name="product" /></Field>
+                  <Field label="キーワード" htmlFor="g-kw"><Input id="g-kw" name="keywords" placeholder="例: 宅トレ 初心者" /></Field>
+                  <Field label="文体" htmlFor="g-tone"><Input id="g-tone" name="tone" placeholder="例: やさしい・友だち口調" /></Field>
+                  <Field label="訴求ポイント" htmlFor="g-appeal" className="sm:col-span-2"><Input id="g-appeal" name="appeal" placeholder="資料で確認できる特徴" /></Field>
+                  <Field label="文字数の目安" htmlFor="g-len"><Input id="g-len" name="length" inputMode="numeric" placeholder="空欄で種類に合わせる" /></Field>
+                  <Field label="根拠資料" htmlFor="g-ev" hint="ここに書かれていない数字・効果は書きません" className="sm:col-span-2"><Textarea id="g-ev" name="evidence" className="min-h-24" placeholder="公式サイトの説明、料金、自分の使用メモなど" /></Field>
+                </div>
+              </details>
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" name="background" defaultChecked={ai.provider !== "fallback"} className="mt-0.5 size-4 accent-[var(--primary)]" />
                 <span>バックグラウンドで作る<span className="block text-xs text-muted-foreground">AIの応答を待たずに他の画面を使えます。自動化センターで進み具合の確認・キャンセルができます。</span></span>

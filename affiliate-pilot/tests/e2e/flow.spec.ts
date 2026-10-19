@@ -33,11 +33,12 @@ test("4-5. アカウントを登録して戦闘力診断を実行", async ({ pag
 
 test("7. 案件を登録する", async ({ page }) => {
   await page.goto("/offers");
-  await page.getByLabel("案件名").fill("E2Eテスト案件");
-  await page.getByLabel("ジャンル", { exact: true }).last().fill("筋トレ");
-  await page.getByLabel("報酬単価（円・定額のとき）").fill("3000");
-  await page.getByLabel("承認率（%）").fill("80");
+  await page.getByLabel("案件名（商品・サービス名）").fill("E2Eテスト案件");
+  await page.getByLabel("1件の報酬（円）").fill("3000");
   await page.getByLabel("提携状態").last().selectOption("approved");
+  await page.getByText("くわしく入力する（ジャンル").click();
+  await page.getByLabel("ジャンル", { exact: true }).last().fill("筋トレ");
+  await page.getByLabel("承認率（%）").fill("80");
   await page.getByRole("button", { name: "登録する" }).click();
   await expect(page.getByRole("heading", { name: "E2Eテスト案件" })).toBeVisible();
   await page.getByRole("button", { name: "適合性を評価" }).first().click();
@@ -109,11 +110,12 @@ test("10. タスクを完了する", async ({ page }) => {
 test("11-12. 収益を記録し、グラフと改善提案を確認する", async ({ page }) => {
   await page.goto("/analytics");
   await page.getByLabel("媒体", { exact: true }).selectOption("instagram");
+  await page.getByLabel("クリック数").fill("40");
+  await page.getByLabel("発生報酬（円）").fill("3000");
+  await page.getByText("くわしく入力する（案件").click();
   await page.getByLabel("案件", { exact: true }).selectOption({ label: "E2Eテスト案件" });
   await page.getByLabel("表示回数").fill("2000");
-  await page.getByLabel("クリック数").fill("40");
   await page.getByLabel("発生成約数").fill("1");
-  await page.getByLabel("発生報酬").fill("3000");
   await page.getByRole("button", { name: "記録する" }).click();
   await expect(page.getByText("記録しました")).toBeVisible();
   await page.reload();
@@ -163,7 +165,7 @@ test("自動化ジョブの再実行と実行履歴", async ({ page }) => {
   await page.goto("/automation");
   await page.getByRole("button", { name: "実行する" }).first().click(); // 日次タスク生成
   await expect(page.getByText("「日次タスク生成」が完了しました")).toBeVisible();
-  const jobs = page.locator("details");
+  const jobs = page.getByRole("main").locator("details");
   const before = await jobs.count();
   await jobs.first().locator("summary").click(); // 最新のジョブを開く
   await expect(jobs.first()).toContainText("日次タスク生成");
@@ -250,4 +252,18 @@ test("レッスンに目次があり、見出しへ移動できる", async ({ pa
   const text = await first.textContent();
   await first.click();
   await expect(page.locator("h3", { hasText: text! })).toBeInViewport();
+});
+
+test("かんたん表示：今日の1歩と段階、くわしい表示への切替", async ({ page }) => {
+  await page.goto("/settings");
+  await page.getByRole("button", { name: /かんたん表示/ }).click();
+  await page.goto("/");
+  await expect(page.getByText("今日の1歩")).toBeVisible();
+  await expect(page.getByRole("list", { name: "いまの段階" })).toContainText("いまここ");
+  await expect(page.getByRole("navigation", { name: "メインメニュー" }).getByRole("link", { name: "投稿を作る" })).toBeVisible();
+  await page.getByRole("button", { name: "くわしい表示にする" }).click();
+  await expect(page.getByText("今日の1歩")).toBeHidden();
+  await expect(page.getByRole("navigation", { name: "メインメニュー" }).getByRole("link", { name: "コンテンツ工房" })).toBeVisible();
+  await page.getByRole("button", { name: "かんたん表示にする" }).click();
+  await expect(page.getByText("今日の1歩")).toBeVisible();
 });

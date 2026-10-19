@@ -4,18 +4,20 @@ import { Sidebar } from "@/components/shell/sidebar";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireProfile } from "@/lib/profile";
+import { getUiMode } from "@/lib/ui-mode";
 
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   await requireProfile();
-  const sample = (await prisma.performanceRecord.count({ where: { isDemo: true } })) + (await prisma.affiliateOffer.count({ where: { isDemo: true } }));
+  const [sampleRecords, sampleOffers, mode] = await Promise.all([prisma.performanceRecord.count({ where: { isDemo: true } }), prisma.affiliateOffer.count({ where: { isDemo: true } }), getUiMode()]);
+  const sample = sampleRecords + sampleOffers;
   return (
     <div className="flex min-h-dvh">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground">本文へ移動</a>
-      <Sidebar />
+      <Sidebar mode={mode} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header />
+        <Header mode={mode} />
         {sample > 0 && (
           <div role="note" className="border-b border-warning/40 bg-warning/15 px-4 py-2 text-center text-sm">
             サンプルデータを表示中です（実際の収益・案件ではありません）。<Link href="/settings#sample" className="font-medium underline">設定から削除</Link>
@@ -29,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <MobileNav />
+      <MobileNav mode={mode} />
     </div>
   );
 }
