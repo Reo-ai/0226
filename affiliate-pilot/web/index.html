@@ -125,11 +125,13 @@ pre.out { white-space: pre-wrap; word-break: break-word; background: var(--soft)
 <nav class="bottom" aria-label="下部メニュー" id="bottomnav"></nav>
 
 <script>
+(function () {
 "use strict";
+window.addEventListener("error", (e) => { const d = document.createElement("div"); d.className = "toast"; d.style.background = "var(--bad)"; d.textContent = "エラー: " + e.message; document.body.appendChild(d); });
 // ---------- データ（このブラウザにだけ保存） ----------
 const KEY = "affiliate-pilot-simple-v1";
 let COURSES = [];
-const COURSES_URL = "./courses.json";
+const COURSES_URL = "https://raw.githubusercontent.com/Reo-ai/0226/claude/tiktok-auto-pipeline-JXaiW/affiliate-pilot/public/courses.json";
 let coursesError = false;
 fetch(COURSES_URL).then((r) => r.json()).then((d) => { COURSES = d; render(); }).catch(() => { coursesError = true; render(); });
 const PLATFORMS = { blog: "ブログ", instagram: "Instagram", x: "X（旧Twitter）", tiktok: "TikTok", youtube: "YouTube" };
@@ -216,7 +218,7 @@ window.addEventListener("hashchange", render);
 
 function onboarding() {
   return `<div class="top"><div><h1>はじめに、目標を決めましょう</h1><p>3つ答えるだけ。あとから設定でいつでも変えられます。</p></div></div>
-  <form class="card" id="ob" style="display:flex;flex-direction:column;gap:14px">
+  <form onsubmit="return false" class="card" id="ob" style="display:flex;flex-direction:column;gap:14px">
     <label class="f">月にいくら稼ぎたい？（円）<input id="ob-goal" type="number" min="1000" step="1000" value="50000" required><span class="hint">最初は 5万円 がおすすめ。現実的で、達成すると次が見えます。</span></label>
     <label class="f">1日に使える時間（分）<input id="ob-min" type="number" min="15" step="15" value="90" required></label>
     <div class="grid2">
@@ -278,7 +280,7 @@ function lesson() {
   <section class="card lesson"><h2>このレッスンでできるようになること</h2><ul>${l.objectives.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>${body}
   ${l.cautions?.length ? `<div class="note" style="margin-top:14px"><strong>注意</strong><ul style="margin:4px 0 0;padding-left:18px">${l.cautions.map((x) => `<li>${md(x)}</li>`).join("")}</ul></div>` : ""}
   ${l.glossary?.length ? `<details class="more" style="margin-top:14px"><summary>用語集（${l.glossary.length}語）</summary><div><dl style="margin:0">${l.glossary.map((g) => `<dt><strong>${esc(g.term)}</strong></dt><dd style="margin:0 0 6px;color:var(--muted)">${esc(g.definition)}</dd>`).join("")}</dl></div></details>` : ""}</section>
-  <form class="card quiz" id="quiz"><h2>確認クイズ（80%以上で完了）</h2>${l.quiz.map((q, qi) => `<fieldset style="border:0;padding:0;margin:0 0 12px"><legend style="font-weight:700">Q${qi + 1}. ${esc(q.question)}</legend><ul style="padding:0;margin:0">${q.choices.map((ch, ci) => `<li><label><input type="radio" name="q${qi}" value="${ci}" required>${esc(ch)}</label></li>`).join("")}</ul><p class="small muted" id="exp${qi}" hidden>${esc(q.explanation)}</p></fieldset>`).join("")}
+  <form onsubmit="return false" class="card quiz" id="quiz"><h2>確認クイズ（80%以上で完了）</h2>${l.quiz.map((q, qi) => `<fieldset style="border:0;padding:0;margin:0 0 12px"><legend style="font-weight:700">Q${qi + 1}. ${esc(q.question)}</legend><ul style="padding:0;margin:0">${q.choices.map((ch, ci) => `<li><label><input type="radio" name="q${qi}" value="${ci}" required>${esc(ch)}</label></li>`).join("")}</ul><p class="small muted" id="exp${qi}" hidden>${esc(q.explanation)}</p></fieldset>`).join("")}
   <div class="row"><button class="btn primary" type="submit">採点する</button>${done ? '<span class="pill good">完了済み</span>' : ""}<span id="score" class="small"></span></div></form>
   <div class="row">${nxt ? `<button class="btn" data-lesson="${nxt.id}">次のレッスン：${esc(nxt.title)} →</button>` : `<button class="btn" data-go="learn">講座一覧へ</button>`}${l.actions?.length ? `<a class="btn" href="#${l.actions[0].href?.includes("offers") ? "offers" : l.actions[0].href?.includes("content") ? "make" : l.actions[0].href?.includes("analytics") ? "record" : "home"}">${esc(l.actions[0].label)}</a>` : ""}</div>`;
 }
@@ -305,7 +307,7 @@ function lint(text) {
 function make() {
   const draft = sub && S.drafts.find((d) => d.id === sub);
   return `<div class="top"><div><h1>投稿を作る</h1><p>型に当てはめて下書きを作り、チェックしてからコピーします。</p></div></div>
-  <form class="card" id="gen" style="display:flex;flex-direction:column;gap:12px">
+  <form onsubmit="return false" class="card" id="gen" style="display:flex;flex-direction:column;gap:12px">
     <div class="grid2"><label class="f">作るもの<select id="g-type">${Object.entries(TYPES).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></label>
     <label class="f">紹介する案件<select id="g-offer"><option value="">選ばない</option>${S.offers.map((o) => `<option value="${o.id}">${esc(o.name)}</option>`).join("")}</select><span class="hint">案件は「案件」画面で登録します</span></label></div>
     <label class="f">誰に向けて？<input id="g-target" placeholder="例: 在宅勤務で運動不足の30代"></label>
@@ -330,7 +332,7 @@ function record() {
   return `<div class="top"><div><h1>成果を記録</h1><p>発生（仮）・確定（承認済み）・入金を分けて記録します。空欄は「未計測」として 0 と区別します。</p></div></div>
   <div class="kpi"><div><span>確定報酬 ${term("confirmed")}</span><strong>${yen(sum(mrec, "confirmed"))}</strong><em>今月</em></div><div><span>発生報酬 ${term("pending")}</span><strong>${yen(sum(mrec, "pending"))}</strong><em>今月</em></div><div><span>クリック ${term("clicks")}</span><strong>${clicks ?? "未計測"}</strong><em>今月</em></div><div><span>CTR ${term("ctr")}</span><strong>${pct(ratio(clicks, imp))}</strong><em>クリック ÷ 表示</em></div><div><span>CVR ${term("cvr")}</span><strong>${pct(ratio(conv, clicks))}</strong><em>成約 ÷ クリック</em></div></div>
   <section class="card"><h2>直近14日</h2>${S.records.length ? chart : '<p class="muted small" style="margin:0">記録がまだありません。下のフォームから昨日の数字を入れましょう。</p>'}</section>
-  <form class="card" id="rec" style="display:flex;flex-direction:column;gap:12px"><h2>記録する</h2>
+  <form onsubmit="return false" class="card" id="rec" style="display:flex;flex-direction:column;gap:12px"><h2>記録する</h2>
     <div class="grid2"><label class="f">日付<input id="r-date" type="date" value="${addDays(todayKey(), -1)}" required></label><label class="f">媒体<select id="r-pf">${Object.entries(PLATFORMS).map(([k, l]) => `<option value="${k}" ${k === S.profile.platform ? "selected" : ""}>${l}</option>`).join("")}</select></label>
     <label class="f">クリック数<input id="r-clicks" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">発生報酬（円）<input id="r-pending" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"><span class="hint">ASPの「発生」「未確定」の合計</span></label><label class="f">確定報酬（円）<input id="r-confirmed" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"><span class="hint">ASPで「承認」された分</span></label></div>
     <details class="more"><summary>くわしく入力する（表示回数・成約数・入金額・メモ）</summary><div class="grid2"><label class="f">表示回数<input id="r-imp" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">発生した成約数<input id="r-conv" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">入金額（円）<input id="r-paid" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">メモ<input id="r-note" maxlength="200"></label></div></details>
@@ -342,7 +344,7 @@ function record() {
 function offers() {
   const o = sub && S.offers.find((x) => x.id === sub);
   return `<div class="top"><div><h1>案件</h1><p>ASPで見つけた案件を登録して、提携状況を管理します。</p></div></div>
-  <form class="card" id="of" style="display:flex;flex-direction:column;gap:12px"><h2>${o ? "案件を編集" : "案件を登録"}</h2>${o ? `<input type="hidden" id="o-id" value="${o.id}">` : ""}
+  <form onsubmit="return false" class="card" id="of" style="display:flex;flex-direction:column;gap:12px"><h2>${o ? "案件を編集" : "案件を登録"}</h2>${o ? `<input type="hidden" id="o-id" value="${o.id}">` : ""}
     <label class="f">案件名（商品・サービス名）<input id="o-name" required maxlength="80" value="${esc(o?.name ?? "")}" placeholder="ASPに表示されている名前"></label>
     <div class="grid2"><label class="f">ASP<select id="o-asp">${ASPS.map((a) => `<option ${o?.asp === a ? "selected" : ""}>${a}</option>`).join("")}</select></label><label class="f">1件の報酬（円）<input id="o-amount" type="number" min="0" inputmode="numeric" value="${o?.amount ?? ""}"><span class="hint">ASPで確認した値だけ</span></label><label class="f">提携状態<select id="o-status">${Object.entries(OFFER_STATUS).map(([k, l]) => `<option value="${k}" ${o?.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
     <details class="more" ${o?.note || o?.cond ? "open" : ""}><summary>くわしく入力する（成果条件・承認率・メモ）</summary><div style="display:flex;flex-direction:column;gap:10px"><label class="f">成果条件<input id="o-cond" value="${esc(o?.cond ?? "")}" placeholder="例: 新規の無料会員登録完了"></label><label class="f">承認率（%・ASPに表示があれば）<input id="o-appr" type="number" min="0" max="100" value="${o?.appr ?? ""}"></label><label class="f">メモ<input id="o-note" value="${esc(o?.note ?? "")}" placeholder="NG表現、特別単価の条件など"></label></div></details>
@@ -354,7 +356,7 @@ function offers() {
 function settings() {
   const p = S.profile || { goal: 50000, minutes: 90, platform: "instagram", niche: "", started: todayKey() };
   return `<div class="top"><div><h1>設定</h1></div></div>
-  <form class="card" id="st" style="display:flex;flex-direction:column;gap:12px"><h2>目標とペース</h2><div class="grid2"><label class="f">月の目標（円）<input id="s-goal" type="number" min="1000" step="1000" value="${p.goal}" required></label><label class="f">1日に使える時間（分）<input id="s-min" type="number" min="15" step="15" value="${p.minutes}" required></label><label class="f">メインの媒体<select id="s-pf">${Object.entries(PLATFORMS).map(([k, l]) => `<option value="${k}" ${k === p.platform ? "selected" : ""}>${l}</option>`).join("")}</select></label><label class="f">ジャンル<input id="s-niche" value="${esc(p.niche)}"></label><label class="f">開始日（段階の計算に使います）<input id="s-start" type="date" value="${p.started}"></label></div><button class="btn primary" type="submit" style="align-self:flex-start">保存する</button></form>
+  <form onsubmit="return false" class="card" id="st" style="display:flex;flex-direction:column;gap:12px"><h2>目標とペース</h2><div class="grid2"><label class="f">月の目標（円）<input id="s-goal" type="number" min="1000" step="1000" value="${p.goal}" required></label><label class="f">1日に使える時間（分）<input id="s-min" type="number" min="15" step="15" value="${p.minutes}" required></label><label class="f">メインの媒体<select id="s-pf">${Object.entries(PLATFORMS).map(([k, l]) => `<option value="${k}" ${k === p.platform ? "selected" : ""}>${l}</option>`).join("")}</select></label><label class="f">ジャンル<input id="s-niche" value="${esc(p.niche)}"></label><label class="f">開始日（段階の計算に使います）<input id="s-start" type="date" value="${p.started}"></label></div><button class="btn primary" type="submit" style="align-self:flex-start">保存する</button></form>
   <section class="card"><h2>データの持ち出し・引き継ぎ</h2><p class="small muted" style="margin:0 0 8px">データはこのブラウザの中にだけあります。別の端末やPC版アプリに移すときは、下の文字列をコピーして貼り付けてください。</p><div class="row"><button class="btn" id="exp" type="button">JSONをコピー</button><button class="btn" id="impbtn" type="button">貼り付けて読み込む</button></div><textarea id="imp" hidden placeholder="ここにJSONを貼り付けて、もう一度「貼り付けて読み込む」を押す"></textarea></section>
   <section class="card"><h2>最初からやり直す</h2><p class="small muted" style="margin:0 0 8px">すべての記録・案件・下書き・学習の進み具合を消します。元に戻せません。</p><button class="btn" id="reset1" type="button">全データを削除…</button><div class="row" id="reset2" hidden><span class="small">本当に削除しますか？</span><button class="btn" id="reset3" type="button" style="color:var(--bad)">はい、削除する</button><button class="btn ghost" id="reset4" type="button">やめる</button></div></section>
   <p class="small muted">PC版（Affiliate Pilot AI）では、ローカルAI（Ollama）による相談・自動化、ロードマップ、アカウント診断などの全機能が使えます。</p>`;
@@ -397,6 +399,7 @@ let pop;
 function showTerm(btn, e) { e.stopPropagation(); if (pop) pop.remove(); const [t, d] = TERMS[btn.dataset.term]; pop = document.createElement("div"); pop.className = "pop"; pop.setAttribute("role", "dialog"); pop.innerHTML = `<strong>${t}</strong><br>${d}`; document.body.appendChild(pop); const r = btn.getBoundingClientRect(); pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.left)) + "px"; pop.style.top = (r.bottom + 6) + "px"; }
 document.addEventListener("click", () => { if (pop) { pop.remove(); pop = null; } });
 render();
+})();
 </script>
 
 </body>
