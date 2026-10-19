@@ -1,0 +1,18 @@
+import { redirect } from "next/navigation";
+import { prisma } from "./db";
+import { platformsSchema, parseJson } from "./schemas";
+
+/** 単一ユーザー版: 最初のプロフィールを使う（SaaS 化時はセッションのユーザーに置き換える） */
+export async function getProfile() {
+  return prisma.profile.findFirst({ orderBy: { createdAt: "asc" } });
+}
+
+export async function requireProfile() {
+  const p = await getProfile();
+  if (!p?.onboardedAt) redirect("/onboarding");
+  return { ...p, platforms: parseJson(platformsSchema, p.preferredPlatforms, []) };
+}
+
+export async function activeGoal(profileId: string) {
+  return prisma.goal.findFirst({ where: { profileId }, orderBy: { createdAt: "desc" } });
+}

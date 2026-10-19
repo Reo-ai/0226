@@ -1,0 +1,414 @@
+// Affiliate Pilot AI のデータモデル
+// - 金額は円単位の整数（Int）
+// - 比率（CTR・CVR・承認率）は 0〜1 の Float
+// - 未計測は NULL（0 とは区別する）
+// - JSON を入れる String 列は lib/schemas.ts の Zod で検証してから読み書きする
+// - isDemo = true の行はデモデータ（設定画面から一括削除できる）
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id                 String   @id @default(cuid())
+  experienceLevel    String // none | beginner | intermediate | advanced
+  dailyWorkMinutes   Int
+  monthlyBudget      Int
+  preferredPlatforms String // JSON: Platform[]
+  niche              String   @default("")
+  hasExistingAccount Boolean  @default(false)
+  onboardedAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  goals          Goal[]
+  channels       ChannelAccount[]
+  lessonProgress LessonProgress[]
+  quizAttempts   QuizAttempt[]
+  tasks          Task[]
+}
+
+model Goal {
+  id                   String   @id @default(cuid())
+  profileId            String
+  targetMonthlyRevenue Int
+  targetDate           DateTime
+  challengeMode        Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  roadmaps  Roadmap[]
+  challenge Challenge?
+
+  @@index([profileId])
+}
+
+model Roadmap {
+  id           String   @id @default(cuid())
+  goalId       String
+  mode         String // roadmap90 | challenge30
+  startDate    DateTime
+  endDate      DateTime
+  currentPhase Int      @default(1)
+  progress     Float    @default(0) // 0〜1
+  plan         String // JSON: RoadmapPlan
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+}
+
+/// 初月5万円チャレンジの開始時入力と診断
+model Challenge {
+  id                     String   @id @default(cuid())
+  goalId                 String   @unique
+  platform               String
+  followerCount          Int?
+  impressions30d         Int?
+  clicks30d              Int?
+  conversions30d         Int?
+  niche                  String   @default("")
+  affiliateOfferId       String?
+  commissionPerApproval  Int?
+  approvalRate           Float?
+  ctr                    Float?
+  cvr                    Float?
+  dailyWorkMinutes       Int
+  approvalTimingNote     String   @default("")
+  readiness              String // ready | funnel | traffic | offer | track
+  startDate              DateTime
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  goal  Goal            @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  offer AffiliateOffer? @relation(fields: [affiliateOfferId], references: [id], onDelete: SetNull)
+}
+
+model ChannelAccount {
+  id                  String   @id @default(cuid())
+  profileId           String
+  platform            String
+  accountName         String
+  accountUrl          String   @default("")
+  followerCount       Int?
+  monthlyImpressions  Int?
+  monthlyPosts        Int?
+  monthlyEngagements  Int?
+  monthlyProfileVisits Int?
+  monthlyClicks       Int?
+  monthlyConversions  Int?
+  niche               String   @default("")
+  targetAudience      String   @default("")
+  isDemo              Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  profile      Profile             @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  assessments  AccountAssessment[]
+  performances PerformanceRecord[]
+
+  @@index([profileId])
+}
+
+model AccountAssessment {
+  id                String   @id @default(cuid())
+  channelAccountId  String
+  trafficScore      Int?
+  engagementScore   Int?
+  funnelScore       Int?
+  offerFitScore     Int?
+  conversionScore   Int?
+  overallScore      Int?
+  confidenceLevel   Float // 0〜1（データの信頼度）
+  stage             String // beginner | growing | grown | insufficient
+  recommendations   String // JSON: string[]
+  assessedAt        DateTime @default(now())
+
+  channel ChannelAccount @relation(fields: [channelAccountId], references: [id], onDelete: Cascade)
+
+  @@index([channelAccountId, assessedAt])
+}
+
+model AffiliateNetwork {
+  id                String    @id @default(cuid())
+  slug              String    @unique
+  name              String
+  officialUrl       String
+  description       String
+  registrationGuide String
+  lastVerifiedAt    DateTime?
+  createdAt         DateTime  @default(now())
+
+  offers AffiliateOffer[]
+}
+
+model AffiliateOffer {
+  id                   String    @id @default(cuid())
+  affiliateNetworkId   String?
+  name                 String
+  category             String    @default("")
+  offerUrl             String    @default("")
+  commissionAmount     Int? // 円（定額）／定率の場合は平均単価×料率の円換算
+  commissionType       String    @default("fixed") // fixed | rate
+  commissionRate       Float? // 定率の料率（0〜1）
+  averageOrderValue    Int?
+  conversionConditions String    @default("")
+  rejectionConditions  String    @default("")
+  approvalRate         Float? // 0〜1（分からなければ NULL）
+  targetAudience       String    @default("")
+  partnershipStatus    String    @default("candidate") // candidate | applied | approved | rejected | paused
+  approvalTiming       String    @default("") // 例: 発生から約60日で確定
+  notes                String    @default("")
+  // 適合性評価（案件分析AI またはルール）
+  fitScore             Int?
+  fitEvaluation        String    @default("") // JSON: { reasons: string[], concerns: string[], checkItems: string[] }
+  fitEvaluatedBy       String    @default("")
+  fitEvaluatedAt       DateTime?
+  lastVerifiedAt       DateTime?
+  isDemo               Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  network       AffiliateNetwork?   @relation(fields: [affiliateNetworkId], references: [id], onDelete: SetNull)
+  drafts        ContentDraft[]
+  performances  PerformanceRecord[]
+  trackingLinks TrackingLink[]
+  challenges    Challenge[]
+
+  @@index([partnershipStatus])
+}
+
+model ContentDraft {
+  id               String   @id @default(cuid())
+  platform         String
+  contentType      String
+  title            String
+  body             String
+  cta              String   @default("")
+  inputs           String   @default("{}") // JSON: ContentInputs
+  checks           String   @default("{}") // JSON: { adDisclosure: bool, facts: {item, checked}[] }
+  affiliateOfferId String?
+  status           String   @default("draft") // draft | awaiting_review | approved | published
+  generatedBy      String // ollama | claude | template | manual
+  // 動画パイプライン（リポジトリ直下の npm start -- hub-sync）連携
+  videoStatus      String   @default("") // "" | queued | running | done | failed
+  videoTheme       String   @default("")
+  videoService     String   @default("")
+  videoResult      String   @default("")
+  videoUpdatedAt   DateTime?
+  isDemo           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  offer        AffiliateOffer? @relation(fields: [affiliateOfferId], references: [id], onDelete: SetNull)
+  publications Publication[]
+
+  @@index([status])
+  @@index([videoStatus, videoUpdatedAt])
+}
+
+model Publication {
+  id             String   @id @default(cuid())
+  contentDraftId String
+  platform       String
+  publishedUrl   String
+  publishedAt    DateTime
+  status         String   @default("live") // live | removed
+
+  draft        ContentDraft        @relation(fields: [contentDraftId], references: [id], onDelete: Cascade)
+  performances PerformanceRecord[]
+
+  @@index([contentDraftId])
+}
+
+model Task {
+  id             String    @id @default(cuid())
+  profileId      String
+  title          String
+  description    String    @default("")
+  priority       Int // 1（最優先）〜5
+  estimatedMinutes Int
+  taskDate       DateTime? // その日の推奨タスクとして選ばれた日（JST 0時）
+  dueDate        DateTime?
+  status         String    @default("todo") // todo | done | skipped
+  relatedFeature String    @default("") // 遷移先パス
+  source         String    @default("rule") // rule | ai | manual | challenge | roadmap
+  ruleKey        String? // ルールベース生成の重複防止キー
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, ruleKey])
+  @@index([profileId, status, taskDate])
+}
+
+model Lesson {
+  id               String    @id // 例: asp-01
+  courseId         String
+  title            String
+  content          String // JSON: LessonContent（本文・具体例・注意・チェックリスト・クイズ・課題）
+  lessonOrder      Int
+  estimatedMinutes Int
+  referenceUrls    String    @default("[]") // JSON: SourceRef[]
+  lastReviewedAt   DateTime?
+
+  progress     LessonProgress[]
+  quizAttempts QuizAttempt[]
+
+  @@index([courseId, lessonOrder])
+}
+
+model LessonProgress {
+  id               String    @id @default(cuid())
+  profileId        String
+  lessonId         String
+  completionStatus String    @default("not_started") // not_started | in_progress | completed
+  checklist        String    @default("[]") // JSON: number[]（チェック済みの項目番号）
+  quizScore        Float?
+  completedAt      DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, lessonId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  profileId   String
+  lessonId    String
+  answers     String // JSON: number[]
+  score       Float
+  attemptedAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, lessonId])
+}
+
+model PerformanceRecord {
+  id                  String   @id @default(cuid())
+  dedupeKey           String   @unique // 日付|媒体|アカウント|案件|公開。同じ組み合わせは上書きして二重集計を防ぐ
+  recordDate          DateTime // JST 0時
+  platform            String
+  channelAccountId    String?
+  affiliateOfferId    String?
+  publicationId       String?
+  impressions         Int?
+  clicks              Int?
+  conversions         Int?
+  approvedConversions Int?
+  pendingRevenue      Int?
+  confirmedRevenue    Int?
+  paidRevenue         Int?
+  workMinutes         Int?
+  note                String   @default("")
+  isDemo              Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  channel     ChannelAccount? @relation(fields: [channelAccountId], references: [id], onDelete: SetNull)
+  offer       AffiliateOffer? @relation(fields: [affiliateOfferId], references: [id], onDelete: SetNull)
+  publication Publication?    @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+
+  @@index([recordDate])
+  @@index([platform, recordDate])
+}
+
+/// 媒体別クリック計測リンク（/go/コード?ch=媒体）
+model TrackingLink {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  name             String
+  url              String
+  affiliateOfferId String?
+  platform         String   @default("")
+  createdAt        DateTime @default(now())
+
+  offer  AffiliateOffer? @relation(fields: [affiliateOfferId], references: [id], onDelete: SetNull)
+  clicks LinkClick[]
+}
+
+model LinkClick {
+  id        String   @id @default(cuid())
+  linkId    String
+  platform  String   @default("")
+  createdAt DateTime @default(now())
+
+  link TrackingLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId, createdAt])
+}
+
+model AIRecommendation {
+  id                 String   @id @default(cuid())
+  recommendationType String // coach | challenge | analytics | offer | weekly
+  title              String
+  description        String
+  evidence           String // JSON: { facts: string[], hypotheses: string[] }
+  priority           Int      @default(3)
+  status             String   @default("open") // open | accepted | dismissed | done
+  generatedBy        String
+  createdAt          DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+model AutomationJob {
+  id           String    @id @default(cuid())
+  name         String
+  jobType      String // daily_tasks | content_draft | performance_rollup | improvement | weekly_report | checklist
+  payload      String    @default("{}")
+  result       String    @default("")
+  status       String    @default("draft") // draft | awaiting_review | approved | completed | failed
+  scheduledAt  DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+
+  logs AutomationLog[]
+
+  @@index([status, createdAt])
+}
+
+model AutomationLog {
+  id              String   @id @default(cuid())
+  automationJobId String
+  action          String
+  result          String
+  createdAt       DateTime @default(now())
+
+  job AutomationJob @relation(fields: [automationJobId], references: [id], onDelete: Cascade)
+
+  @@index([automationJobId, createdAt])
+}
+
+model SourceReference {
+  id                 String    @id @default(cuid())
+  refKey             String // 例: asp:a8 / lesson:x-06 / policy:stealth-marketing
+  title              String
+  url                String
+  sourceType         String // official | law | guideline | help
+  verifiedAt         DateTime?
+  verificationStatus String    @default("unverified") // verified | unverified | outdated
+  createdAt          DateTime  @default(now())
+
+  @@unique([refKey, url])
+}
+
+model Setting {
+  key   String @id
+  value String // JSON
+}

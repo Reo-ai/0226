@@ -91,14 +91,14 @@ npm start -- generate-reel money --type educational --skip-video
 npm start -- generate-reel sleep --service both --duration 45
 ```
 
-### affiliate-hub 連携
+### Affiliate Pilot AI 連携
 
 ```bash
-# affiliate-hub（アフィリエイト攻略アプリ）で「生成待ち」にした台本を取得 → 画像・動画を生成 → 結果を返す
+# Affiliate Pilot AI のコンテンツ工房で「動画にする」を押した台本を取得 → 画像・動画を生成 → 結果を返す
 npm start -- hub-sync --loop 5   # 5分ごとに確認（.env に HUB_URL / HUB_TOKEN が必要）
 ```
 
-詳しくは [affiliate-hub/README.md](affiliate-hub/README.md)。
+詳しくは [affiliate-pilot/README.md](affiliate-pilot/README.md)（旧版の [affiliate-hub](affiliate-hub/README.md) とも同じ仕組みで連携できます）。
 
 ### TikTok分析・パイプライン（既存機能）
 

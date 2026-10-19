@@ -1,0 +1,127 @@
+import { Download, ShieldAlert } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ActionForm } from "@/components/action-form";
+import { ConnectionTest } from "@/components/connection-test";
+import { PageHeader } from "@/components/page-header";
+import { SubmitButton } from "@/components/submit-button";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input, Select } from "@/components/ui/input";
+import { Field } from "@/components/ui/label";
+import { aiConfig, CLAUDE_MODELS, OLLAMA_MODELS } from "@/lib/ai";
+import { clearDemoAction, loadDemoAction, restoreBackup, saveAiConfig } from "@/lib/actions/settings";
+import { EXPERIENCE_LEVELS, platformLabel } from "@/lib/constants";
+import { prisma } from "@/lib/db";
+import { fmtDate, minutesLabel, yen } from "@/lib/format";
+import { activeGoal, requireProfile } from "@/lib/profile";
+
+export const metadata: Metadata = { title: "設定" };
+
+export default async function SettingsPage() {
+  const profile = await requireProfile();
+  const [cfg, goal, demoCount] = await Promise.all([aiConfig(), activeGoal(profile.id), prisma.performanceRecord.count({ where: { isDemo: true } })]);
+  const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY;
+  return (
+    <>
+      <PageHeader title="設定" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card id="ai" className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>AIの接続</CardTitle>
+            <CardDescription>無料で使えるローカルAI（Ollama）を優先します。AIが使えないときも、ルールとテンプレートで主な機能は動きます。</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-6 lg:grid-cols-2">
+            <ActionForm action={saveAiConfig}>
+              <Field label="使うAI" htmlFor="ai-mode">
+                <Select id="ai-mode" name="mode" defaultValue={cfg.mode}>
+                  <option value="auto">自動（ローカルAI → Claude → AIなし）</option>
+                  <option value="ollama">ローカルAI（Ollama）のみ</option>
+                  <option value="claude">Claude のみ（有料・APIキーが必要）</option>
+                  <option value="off">AIを使わない（ルール・テンプレートのみ）</option>
+                </Select>
+              </Field>
+              <Field label="Ollama の接続先" htmlFor="ai-url" hint="このPC（http://127.0.0.1:11434）か、同じLAN内のPCのみ指定できます">
+                <Input id="ai-url" name="ollamaBaseUrl" defaultValue={cfg.ollamaBaseUrl} />
+              </Field>
+              <Field label="Ollama のモデル" htmlFor="ai-model" hint="一覧にないモデルも名前を入力すれば使えます">
+                <Input id="ai-model" name="ollamaModel" defaultValue={cfg.ollamaModel} list="ollama-models" />
+                <datalist id="ollama-models">{OLLAMA_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}</datalist>
+              </Field>
+              <Field label="Claude のモデル" htmlFor="ai-claude" hint={hasClaudeKey ? "APIキー設定済み" : ".env に ANTHROPIC_API_KEY を設定すると使えます（従量課金）"}>
+                <Select id="ai-claude" name="claudeModel" defaultValue={cfg.claudeModel}>{CLAUDE_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}</Select>
+              </Field>
+              <Field label="応答を待つ時間（秒）" htmlFor="ai-timeout" hint="PCの性能が低い場合は長めに"><Input id="ai-timeout" name="timeoutSec" inputMode="numeric" defaultValue={cfg.timeoutSec} /></Field>
+              <SubmitButton className="self-start">保存</SubmitButton>
+            </ActionForm>
+            <div className="flex flex-col gap-4">
+              <ConnectionTest />
+              <div className="rounded-lg border p-4 text-sm">
+                <h3 className="font-bold">ローカルAIの準備（無料）</h3>
+                <ol className="mt-2 list-decimal pl-5">
+                  <li><a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" className="text-primary underline">ollama.com</a> から Ollama をインストール</li>
+                  <li>ターミナルで <code className="rounded bg-muted px-1">ollama pull {cfg.ollamaModel}</code> を実行（数GBのダウンロード）</li>
+                  <li>Ollama を起動した状態で「接続テスト」を押す</li>
+                </ol>
+                <h4 className="mt-3 font-bold">PCの目安</h4>
+                <ul className="mt-1 flex flex-col gap-1">{OLLAMA_MODELS.map((m) => <li key={m.id}><code className="rounded bg-muted px-1">{m.id}</code>：{m.requirement}</li>)}</ul>
+                <p className="mt-2 text-xs text-muted-foreground">目安を下回るPCでは応答が遅くなるか、生成に失敗します。その場合は軽いモデルにするか「AIを使わない」を選んでください。</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>目標と条件</CardTitle></CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            <dl className="grid grid-cols-2 gap-2">
+              <dt className="text-muted-foreground">経験</dt><dd>{EXPERIENCE_LEVELS.find((e) => e.id === profile.experienceLevel)?.label}</dd>
+              <dt className="text-muted-foreground">目標月収</dt><dd>{yen(goal?.targetMonthlyRevenue ?? null)}</dd>
+              <dt className="text-muted-foreground">期限</dt><dd>{fmtDate(goal?.targetDate)}{goal?.challengeMode && "（チャレンジ）"}</dd>
+              <dt className="text-muted-foreground">1日の作業時間</dt><dd>{minutesLabel(profile.dailyWorkMinutes)}</dd>
+              <dt className="text-muted-foreground">月額予算</dt><dd>{yen(profile.monthlyBudget)}</dd>
+              <dt className="text-muted-foreground">媒体</dt><dd>{profile.platforms.map(platformLabel).join("・")}</dd>
+              <dt className="text-muted-foreground">ジャンル</dt><dd>{profile.niche || "未設定"}</dd>
+            </dl>
+            <Link href="/onboarding" className={buttonVariants({ variant: "outline", size: "sm" }) + " self-start"}>目標と条件を設定し直す</Link>
+            <p className="text-xs text-muted-foreground">設定し直すと新しいロードマップが作られます。これまでの記録は残ります。</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>バックアップと復元</CardTitle><CardDescription>データはこのPCの SQLite ファイル（prisma/dev.db）に保存されています。</CardDescription></CardHeader>
+          <CardContent className="flex flex-col gap-4 text-sm">
+            <a href="/api/backup" className={buttonVariants({ variant: "outline" }) + " self-start"}><Download />バックアップをダウンロード</a>
+            <ActionForm action={restoreBackup} className="rounded-lg border p-3">
+              <Field label="バックアップから復元" htmlFor="bk-file"><Input id="bk-file" name="file" type="file" accept="application/json,.json" required className="h-auto py-1.5" /></Field>
+              <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="confirm" value="yes" className="mt-0.5 size-4 accent-[var(--destructive)]" />現在のデータをすべて削除して、バックアップの内容に置き換える</label>
+              <SubmitButton variant="destructive" size="sm" className="self-start" pendingLabel="復元中…">復元する</SubmitButton>
+            </ActionForm>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>デモデータ</CardTitle><CardDescription>画面の動きを試すための架空のデータです。実際の記録とは区別され、まとめて削除できます。</CardDescription></CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <ActionForm action={loadDemoAction}><SubmitButton variant="outline" size="sm">デモデータを入れる</SubmitButton></ActionForm>
+            {demoCount > 0 && <ActionForm action={clearDemoAction}><SubmitButton variant="ghost" size="sm" className="text-destructive">デモデータを削除</SubmitButton></ActionForm>}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><ShieldAlert className="size-4" />スマホから使う・公開するとき</CardTitle></CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p>このアプリは、PC上で1人で使う前提です。同じWi-Fi（LAN）内のスマホからは <code className="rounded bg-muted px-1">http://PCのIPアドレス:3000</code> で開けます。</p>
+            <p><strong>インターネットに公開する場合</strong>は、少なくとも次の対策が必要です。</p>
+            <ul className="list-disc pl-5">
+              <li>ログイン（.env の <code className="rounded bg-muted px-1">APP_PASSWORD</code> を設定するとパスワードが必要になります）</li>
+              <li>HTTPS（暗号化通信）</li>
+              <li>データの永続保存とバックアップ（サーバーのファイルが消えない環境）</li>
+              <li>ローカルAIは公開サーバーでは常時動かない前提で設計しています</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
+}
