@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3100;
-const env = { DATABASE_URL: "file:./e2e.db", OLLAMA_BASE_URL: "http://127.0.0.1:9", ANTHROPIC_API_KEY: "", APP_PASSWORD: "", PORT: String(PORT) };
+const env = { DISABLE_SCHEDULER: "1", DATABASE_URL: "file:./e2e.db", OLLAMA_BASE_URL: "http://127.0.0.1:9", ANTHROPIC_API_KEY: "", APP_PASSWORD: "", PORT: String(PORT) };
 
 export default defineConfig({
   testDir: "tests/e2e",

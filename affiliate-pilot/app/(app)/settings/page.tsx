@@ -10,17 +10,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input, Select } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { aiConfig, CLAUDE_MODELS, OLLAMA_MODELS } from "@/lib/ai";
-import { clearDemoAction, loadDemoAction, restoreBackup, saveAiConfig } from "@/lib/actions/settings";
+import { clearDemoAction, loadDemoAction, restoreBackup, saveAiConfig, saveSchedule } from "@/lib/actions/settings";
 import { EXPERIENCE_LEVELS, platformLabel } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { fmtDate, minutesLabel, yen } from "@/lib/format";
 import { activeGoal, requireProfile } from "@/lib/profile";
+import { DEFAULT_SCHEDULE, describeNext, lastRunsSchema, scheduleSchema } from "@/lib/scheduler";
+import { getSetting } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "設定" };
 
 export default async function SettingsPage() {
   const profile = await requireProfile();
-  const [cfg, goal, demoCount] = await Promise.all([aiConfig(), activeGoal(profile.id), prisma.performanceRecord.count({ where: { isDemo: true } })]);
+  const [cfg, goal, demoCount, schedule, lastRuns] = await Promise.all([
+    aiConfig(), activeGoal(profile.id), prisma.performanceRecord.count({ where: { isDemo: true } }),
+    getSetting("schedule", scheduleSchema, DEFAULT_SCHEDULE), getSetting("schedule_last", lastRunsSchema, {}),
+  ]);
+  const next = describeNext(schedule, new Date(), lastRuns);
   const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY;
   return (
     <>
@@ -68,6 +74,32 @@ export default async function SettingsPage() {
                 <p className="mt-2 text-xs text-muted-foreground">目安を下回るPCでは応答が遅くなるか、生成に失敗します。その場合は軽いモデルにするか「AIを使わない」を選んでください。</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card id="schedule">
+          <CardHeader><CardTitle>定期実行</CardTitle><CardDescription>アプリを起動している間、決まった時刻に自動で実行します。PCを閉じていた日は、次に起動したときに1回だけ実行します。</CardDescription></CardHeader>
+          <CardContent className="flex flex-col gap-4 text-sm">
+            <ActionForm action={saveSchedule}>
+              <label className="flex items-center gap-2 font-medium"><input type="checkbox" name="enabled" defaultChecked={schedule.enabled} className="size-4 accent-[var(--primary)]" />定期実行を使う</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2"><input type="checkbox" name="dailyTasks" defaultChecked={schedule.dailyTasks} className="size-4 accent-[var(--primary)]" />毎日、今日のタスクを作る</label>
+                <Input type="time" name="dailyTime" aria-label="毎日の実行時刻" defaultValue={schedule.dailyTime} className="h-9 w-28" />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2"><input type="checkbox" name="weeklyReport" defaultChecked={schedule.weeklyReport} className="size-4 accent-[var(--primary)]" />週次レポート</label>
+                <label className="flex items-center gap-2"><input type="checkbox" name="improvement" defaultChecked={schedule.improvement} className="size-4 accent-[var(--primary)]" />改善案</label>
+                <Select name="weeklyDay" aria-label="毎週の実行曜日" defaultValue={String(schedule.weeklyDay)} className="h-9 w-24">
+                  {"日月火水木金土".split("").map((d, i) => <option key={d} value={i}>{d}曜</option>)}
+                </Select>
+                <Input type="time" name="weeklyTime" aria-label="毎週の実行時刻" defaultValue={schedule.weeklyTime} className="h-9 w-28" />
+              </div>
+              <SubmitButton size="sm" className="self-start">保存</SubmitButton>
+            </ActionForm>
+            {next.length > 0 && (
+              <ul className="text-muted-foreground">{next.map((n) => <li key={n.label}>{n.label}：{n.when}</li>)}</ul>
+            )}
+            <p className="text-xs text-muted-foreground">週次レポートと改善案は「確認待ち」で自動化センターに届きます。承認するまで提案には反映されません。</p>
           </CardContent>
         </Card>
 

@@ -182,3 +182,38 @@ test("サンプルデータは「サンプル」と表示され、削除でき�
   await page.getByRole("button", { name: "サンプルデータを削除" }).click();
   await expect(page.getByRole("note")).toBeHidden();
 });
+
+test("目標月収を変更できる", async ({ page }) => {
+  await page.goto("/settings");
+  await page.getByRole("link", { name: "目標と条件を設定し直す" }).click();
+  await page.getByLabel("目標月収（確定報酬・円）").fill("80000");
+  await page.getByRole("button", { name: "ロードマップを作って始める" }).click();
+  await expect(page.getByText("目標 ¥80,000")).toBeVisible();
+  await page.goto("/settings");
+  await expect(page.getByText("¥80,000")).toBeVisible();
+});
+
+test("下書きを編集して保存し、コピーできる", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/content");
+  await page.getByRole("link", { name: /E2Eテスト案件/ }).first().click();
+  const body = page.getByLabel("本文", { exact: true });
+  await body.fill("【PR】編集した本文です。");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.getByText(/保存しました/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("本文", { exact: true })).toHaveValue("【PR】編集した本文です。");
+  await page.getByRole("button", { name: "本文をコピー" }).click();
+  await expect(page.getByText("コピーしました")).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("【PR】編集した本文です。");
+});
+
+test("定期実行の設定を保存できる", async ({ page }) => {
+  await page.goto("/settings");
+  const card = page.locator("#schedule");
+  await card.getByLabel("毎日の実行時刻").fill("06:30");
+  await card.getByRole("button", { name: "保存" }).click();
+  await expect(page.getByText(/定期実行の設定を保存しました/)).toBeVisible();
+  await page.reload();
+  await expect(page.locator("#schedule").getByLabel("毎日の実行時刻")).toHaveValue("06:30");
+});

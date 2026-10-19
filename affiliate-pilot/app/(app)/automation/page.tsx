@@ -84,6 +84,7 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
                     <details open={j.id === focus} className={cn("rounded-lg border", j.status === "awaiting_review" && "border-warning/60")}>
                       <summary className="flex cursor-pointer flex-wrap items-center gap-2 p-3">
                         <strong className="text-sm">{j.name}</strong>
+                        {j.payload.includes('"scheduled":true') && <Badge variant="outline">定期</Badge>}
                         {st === "running" ? <Badge variant="secondary"><Loader2 className="size-3 animate-spin" />実行中</Badge> : st === "interrupted" ? <Badge variant="warning">中断</Badge> : <Badge variant={statusVariant(j.status)}>{JOB_STATUS[j.status]}</Badge>}
                         <span className="ml-auto text-xs text-muted-foreground">{fmtDateTime(j.startedAt ?? j.createdAt)}</span>
                       </summary>

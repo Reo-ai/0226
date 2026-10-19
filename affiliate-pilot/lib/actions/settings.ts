@@ -6,6 +6,7 @@ import { isAllowedOllamaUrl } from "../ai/ollama";
 import { importAll } from "../backup";
 import { clearDemo, loadDemo } from "../demo";
 import { requireProfile } from "../profile";
+import { scheduleSchema } from "../scheduler";
 import { setSetting } from "../settings";
 import { type ActionState, firstIssue, formObject } from "./form";
 
@@ -55,4 +56,22 @@ export async function clearDemoAction(): Promise<ActionState> {
   await clearDemo();
   revalidatePath("/", "layout");
   return { ok: "サンプルデータを削除しました" };
+}
+
+export async function saveSchedule(_: ActionState, fd: FormData): Promise<ActionState> {
+  await requireProfile();
+  const on = (k: string) => fd.get(k) === "on";
+  const p = scheduleSchema.safeParse({
+    enabled: on("enabled"),
+    dailyTasks: on("dailyTasks"),
+    dailyTime: String(fd.get("dailyTime") ?? ""),
+    weeklyReport: on("weeklyReport"),
+    improvement: on("improvement"),
+    weeklyDay: Number(fd.get("weeklyDay")),
+    weeklyTime: String(fd.get("weeklyTime") ?? ""),
+  });
+  if (!p.success) return { error: "時刻は「07:00」の形で入力してください" };
+  await setSetting("schedule", p.data);
+  revalidatePath("/settings");
+  return { ok: p.data.enabled ? "定期実行の設定を保存しました（アプリを起動している間、自動で実行します）" : "定期実行を止めました" };
 }
