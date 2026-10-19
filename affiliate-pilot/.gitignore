@@ -9,3 +9,7 @@ prisma/*.db-journal
 backups/
 test-results/
 playwright-report/
+
+# SQLite WAL/shm
+*.db-shm
+*.db-wal
