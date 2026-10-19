@@ -24,12 +24,13 @@
   --warning: oklch(0.65 0.14 80);
   --sidebar: oklch(0.27 0.035 170);
   --sidebar-foreground: oklch(0.86 0.02 165);
-  --chart-1: oklch(0.6 0.17 45);
-  --chart-2: oklch(0.5 0.09 175);
-  --chart-3: oklch(0.7 0.12 85);
+  --chart-1: #c2521a; /* 確定報酬 */
+  --chart-2: #0f9488; /* 発生報酬 */
+  --chart-3: #4a6ecb; /* クリック */
   --chart-4: oklch(0.55 0.1 250);
   --chart-5: oklch(0.6 0.12 330);
-  --radius: 0.6rem;
+  --radius: 0.75rem;
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.04), 0 12px 28px -18px oklch(0.25 0.04 165 / 0.35);
 }
 
 .dark {
@@ -53,11 +54,12 @@
   --warning: oklch(0.82 0.14 85);
   --sidebar: oklch(0.13 0.012 170);
   --sidebar-foreground: oklch(0.8 0.02 165);
-  --chart-1: oklch(0.72 0.16 50);
-  --chart-2: oklch(0.7 0.1 175);
-  --chart-3: oklch(0.82 0.13 85);
+  --chart-1: #d96a28;
+  --chart-2: #22a08c;
+  --chart-3: #6a8cdc;
   --chart-4: oklch(0.7 0.1 250);
   --chart-5: oklch(0.72 0.12 330);
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3), 0 12px 28px -18px oklch(0 0 0 / 0.6);
   color-scheme: dark;
 }
 
@@ -91,12 +93,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --shadow-card: var(--shadow-card);
   --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
 @layer base {
   * { border-color: var(--border); }
+  html { scroll-behavior: smooth; }
   body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; }
   h1, h2, h3 { text-wrap: balance; }
   :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
@@ -114,3 +118,11 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* 画面の切り替え時にふわっと出す（アニメーションを減らす設定では無効） */
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in { animation: fade-in .25s ease-out both; }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+.skeleton { background: linear-gradient(90deg, var(--muted) 25%, color-mix(in oklch, var(--muted), var(--card) 50%) 50%, var(--muted) 75%); background-size: 200% 100%; border-radius: 8px; }
+@media (prefers-reduced-motion: no-preference) { .skeleton { animation: shimmer 1.4s infinite; } @keyframes shimmer { to { background-position: -200% 0; } } }

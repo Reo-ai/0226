@@ -7,11 +7,11 @@ import { TaskList } from "@/components/task-list";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { records } from "@/lib/analytics";
+import { totalsBetween } from "@/lib/analytics";
 import { READINESS_LABEL } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { daysBetween, fmtDate, num, pct, yen } from "@/lib/format";
-import { goalAchievement, simulate, totals } from "@/lib/metrics";
+import { goalAchievement, simulate } from "@/lib/metrics";
 import { activeGoal, requireProfile } from "@/lib/profile";
 import { roadmapView } from "@/lib/roadmap";
 import { evidenceSchema, parseJson, stringListSchema } from "@/lib/schemas";
@@ -51,13 +51,12 @@ export default async function ChallengePage({ searchParams }: { searchParams: Pr
   }
 
   const end = new Date(challenge.startDate.getTime() + 30 * 86_400_000);
-  const [rows, tasks, view, recs] = await Promise.all([
-    records(challenge.startDate, end),
+  const [t, tasks, view, recs] = await Promise.all([
+    totalsBetween(challenge.startDate, end),
     ensureToday(profile),
     roadmapView(profile, "challenge30"),
     prisma.aIRecommendation.findMany({ where: { recommendationType: { in: ["challenge", "analytics", "weekly"] }, status: "open" }, orderBy: { createdAt: "desc" }, take: 3 }),
   ]);
-  const t = totals(rows);
   const target = goal!.targetMonthlyRevenue;
   const daysLeft = Math.max(0, 29 - daysBetween(challenge.startDate, new Date()));
   const sim = simulate({

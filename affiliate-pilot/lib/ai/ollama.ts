@@ -90,7 +90,7 @@ export class OllamaProvider implements AIProvider {
 
   async healthCheck(): Promise<HealthStatus> {
     try {
-      const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/api/tags`, { signal: AbortSignal.timeout(3000) });
+      const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/api/tags`, { signal: AbortSignal.timeout(1500) });
       if (!res.ok) return { provider: "ollama", ok: false, message: `Ollama が応答しません（${res.status}）` };
       const data = (await res.json()) as { models?: { name: string }[] };
       const models = (data.models ?? []).map((m) => m.name);

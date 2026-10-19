@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { EmptyState } from "@/components/ui/states";
 import { evaluateOfferFit } from "@/lib/actions/offers";
-import { records } from "@/lib/analytics";
+import { totalsBetween } from "@/lib/analytics";
 import { OFFER_STATUS } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { addDays, num, pct, yen } from "@/lib/format";
-import { optionalInt, percentToRate, rates, totals } from "@/lib/metrics";
+import { optionalInt, percentToRate, rates } from "@/lib/metrics";
 import { expectedEpc, fitSchema, offerSimulation } from "@/lib/offers";
 import { requireProfile } from "@/lib/profile";
 import { parseJson } from "@/lib/schemas";
@@ -32,7 +32,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const offers = ids.length ? all.filter((o) => ids.includes(o.id)) : all.filter((o) => o.partnershipStatus !== "rejected").slice(0, 4);
 
   // CVR の初期値は直近90日の実績（なければ空欄＝入力してもらう）
-  const recent = rates(totals(await records(addDays(new Date(), -90))));
+  const recent = rates(await totalsBetween(addDays(new Date(), -90)));
   const clicksIn = typeof sp.clicks === "string" ? sp.clicks : "1000";
   const cvrIn = typeof sp.cvr === "string" ? sp.cvr : recent.cvr !== null ? String(+(recent.cvr * 100).toFixed(2)) : "";
   const clicks = optionalInt(clicksIn);

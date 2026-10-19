@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
-import { ScoreRadar } from "@/components/charts/score-radar";
+import { ScoreRadar } from "@/components/charts/lazy";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";

@@ -57,18 +57,33 @@ export async function healthAll(): Promise<HealthStatus[]> {
   return Promise.all(chain.map((p) => p.healthCheck()));
 }
 
-const cache = globalThis as unknown as { __aiHealth?: { at: number; key: string; value: HealthStatus } };
+const cache = globalThis as unknown as { __aiHealth?: { at: number; key: string; value: HealthStatus; refreshing?: Promise<void> } };
+const HEALTH_TTL = 30_000;
 
-/** ヘッダー表示用: 実際に使われるプロバイダー（毎回の画面表示を遅くしないよう30秒キャッシュ） */
+async function probe(cfg: AIConfig): Promise<HealthStatus> {
+  for (const p of await providerChain(cfg)) {
+    const h = await p.healthCheck();
+    if (h.ok) return h;
+  }
+  return { provider: "fallback", ok: true, message: "AIなし（ルール・テンプレートで動作）" };
+}
+
+/**
+ * ヘッダー表示用: 実際に使われるプロバイダー。
+ * 前回の結果をすぐ返し、古くなっていたら裏で更新する（接続先が応答しなくても画面が止まらない）。
+ */
 export async function activeProvider(): Promise<HealthStatus> {
   const cfg = await aiConfig();
   const key = JSON.stringify(cfg);
-  if (cache.__aiHealth && cache.__aiHealth.key === key && Date.now() - cache.__aiHealth.at < 30_000) return cache.__aiHealth.value;
-  let value: HealthStatus = { provider: "fallback", ok: true, message: "AIなし（ルール・テンプレートで動作）" };
-  for (const p of await providerChain(cfg)) {
-    const h = await p.healthCheck();
-    if (h.ok) { value = h; break; }
+  const c = cache.__aiHealth;
+  if (c && c.key === key) {
+    if (Date.now() - c.at > HEALTH_TTL && !c.refreshing) {
+      c.refreshing = probe(cfg).then((value) => { cache.__aiHealth = { at: Date.now(), key, value }; }).catch(() => { c.refreshing = undefined; });
+    }
+    return c.value;
   }
+  // 初回（または設定変更直後）だけ待つ
+  const value = await probe(cfg);
   cache.__aiHealth = { at: Date.now(), key, value };
   return value;
 }

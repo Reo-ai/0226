@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { AICancelledError, dataBlock, runAI } from "./ai";
-import { records } from "./analytics";
+import { groupTotals, totalsBetween } from "./analytics";
 import { platformLabel, type ContentType } from "./constants";
 import { generateContent, lintContent, platformOf } from "./content";
 import { prisma } from "./db";
 import { addDays, jstDay, minutesLabel, pct, yen } from "./format";
-import { rates, totals, type Totals } from "./metrics";
+import { rates, type Totals } from "./metrics";
 import { getProfile } from "./profile";
 import { contentInputsSchema } from "./schemas";
 import { planToday } from "./tasks";
@@ -127,25 +127,24 @@ const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log, sign
 
   async performance_rollup(_, log) {
     const from = addDays(jstDay(), -29);
-    const rows = await records(from);
-    const t = totals(rows);
-    const byPlatform = Object.entries(
-      rows.reduce<Record<string, typeof rows>>((m, r) => ({ ...m, [r.platform]: [...(m[r.platform] ?? []), r] }), {}),
-    ).map(([p, rs]) => ({ platform: platformLabel(p), ...totals(rs) }));
-    await log("集計", `直近30日 ${rows.length}件：確定報酬 ${yen(t.confirmedRevenue)}・発生報酬 ${yen(t.pendingRevenue)}`);
+    const [t, groups, count] = await Promise.all([totalsBetween(from), groupTotals("platform", from), prisma.performanceRecord.count({ where: { recordDate: { gte: from } } })]);
+    const byPlatform = groups.map((g) => ({ platform: platformLabel(g.key), ...g.totals }));
+    await log("集計", `直近30日 ${count}件：確定報酬 ${yen(t.confirmedRevenue)}・発生報酬 ${yen(t.pendingRevenue)}`);
     return { status: "completed", result: { totals: t, rates: rates(t), byPlatform } };
   },
 
   // ワークフローC：成果改善
   async improvement(_, log, signal) {
     const today = jstDay();
-    const cur = await records(addDays(today, -13));
-    const prev = (await records(addDays(today, -27))).filter((r) => r.recordDate < addDays(today, -13));
-    const tc = totals(cur);
-    const tp = totals(prev);
-    await log("指標", `直近14日 ${cur.length}件／その前14日 ${prev.length}件`);
+    const [tc, tp, curCount, prevCount] = await Promise.all([
+      totalsBetween(addDays(today, -13)),
+      totalsBetween(addDays(today, -27), addDays(today, -13)),
+      prisma.performanceRecord.count({ where: { recordDate: { gte: addDays(today, -13) } } }),
+      prisma.performanceRecord.count({ where: { recordDate: { gte: addDays(today, -27), lt: addDays(today, -13) } } }),
+    ]);
+    await log("指標", `直近14日 ${curCount}件／その前14日 ${prevCount}件`);
     const facts = factLines(tc, tp);
-    const insufficient = cur.length < 3 || tc.clicks === null;
+    const insufficient = curCount < 3 || tc.clicks === null;
     if (insufficient) await log("データ不足", "記録が少ないため、計測を優先する提案にします");
     const rule = ruleSuggestions(tc, insufficient);
     const ai = await runAI({
@@ -172,14 +171,13 @@ const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log, sign
     if (!profile) throw new Error("初期設定がまだです");
     const today = jstDay();
     const weekFrom = addDays(today, -6);
-    const rows = await records(weekFrom);
-    const t = totals(rows);
+    const [t, rowCount] = await Promise.all([totalsBetween(weekFrom), prisma.performanceRecord.count({ where: { recordDate: { gte: weekFrom } } })]);
     const done = await prisma.task.findMany({ where: { profileId: profile.id, status: "done", completedAt: { gte: weekFrom } }, select: { title: true, estimatedMinutes: true } });
     const pubs = await prisma.publication.count({ where: { publishedAt: { gte: weekFrom } } });
     const taskMinutes = done.reduce((m, x) => m + x.estimatedMinutes, 0);
-    await log("集計", `記録${rows.length}件・完了タスク${done.length}件・公開${pubs}本`);
+    await log("集計", `記録${rowCount}件・完了タスク${done.length}件・公開${pubs}本`);
     const issues: string[] = [];
-    if (rows.length === 0) issues.push("今週の成果記録がありません");
+    if (rowCount === 0) issues.push("今週の成果記録がありません");
     if (pubs === 0) issues.push("今週公開したコンテンツがありません");
     if (t.clicks !== null && t.impressions !== null && (rates(t).ctr ?? 0) < 0.005) issues.push(`クリック率が${pct(rates(t).ctr, 2)}と低めです`);
     if (t.clicks !== null && t.clicks >= 50 && (t.conversions ?? 0) === 0) issues.push("クリックはあるのに成約がありません");
@@ -191,7 +189,7 @@ const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log, sign
         summary: `今週は${done.length}件のタスクを完了し、${pubs}本を公開しました。確定報酬は${yen(t.confirmedRevenue)}、発生報酬は${yen(t.pendingRevenue)}です。`,
         good: done.length ? [`タスクを${done.length}件完了（約${minutesLabel(taskMinutes)}）`] : [],
         issues,
-        nextWeek: ruleSuggestions(t, rows.length < 3).slice(0, 3).map((s) => s.title),
+        nextWeek: ruleSuggestions(t, rowCount < 3).slice(0, 3).map((s) => s.title),
       }),
       signal,
     });

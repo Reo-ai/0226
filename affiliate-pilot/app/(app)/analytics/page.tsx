@@ -2,8 +2,8 @@ import { Download, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
-import { ClicksChart } from "@/components/charts/clicks-chart";
-import { RevenueChart } from "@/components/charts/revenue-chart";
+import { ClicksChart, RevenueChart } from "@/components/charts/lazy";
+import { KpiTile } from "@/components/kpi-tile";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton } from "@/components/submit-button";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,11 +12,11 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { EmptyState } from "@/components/ui/states";
 import { deleteRecord, importRecords, saveRecord } from "@/lib/actions/analytics";
-import { byMonth, byWeek, dailySeries, groupBy, records, type Group } from "@/lib/analytics";
+import { dailySeries, delta, groupTotals, totalsBetween, type Group } from "@/lib/analytics";
 import { platformLabel, PLATFORMS } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { addDays, dateKey, daysBetween, fmtDate, jstDay, jstMonthStart, minutesLabel, num, pct, yen } from "@/lib/format";
-import { goalAchievement, rates, totals } from "@/lib/metrics";
+import { goalAchievement, rates } from "@/lib/metrics";
 import { activeGoal, requireProfile } from "@/lib/profile";
 import { RECORD_FIELDS } from "@/lib/records";
 import { cn } from "@/lib/utils";
@@ -35,29 +35,42 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const profile = await requireProfile();
   const period = PERIODS.some(([k]) => k === sp.period) ? sp.period! : "month";
   const today = jstDay();
+  const tomorrow = addDays(today, 1);
   const from = period === "month" ? jstMonthStart() : period === "all" ? new Date(0) : addDays(today, -Number(period) + 1);
-  const [rows, goal, accounts, offers, pubs, clickRows] = await Promise.all([
-    records(from),
+  // 比較用の前期間（同じ長さ）。全期間のときは比較しない
+  const prevFrom = period === "month" ? jstMonthStart(addDays(from, -1)) : period === "all" ? null : addDays(from, -Number(period));
+
+  const [t, prev, goal, accounts, offers, pubs, clickRows, byPlatform, byOfferRaw, weeks, months, rowCount, firstRecord] = await Promise.all([
+    totalsBetween(from),
+    prevFrom ? totalsBetween(prevFrom, from) : null,
     activeGoal(profile.id),
     prisma.channelAccount.findMany({ where: { profileId: profile.id }, select: { id: true, accountName: true, platform: true } }),
     prisma.affiliateOffer.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.publication.findMany({ orderBy: { publishedAt: "desc" }, take: 50, include: { draft: { select: { title: true } } } }),
     prisma.linkClick.groupBy({ by: ["platform"], where: { createdAt: { gte: from } }, _count: { _all: true } }),
+    groupTotals("platform", from),
+    groupTotals("offer", from),
+    groupTotals("week", from),
+    groupTotals("month", from),
+    prisma.performanceRecord.count({ where: { recordDate: { gte: from } } }),
+    prisma.performanceRecord.findFirst({ orderBy: { recordDate: "asc" }, select: { recordDate: true } }),
   ]);
-  const t = totals(rows);
   const r = rates(t);
   const target = goal?.targetMonthlyRevenue ?? 50_000;
-  const monthT = totals(rows.filter((x) => x.recordDate >= jstMonthStart()));
+  const monthT = period === "month" ? t : await totalsBetween(jstMonthStart());
   const achievement = goalAchievement(monthT.confirmedRevenue, target);
-  const days = period === "all" ? Math.min(180, Math.max(1, rows.length ? daysBetween(rows[0].recordDate, today) + 1 : 30)) : daysBetween(from, today) + 1;
-  const seriesFrom = period === "all" ? addDays(today, -days + 1) : from;
-  const daily = dailySeries(rows, seriesFrom, days);
+  const days = period === "all" ? Math.min(180, Math.max(30, firstRecord ? daysBetween(firstRecord.recordDate, today) + 1 : 30)) : daysBetween(from, today) + 1;
+  const seriesFrom = period === "all" ? addDays(tomorrow, -days) : from;
+  const daily = await dailySeries(seriesFrom, days);
   const offerName = (id: string) => offers.find((o) => o.id === id)?.name ?? "案件未指定";
-  const byPlatform = groupBy(rows, (x) => x.platform, platformLabel);
-  const byOffer = groupBy(rows, (x) => x.affiliateOfferId ?? "", (k) => (k ? offerName(k) : "案件未指定"));
+  const platforms = byPlatform.map((g) => ({ ...g, label: platformLabel(g.key) }));
+  const byOffer = byOfferRaw.map((g) => ({ ...g, label: g.key ? offerName(g.key) : "案件未指定" }));
+  const rows = rowCount ? await prisma.performanceRecord.findMany({ where: { recordDate: { gte: from } }, orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }], take: 200 }) : [];
+  const dl = (k: keyof typeof t) => (prev ? delta(t[k], prev[k]) : null);
+  const prevLabel = period === "month" ? "先月比" : `前${period}日比`;
 
   return (
-    <>
+    <div className="fade-in">
       <PageHeader
         title="収益分析センター"
         description="発生報酬（承認前）・確定報酬（承認済み）・入金額を分けて記録します。空欄は「未計測」として0と区別し、分母が0や未計測の率は計算しません。"
@@ -66,40 +79,36 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
       <nav aria-label="期間" className="mb-4 flex flex-wrap gap-2">
         {PERIODS.map(([k, l]) => (
-          <Link key={k} href={`/analytics?period=${k}`} aria-current={period === k ? "page" : undefined} className={cn("rounded-full border px-3 py-1 text-sm", period === k ? "border-primary bg-accent font-medium" : "hover:bg-muted")}>{l}</Link>
+          <Link key={k} href={`/analytics?period=${k}`} aria-current={period === k ? "page" : undefined} className={cn("rounded-full border px-3 py-1 text-sm transition-colors", period === k ? "border-primary bg-accent font-medium" : "hover:bg-muted")}>{l}</Link>
         ))}
       </nav>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-        {[
-          ["発生報酬", yen(t.pendingRevenue)],
-          ["確定報酬", yen(t.confirmedRevenue)],
-          ["入金額", yen(t.paidRevenue)],
-          ["目標達成率（今月）", pct(achievement)],
-          ["CTR", pct(r.ctr, 2)],
-          ["CVR", pct(r.cvr, 2)],
-          ["承認率", pct(r.approvalRate, 0)],
-          ["1時間あたり確定報酬", yen(r.confirmedPerHour)],
-        ].map(([l, v]) => (
-          <Card key={l}><CardContent className="px-4 pt-4 pb-4"><p className="text-xs text-muted-foreground">{l}</p><p className="tabular mt-1 text-lg font-bold">{v}</p></CardContent></Card>
-        ))}
-      </div>
-      <p className="-mt-3 mb-6 text-xs text-muted-foreground">
-        表示回数 {num(t.impressions)}・クリック {num(t.clicks)}・発生成約 {num(t.conversions)}・承認済み {num(t.approvedConversions)}・作業時間 {t.workMinutes === null ? "未計測" : minutesLabel(t.workMinutes)}
+      <section aria-label="指標" className="mb-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <KpiTile label="確定報酬" value={yen(t.confirmedRevenue)} delta={dl("confirmedRevenue")} deltaLabel={prevLabel} spark={daily.map((d) => d.confirmed)} hint={prev ? "前の期間の記録がないため比較なし" : undefined} />
+        <KpiTile label="発生報酬" value={yen(t.pendingRevenue)} delta={dl("pendingRevenue")} deltaLabel={prevLabel} spark={daily.map((d) => d.pending)} sparkColor="var(--chart-2)" hint={prev ? "前の期間の記録がないため比較なし" : undefined} />
+        <KpiTile label="クリック" value={num(t.clicks)} delta={dl("clicks")} deltaLabel={prevLabel} spark={daily.map((d) => d.clicks)} sparkColor="var(--chart-3)" hint={prev ? "前の期間の記録がないため比較なし" : undefined} />
+        <KpiTile label="入金額" value={yen(t.paidRevenue)} delta={dl("paidRevenue")} deltaLabel={prevLabel} hint="振り込まれた金額" />
+        <KpiTile label="CTR" value={pct(r.ctr, 2)} hint="クリック ÷ 表示回数" />
+        <KpiTile label="CVR" value={pct(r.cvr, 2)} hint="発生成約 ÷ クリック" />
+        <KpiTile label="承認率" value={pct(r.approvalRate, 0)} hint="承認済み ÷ 発生" />
+        <KpiTile label="目標達成率（今月）" value={pct(achievement)} hint={`目標 ${yen(target)}`} />
+      </section>
+      <p className="mb-6 text-xs text-muted-foreground">
+        表示回数 {num(t.impressions)}・発生成約 {num(t.conversions)}・承認済み {num(t.approvedConversions)}・作業時間 {t.workMinutes === null ? "未計測" : minutesLabel(t.workMinutes)}・1時間あたり確定報酬 {yen(r.confirmedPerHour)}
         {clickRows.length > 0 && <>／計測リンクのクリック（参考）：{clickRows.map((c) => `${platformLabel(c.platform)} ${c._count._all}`).join("・")}</>}
       </p>
 
-      {rows.length === 0 ? (
+      {rowCount === 0 ? (
         <EmptyState title="この期間の記録はまだありません" description="下のフォームから、ASPやSNSの管理画面の数字を記録しましょう。分からない値は空欄でOKです。" />
       ) : (
         <div className="mb-6 grid gap-6 lg:grid-cols-2">
           <Card className="lg:col-span-2"><CardHeader><CardTitle>日別の報酬</CardTitle></CardHeader><CardContent><RevenueChart data={daily.map((d) => ({ label: d.date, pending: d.pending, confirmed: d.confirmed }))} /></CardContent></Card>
-          <Card><CardHeader><CardTitle>週別の報酬</CardTitle></CardHeader><CardContent><RevenueChart height={220} data={byWeek(rows).map(toBar)} /></CardContent></Card>
-          <Card><CardHeader><CardTitle>月別の報酬</CardTitle></CardHeader><CardContent><RevenueChart height={220} data={byMonth(rows).map(toBar)} /></CardContent></Card>
+          <Card><CardHeader><CardTitle>週別の報酬</CardTitle></CardHeader><CardContent><RevenueChart height={220} data={weeks.slice(-26).map(toBar)} /></CardContent></Card>
+          <Card><CardHeader><CardTitle>月別の報酬</CardTitle></CardHeader><CardContent><RevenueChart height={220} data={months.slice(-24).map(toBar)} /></CardContent></Card>
           <Card className="lg:col-span-2"><CardHeader><CardTitle>日別クリック</CardTitle></CardHeader><CardContent><ClicksChart data={daily.map((d) => ({ label: d.date, clicks: d.clicks }))} /></CardContent></Card>
-          <BreakdownCard title="媒体別" groups={byPlatform} />
+          <BreakdownCard title="媒体別" groups={platforms} />
           <BreakdownCard title="案件別" groups={byOffer} />
-          <WorkTimeCard weeks={byWeek(rows)} platforms={byPlatform} />
+          <WorkTimeCard weeks={weeks.slice(-12)} platforms={platforms} />
         </div>
       )}
 
@@ -146,12 +155,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
       {rows.length > 0 && (
         <Card className="mt-6">
-          <CardHeader><CardTitle>記録一覧（{rows.length}件）</CardTitle></CardHeader>
+          <CardHeader><CardTitle>記録一覧（{rowCount.toLocaleString("ja-JP")}件{rowCount > 200 && "・新しい200件を表示"}）</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="p-2">日付</th><th className="p-2">媒体</th><th className="p-2">案件</th>{RECORD_FIELDS.map(([k, l]) => <th key={k} className="p-2 text-right">{l.replace("（分）", "")}</th>)}<th className="p-2" /></tr></thead>
               <tbody className="tabular">
-                {[...rows].reverse().slice(0, 200).map((x) => (
+                {rows.map((x) => (
                   <tr key={x.id} className="border-b">
                     <td className="p-2">{fmtDate(x.recordDate)}{x.isDemo && <span className="ml-1 rounded bg-warning/20 px-1 text-xs">サンプル</span>}</td>
                     <td className="p-2">{platformLabel(x.platform)}</td>
@@ -166,33 +175,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           </CardContent>
         </Card>
       )}
-    </>
-  );
-}
-
-/** 作業時間分析：週ごとの作業時間と、時間あたりの確定報酬が高い媒体 */
-function WorkTimeCard({ weeks, platforms }: { weeks: Group[]; platforms: Group[] }) {
-  const measured = weeks.filter((w) => w.totals.workMinutes !== null);
-  const best = [...platforms].filter((p) => p.rates.confirmedPerHour !== null).sort((a, b) => b.rates.confirmedPerHour! - a.rates.confirmedPerHour!)[0];
-  return (
-    <Card className="lg:col-span-2">
-      <CardHeader><CardTitle>作業時間分析</CardTitle><CardDescription>成果記録に作業時間（分）を入れると、時間の使い方を比べられます。</CardDescription></CardHeader>
-      <CardContent className="flex flex-col gap-3 text-sm">
-        {measured.length === 0 ? <p className="text-muted-foreground">作業時間がまだ記録されていません。</p> : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px]">
-              <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="p-2">週</th><th className="p-2 text-right">作業時間</th><th className="p-2 text-right">確定報酬</th><th className="p-2 text-right">1時間あたり確定</th><th className="p-2 text-right">発生報酬</th></tr></thead>
-              <tbody className="tabular">
-                {measured.map((w) => (
-                  <tr key={w.key} className="border-b"><th scope="row" className="p-2 text-left font-normal">{w.label}</th><td className="p-2 text-right">{minutesLabel(w.totals.workMinutes!)}</td><td className="p-2 text-right">{yen(w.totals.confirmedRevenue)}</td><td className="p-2 text-right">{yen(w.rates.confirmedPerHour)}</td><td className="p-2 text-right">{yen(w.totals.pendingRevenue)}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {best && <p>時間あたりの確定報酬がいちばん高い媒体は<strong>{best.label}</strong>（{yen(best.rates.confirmedPerHour)}／時間）です。<span className="text-muted-foreground">記録された数字からの計算で、今後も同じ結果になるとは限りません。</span></p>}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -223,6 +206,32 @@ function BreakdownCard({ title, groups }: { title: string; groups: Group[] }) {
             ))}
           </tbody>
         </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** 作業時間分析：週ごとの作業時間と、時間あたりの確定報酬が高い媒体 */
+function WorkTimeCard({ weeks, platforms }: { weeks: Group[]; platforms: Group[] }) {
+  const measured = weeks.filter((w) => w.totals.workMinutes !== null);
+  const best = [...platforms].filter((p) => p.rates.confirmedPerHour !== null).sort((a, b) => b.rates.confirmedPerHour! - a.rates.confirmedPerHour!)[0];
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader><CardTitle>作業時間分析</CardTitle><CardDescription>成果記録に作業時間（分）を入れると、時間の使い方を比べられます。</CardDescription></CardHeader>
+      <CardContent className="flex flex-col gap-3 text-sm">
+        {measured.length === 0 ? <p className="text-muted-foreground">作業時間がまだ記録されていません。</p> : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[480px]">
+              <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="p-2">週</th><th className="p-2 text-right">作業時間</th><th className="p-2 text-right">確定報酬</th><th className="p-2 text-right">1時間あたり確定</th><th className="p-2 text-right">発生報酬</th></tr></thead>
+              <tbody className="tabular">
+                {measured.map((w) => (
+                  <tr key={w.key} className="border-b"><th scope="row" className="p-2 text-left font-normal">{w.label}</th><td className="p-2 text-right">{minutesLabel(w.totals.workMinutes!)}</td><td className="p-2 text-right">{yen(w.totals.confirmedRevenue)}</td><td className="p-2 text-right">{yen(w.rates.confirmedPerHour)}</td><td className="p-2 text-right">{yen(w.totals.pendingRevenue)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {best && <p>時間あたりの確定報酬がいちばん高い媒体は<strong>{best.label}</strong>（{yen(best.rates.confirmedPerHour)}／時間）です。<span className="text-muted-foreground">記録された数字からの計算で、今後も同じ結果になるとは限りません。</span></p>}
       </CardContent>
     </Card>
   );

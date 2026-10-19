@@ -188,7 +188,7 @@ test("目標月収を変更できる", async ({ page }) => {
   await page.getByRole("link", { name: "目標と条件を設定し直す" }).click();
   await page.getByLabel("目標月収（確定報酬・円）").fill("80000");
   await page.getByRole("button", { name: "ロードマップを作って始める" }).click();
-  await expect(page.getByText("目標 ¥80,000")).toBeVisible();
+  await expect(page.getByText("目標 ¥80,000").first()).toBeVisible();
   await page.goto("/settings");
   await expect(page.getByText("¥80,000")).toBeVisible();
 });
