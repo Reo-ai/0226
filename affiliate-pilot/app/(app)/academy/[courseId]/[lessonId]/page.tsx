@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AskForm } from "@/components/academy/ask-form";
 import { QuizForm } from "@/components/academy/quiz-form";
-import { Blocks, Inline } from "@/components/academy/rich-text";
+import { Blocks, headings, Inline } from "@/components/academy/rich-text";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -63,6 +63,13 @@ export default async function LessonPage({ params }: Params) {
         <CardContent><ul className="list-disc pl-5 text-sm">{lesson.objectives.map((o) => <li key={o}>{o}</li>)}</ul></CardContent>
       </Card>
 
+      <nav aria-label="目次" className="mb-6 rounded-xl border bg-muted/40 p-4 text-sm">
+        <p className="mb-2 font-bold">目次 <span className="font-normal text-muted-foreground">（読了目安 {Math.max(1, Math.round(JSON.stringify(lesson.body).length / 500))}分）</span></p>
+        <ol className="flex list-decimal flex-col gap-1 pl-5">
+          {headings(lesson.body).map((h) => <li key={h.id}><a href={`#${h.id}`} className="hover:text-primary hover:underline">{h.text}</a></li>)}
+          <li><a href="#quiz" className="hover:text-primary hover:underline">理解度クイズ</a></li>
+        </ol>
+      </nav>
       <section aria-label="本文" className="mb-8"><Blocks blocks={lesson.body} /></section>
 
       <section className="mb-8">
@@ -110,7 +117,7 @@ export default async function LessonPage({ params }: Params) {
         </CardContent>
       </Card>
 
-      <Card className="mb-8">
+      <Card className="mb-8 scroll-mt-20" id="quiz">
         <CardHeader><CardTitle>理解度クイズ</CardTitle><CardDescription>{Math.round(PASS_SCORE * 100)}%以上でレッスンを完了できます。</CardDescription></CardHeader>
         <CardContent><QuizForm courseId={course.id} lessonId={lesson.id} quiz={lesson.quiz} passScore={PASS_SCORE} /></CardContent>
       </Card>

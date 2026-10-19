@@ -3,6 +3,7 @@ import Link from "next/link";
 import { activeProvider } from "@/lib/ai";
 import { prisma } from "@/lib/db";
 import { Breadcrumbs } from "./breadcrumbs";
+import { Hotkeys } from "./hotkeys";
 import { ThemeToggle } from "./theme-toggle";
 
 const PROVIDER_LABEL = { ollama: "ローカルAI", claude: "Claude", fallback: "AIなし" } as const;
@@ -41,6 +42,7 @@ export async function Header() {
           </span>
         )}
       </Link>
+      <Hotkeys />
       <ThemeToggle />
     </header>
   );

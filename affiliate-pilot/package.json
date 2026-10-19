@@ -15,7 +15,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "setup": "prisma migrate deploy && tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "app": "node scripts/start.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

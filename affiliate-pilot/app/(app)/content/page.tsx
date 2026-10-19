@@ -2,6 +2,7 @@ import { AlertTriangle, Download, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
+import { BodyEditor } from "@/components/content/body-editor";
 import { CopyButton } from "@/components/copy-button";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton } from "@/components/submit-button";
@@ -67,7 +68,7 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
               <ActionForm action={saveDraft}>
                 <input type="hidden" name="id" value={current.id} />
                 <Field label="タイトル" htmlFor="d-title"><Input id="d-title" name="title" defaultValue={current.title} required maxLength={120} /></Field>
-                <Field label="本文" htmlFor="d-body"><Textarea id="d-body" name="body" defaultValue={current.body} className="min-h-96 font-mono text-[13px] leading-relaxed" /></Field>
+                <Field label="本文" htmlFor="d-body"><BodyEditor id="d-body" name="body" defaultValue={current.body} platform={current.platform} /></Field>
                 <Field label="CTA（行動を促す一文）" htmlFor="d-cta"><Textarea id="d-cta" name="cta" defaultValue={current.cta} className="min-h-16" /></Field>
                 <div className="flex flex-wrap gap-2">
                   <SubmitButton>保存</SubmitButton>

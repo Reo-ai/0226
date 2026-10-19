@@ -217,3 +217,37 @@ test("定期実行の設定を保存できる", async ({ page }) => {
   await page.reload();
   await expect(page.locator("#schedule").getByLabel("毎日の実行時刻")).toHaveValue("06:30");
 });
+
+test("キーボード操作とヘルプ：g→a で収益分析へ、? でヘルプ", async ({ page }) => {
+  await page.goto("/");
+  await page.keyboard.press("g");
+  await page.keyboard.press("a");
+  await expect(page).toHaveURL(/\/analytics/);
+  await page.keyboard.press("?");
+  await expect(page.getByRole("dialog", { name: "使い方" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+});
+
+test("エディタ：文字数とPR表記をその場で表示し、プレビューできる", async ({ page }) => {
+  await page.goto("/content");
+  await page.getByRole("link", { name: /E2Eテスト案件/ }).first().click();
+  const body = page.getByLabel("本文", { exact: true });
+  await body.fill("必ず痩せる！最高の商品");
+  await expect(page.getByText("PR表記なし")).toBeVisible();
+  await expect(page.getByText(/注意表現 \d+件/)).toBeVisible();
+  await body.fill("【PR】**太字**のテスト");
+  await expect(page.getByText("PR表記あり")).toBeVisible();
+  await page.getByRole("button", { name: "プレビュー" }).click();
+  await expect(page.getByLabel("プレビュー").locator("strong", { hasText: "太字" })).toBeVisible();
+});
+
+test("レッスンに目次があり、見出しへ移動できる", async ({ page }) => {
+  await page.goto("/academy/asp/asp-01");
+  const toc = page.getByRole("navigation", { name: "目次" });
+  await expect(toc).toContainText("読了目安");
+  const first = toc.getByRole("link").first();
+  const text = await first.textContent();
+  await first.click();
+  await expect(page.locator("h3", { hasText: text! })).toBeInViewport();
+});
