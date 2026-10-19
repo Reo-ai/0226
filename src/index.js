@@ -6,6 +6,9 @@ import { logger } from './utils/logger.js';
 import { ensureDirs, readJSON } from './utils/fileUtils.js';
 import { THEME_IDS } from './config/themes.js';
 
+// commander は (値, 既定値) で呼ぶので、parseInt を直接渡すと既定値が基数になってしまう
+const toInt = (v) => parseInt(v, 10);
+
 // Ensure output directories exist at startup
 ensureDirs();
 
@@ -32,7 +35,7 @@ program
 program
   .command('deep-pipeline <url>')
   .description('Full pipeline: analyze → propose → generate images → generate videos')
-  .option('-c, --count <n>', 'Number of variations (overridden by cut count)', parseInt, 1)
+  .option('-c, --count <n>', 'Number of variations (overridden by cut count)', toInt, 1)
   .option('--skip-video', 'Generate images only, skip video generation', false)
   .option('--reference-frames', 'Use reference frames for image generation', false)
   .option('--image-model <model>', 'Image model: gemini or imagen', 'gemini')
@@ -142,7 +145,7 @@ program
 program
   .command('plan-content')
   .description('Generate a weekly/monthly content calendar for self-improvement affiliate account')
-  .option('-w, --weeks <n>', 'Number of weeks to plan', parseInt, 1)
+  .option('-w, --weeks <n>', 'Number of weeks to plan', toInt, 1)
   .option('-t, --themes <themes>', `Comma-separated theme IDs: ${THEME_IDS.join(',')}`, THEME_IDS.join(','))
   .option('-a, --account <handle>', 'Instagram account handle', 'your_account')
   .option('--affiliate-links <links>', 'Comma-separated affiliate product descriptions')
@@ -227,113 +230,12 @@ program
   .option('--image-model <model>', 'Image model: gemini or imagen', 'gemini')
   .option('-s, --service <service>', 'Video service: sora, kling, or both', 'sora')
   .option('--skip-video', 'Generate images only', false)
-  .option('--duration <n>', 'Video duration in seconds', parseInt, 30)
+  .option('--duration <n>', 'Video duration in seconds', toInt, 30)
   .option('--account <handle>', 'Instagram handle')
   .action(async (theme, opts) => {
-    const { generateVideoConcept, generateSelfImprovementImagePrompt, generateSelfImprovementVideoPrompt } =
-      await import('./pipeline/contentStrategy.js');
-    const { generateCaption } = await import('./pipeline/captionGenerator.js');
-    const { generateImage } = await import('./gemini/imageGenerator.js');
-    const { generateVideo: soraGenerate } = await import('./video/soraGenerator.js');
-    const { generateVideoFromImage: klingGenerate } = await import('./video/klingGenerator.js');
-    const { imageToBase64 } = await import('./tiktok/downloader.js');
-    const { saveReport, timestampedName } = await import('./utils/fileUtils.js');
-
+    const { runReel } = await import('./pipeline/reelPipeline.js');
     try {
-      // Step 1: Generate concept
-      logger.section('STEP 1: VIDEO CONCEPT');
-      const concept = await generateVideoConcept(theme, {
-        hookType: opts.type,
-        affiliateProduct: opts.product,
-      });
-      logger.success(`Hook: ${concept.hook}`);
-      console.log(JSON.stringify(concept, null, 2));
-
-      // Step 2: Generate image prompt
-      logger.section('STEP 2: IMAGE GENERATION');
-      const imagePrompt = await generateSelfImprovementImagePrompt(theme, concept, 0);
-      logger.info(`Prompt: ${imagePrompt.slice(0, 100)}...`);
-
-      const imagePath = await generateImage(imagePrompt, {
-        model: opts.imageModel,
-        filename: timestampedName(`${theme}_reel`, 'jpg'),
-      });
-
-      // Step 3: Generate video
-      const videoPaths = [];
-      if (!opts.skipVideo) {
-        logger.section('STEP 3: VIDEO GENERATION');
-        const cut = { index: 0, duration: opts.duration, description: concept.structure?.[0]?.content };
-        const soraData = await generateSelfImprovementVideoPrompt(theme, concept, cut);
-        logger.info(`Sora prompt: ${soraData.sora_prompt.slice(0, 120)}...`);
-
-        const imageBase64 = imageToBase64(imagePath);
-
-        if (opts.service === 'sora' || opts.service === 'both') {
-          try {
-            const p = await soraGenerate(soraData.sora_prompt, {
-              duration: opts.duration,
-              size: '720x1280',
-              filename: timestampedName(`${theme}_sora`, 'mp4'),
-            });
-            videoPaths.push(p);
-          } catch (e) {
-            logger.error(`Sora failed: ${e.message}`);
-          }
-        }
-
-        if (opts.service === 'kling' || opts.service === 'both') {
-          try {
-            const p = await klingGenerate(imageBase64, soraData.sora_prompt, {
-              duration: Math.min(opts.duration, 10),
-              aspectRatio: '9:16',
-              filename: timestampedName(`${theme}_kling`, 'mp4'),
-            });
-            videoPaths.push(p);
-          } catch (e) {
-            logger.error(`Kling failed: ${e.message}`);
-          }
-        }
-      }
-
-      // Step 4: Generate caption
-      logger.section('STEP 4: CAPTION');
-      const caption = await generateCaption(theme, {
-        concept: concept.title + ' - ' + concept.hook,
-        affiliateProduct: opts.product,
-        affiliateLink: 'プロフィールリンク',
-        tone: opts.type === 'story' ? 'story' : opts.type === 'review' ? 'review' : 'motivational',
-        accountHandle: opts.account,
-      });
-
-      console.log('\n═══ CAPTION ═══\n');
-      console.log(caption.fullCaption);
-
-      // Save summary
-      const summary = [
-        `# Reel Summary: ${theme}`,
-        `Date: ${new Date().toISOString()}`,
-        '',
-        `## Concept`,
-        JSON.stringify(concept, null, 2),
-        '',
-        `## Image`,
-        imagePath,
-        '',
-        `## Videos`,
-        videoPaths.join('\n') || 'None (--skip-video)',
-        '',
-        `## Caption`,
-        caption.fullCaption,
-      ].join('\n');
-
-      const summaryPath = saveReport(summary, timestampedName(`reel_${theme}`, 'txt'));
-      logger.success(`Summary saved: ${summaryPath}`);
-
-      logger.section('DONE');
-      logger.success(`Image: ${imagePath}`);
-      videoPaths.forEach(p => logger.success(`Video: ${p}`));
-
+      await runReel(theme, opts);
     } catch (err) {
       logger.error(err.message);
       if (process.env.DEBUG) console.error(err.stack);
@@ -347,7 +249,7 @@ program
   .description(`Generate Vrew-ready narration script + SRT subtitles (${THEME_IDS.join('|')})`)
   .option('--type <type>', 'Content type: educational, hook, story, review', 'educational')
   .option('--product <product>', 'Affiliate product to feature')
-  .option('--duration <n>', 'Target duration in seconds', parseInt, 60)
+  .option('--duration <n>', 'Target duration in seconds', toInt, 60)
   .option('--voice <style>', 'Voice style: friendly, energetic, calm, professional', 'friendly')
   .action(async (theme, opts) => {
     const { generateVideoConcept } = await import('./pipeline/contentStrategy.js');
@@ -374,7 +276,7 @@ program
   .description('Render a self-improvement reel video using Remotion (requires npm install)')
   .option('--hook <text>', 'Hook text for the video')
   .option('--image <path>', 'Background image path (output/images/xxx.jpg)')
-  .option('--duration <n>', 'Duration in seconds', parseInt, 30)
+  .option('--duration <n>', 'Duration in seconds', toInt, 30)
   .option('--cta <text>', 'CTA text', 'プロフリンクから詳しくチェック！')
   .option('--composition <id>', 'Composition ID: SelfImprovementReel or SubtitleReel', 'SelfImprovementReel')
   .action(async (theme, opts) => {
@@ -400,6 +302,32 @@ program
       });
 
       logger.success(`Rendered: ${outPath}`);
+    } catch (err) {
+      logger.error(err.message);
+      if (process.env.DEBUG) console.error(err.stack);
+      process.exit(1);
+    }
+  });
+
+// ─── hub-sync ────────────────────────────────────────────────────────────────
+program
+  .command('hub-sync')
+  .description('affiliate-hub の「動画にする」ジョブを取得してリール生成し、結果を返す')
+  .option('--limit <n>', 'Jobs per run', toInt, 3)
+  .option('--loop <minutes>', 'Keep polling every N minutes', toInt)
+  .option('--image-model <model>', 'Image model: gemini or imagen', 'gemini')
+  .option('--duration <n>', 'Video duration in seconds', toInt, 30)
+  .option('--account <handle>', 'Instagram handle')
+  .action(async (opts) => {
+    const { syncOnce } = await import('./pipeline/hubSync.js');
+    try {
+      do {
+        await syncOnce(opts);
+        if (opts.loop) {
+          logger.info(`${opts.loop}分後に再確認します（Ctrl+Cで終了）`);
+          await new Promise((r) => setTimeout(r, opts.loop * 60_000));
+        }
+      } while (opts.loop);
     } catch (err) {
       logger.error(err.message);
       if (process.env.DEBUG) console.error(err.stack);

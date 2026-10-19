@@ -9,7 +9,7 @@ import { normalizeStatus, parseAmount, parseCsv } from "./csv";
 import { all, batch, get, run, setSetting } from "./db";
 import { baseUrl } from "./env";
 import { jstMonthStart, parseJstDate, yen } from "./format";
-import { PLATFORM_LABEL, POST_KINDS, PROGRAM_STATUS, unitReward } from "./score";
+import { PLATFORM_LABEL, POST_KINDS, PROGRAM_STATUS, unitReward, VIDEO_SERVICES, VIDEO_THEMES } from "./score";
 import { linkStats, programStats } from "./stats";
 import type { Link, Program } from "./types";
 
@@ -317,6 +317,29 @@ export async function deletePost(fd: FormData) {
   await requireAuth();
   await run("DELETE FROM posts WHERE id = ?", num(fd, "id"));
   redirect("/content");
+}
+
+/** 投稿を動画パイプライン（npm start -- hub-sync）の待ち行列に入れる／取り消す */
+export async function queueVideo(fd: FormData) {
+  await requireAuth();
+  const id = num(fd, "id");
+  if (str(fd, "cancel") === "1") {
+    await run("UPDATE posts SET video_status = '', video_updated_at = ? WHERE id = ? AND video_status = 'queued'", Date.now(), id);
+    redirect(`/content?id=${id}`);
+  }
+  const theme = str(fd, "theme");
+  const service = str(fd, "service");
+  if (!VIDEO_THEMES.some(([k]) => k === theme) || !VIDEO_SERVICES.some(([k]) => k === service)) {
+    redirect(`/content?id=${id}&error=${enc("テーマと動画サービスを選んでください")}`);
+  }
+  await run(
+    "UPDATE posts SET video_status = 'queued', video_theme = ?, video_service = ?, video_result = '', video_updated_at = ? WHERE id = ?",
+    theme,
+    service,
+    Date.now(),
+    id,
+  );
+  redirect(`/content?id=${id}`);
 }
 
 // ---- guide ----

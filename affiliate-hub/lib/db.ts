@@ -76,6 +76,15 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
+// 既存DBに後から足した列（CREATE TABLE IF NOT EXISTS では追加されないため）
+const MIGRATIONS = [
+  "ALTER TABLE posts ADD COLUMN video_status TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE posts ADD COLUMN video_theme TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE posts ADD COLUMN video_service TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE posts ADD COLUMN video_result TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE posts ADD COLUMN video_updated_at INTEGER",
+];
+
 export type Arg = InValue;
 
 const g = globalThis as unknown as { __db?: Client; __dbReady?: Promise<void> };
@@ -90,6 +99,11 @@ function client(): Client {
     g.__dbReady = (async () => {
       if (url.startsWith("file:")) await g.__db!.execute("PRAGMA journal_mode = WAL");
       await g.__db!.executeMultiple(SCHEMA);
+      for (const sql of MIGRATIONS) {
+        await g.__db!.execute(sql).catch((e) => {
+          if (!/duplicate column/i.test(String(e))) throw e;
+        });
+      }
     })();
   }
   return g.__db;

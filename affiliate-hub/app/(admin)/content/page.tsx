@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { deletePost, generatePost, updatePost } from "@/lib/actions";
+import { deletePost, generatePost, queueVideo, updatePost } from "@/lib/actions";
 import { all, get } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
-import { PLATFORMS, PLATFORM_LABEL, POST_KINDS } from "@/lib/score";
-import type { Post, Program } from "@/lib/types";
+import { guessVideoTheme, PLATFORMS, PLATFORM_LABEL, POST_KINDS, VIDEO_SERVICES, VIDEO_STATUS, VIDEO_THEMES } from "@/lib/score";
+import type { Post, Program, VideoResult } from "@/lib/types";
 import { ErrorBox, type SP } from "@/lib/ui";
 
 export const maxDuration = 120;
@@ -15,6 +15,8 @@ export default async function ContentPage({ searchParams }: { searchParams: SP }
     "SELECT p.*, g.name program_name FROM posts p LEFT JOIN programs g ON g.id = p.program_id ORDER BY p.id DESC LIMIT 100",
   );
   const current = id ? await get<Post>("SELECT * FROM posts WHERE id = ?", Number(id)) : undefined;
+  const currentProgram = current?.program_id ? programs.find((p) => p.id === current.program_id) : undefined;
+  const video = current?.video_result ? (JSON.parse(current.video_result) as VideoResult) : null;
 
   return (
     <>
@@ -54,10 +56,49 @@ export default async function ContentPage({ searchParams }: { searchParams: SP }
         </form>
       )}
 
+      {current && (
+        <div className="panel stack">
+          <h2>
+            動画にする{" "}
+            {current.video_status && <span className={`badge ${current.video_status === "done" ? "on" : ""}`}>{VIDEO_STATUS[current.video_status]}</span>}
+          </h2>
+          <form action={queueVideo} className="row">
+            <input type="hidden" name="id" value={current.id} />
+            <select name="theme" defaultValue={current.video_theme || guessVideoTheme(`${currentProgram?.category ?? ""} ${currentProgram?.name ?? ""}`)}>
+              {VIDEO_THEMES.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <select name="service" defaultValue={current.video_service || "kling"}>
+              {VIDEO_SERVICES.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <button disabled={current.video_status === "queued" || current.video_status === "running"}>
+              {current.video_status === "done" || current.video_status === "failed" ? "作り直す" : "生成待ちに入れる"}
+            </button>
+            {current.video_status === "queued" && (
+              <button name="cancel" value="1" className="ghost">取り消す</button>
+            )}
+          </form>
+          <p className="hint">
+            この台本をもとに、手元のPCのパイプラインが画像→動画を生成します（キャプションはこの本文を使用）。PCで{" "}
+            <code>npm start -- hub-sync --loop 5</code> を動かしておくと、5分ごとに取りに来ます。
+            {current.video_updated_at && <> 最終更新: {fmtDateTime(current.video_updated_at)}</>}
+          </p>
+          {video && (
+            <div className="output">
+              {video.error && <div style={{ color: "var(--danger)" }}>エラー: {video.error}</div>}
+              {video.title && <div>タイトル: {video.title}</div>}
+              {video.hook && <div>フック: {video.hook}</div>}
+              {video.videoPaths?.map((p) => <div key={p}>動画: <code>{p}</code></div>)}
+              {video.imagePath && <div>画像: <code>{video.imagePath}</code></div>}
+              {video.summaryPath && <div>まとめ: <code>{video.summaryPath}</code></div>}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="panel">
         <h2>投稿一覧</h2>
         <table>
-          <thead><tr><th>作成</th><th>案件</th><th>媒体</th><th>型</th><th>状態</th><th>冒頭</th></tr></thead>
+          <thead><tr><th>作成</th><th>案件</th><th>媒体</th><th>型</th><th>状態</th><th>動画</th><th>冒頭</th></tr></thead>
           <tbody>
             {posts.map((p) => (
               <tr key={p.id}>
@@ -66,6 +107,7 @@ export default async function ContentPage({ searchParams }: { searchParams: SP }
                 <td>{PLATFORM_LABEL[p.platform]}</td>
                 <td>{POST_KINDS.find(([k]) => k === p.kind)?.[1] ?? p.kind}</td>
                 <td><span className={`badge ${p.status === "posted" ? "on" : ""}`}>{p.status === "posted" ? "投稿済み" : "下書き"}</span></td>
+                <td className="muted">{VIDEO_STATUS[p.video_status] ?? "-"}</td>
                 <td><Link href={`/content?id=${p.id}`}>{p.body.replace(/\s+/g, " ").slice(0, 40)}…</Link></td>
               </tr>
             ))}

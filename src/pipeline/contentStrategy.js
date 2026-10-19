@@ -141,7 +141,7 @@ function formatContentPlan(planData, handle, weeks) {
  */
 export async function generateVideoConcept(themeId, options = {}) {
   const theme = getTheme(themeId);
-  const { hookType = 'educational', affiliateProduct } = options;
+  const { hookType = 'educational', affiliateProduct, script } = options;
 
   const product = affiliateProduct || theme.affiliateProducts[0];
 
@@ -158,7 +158,7 @@ export async function generateVideoConcept(themeId, options = {}) {
         content: `テーマ: ${theme.emoji} ${theme.label}
 動画タイプ: ${hookType}
 紹介商品: ${product}
-
+${script ? `\n以下の台本をベースに、内容・フック・PR表記を活かしてコンセプト化してください：\n${script}\n` : ''}
 以下のJSON形式でコンセプトを生成してください：
 {
   "title": "動画タイトル（30文字以内）",

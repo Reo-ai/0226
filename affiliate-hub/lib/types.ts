@@ -45,4 +45,19 @@ export type Post = {
   status: "draft" | "posted";
   posted_at: number | null;
   created_at: number;
+  video_status: "" | "queued" | "running" | "done" | "failed";
+  video_theme: string;
+  video_service: string;
+  video_result: string;
+  video_updated_at: number | null;
+};
+
+/** パイプライン（hub-sync）から返ってくる生成結果 */
+export type VideoResult = {
+  title?: string;
+  hook?: string;
+  imagePath?: string;
+  videoPaths?: string[];
+  summaryPath?: string;
+  error?: string;
 };

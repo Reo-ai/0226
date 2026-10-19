@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import { createClient } from "@libsql/client";
 
 const PORT = 3998;
@@ -12,7 +13,7 @@ const DB_FILE = "./data/smoke.db";
 for (const f of [DB_FILE, `${DB_FILE}-wal`, `${DB_FILE}-shm`]) fs.rmSync(f, { force: true });
 
 const server = spawn("node_modules/.bin/next", ["start", "-p", String(PORT)], {
-  env: { ...process.env, DATABASE_URL: `file:${DB_FILE}`, ANTHROPIC_API_KEY: "", BASE_URL: BASE, ADMIN_PASSWORD: "x", SESSION_SECRET: "y" },
+  env: { ...process.env, DATABASE_URL: `file:${DB_FILE}`, ANTHROPIC_API_KEY: "", BASE_URL: BASE, ADMIN_PASSWORD: "x", SESSION_SECRET: "y", PIPELINE_TOKEN: "pt" },
   stdio: ["ignore", "pipe", "pipe"],
 });
 let log = "";
@@ -63,6 +64,42 @@ try {
   for (const p of ["/links", "/conversions", "/content", "/guide", "/settings"]) await page(p);
   const guide = await page("/guide");
   assert.ok(guide.includes("進捗"), "ガイド表示");
+
+  // 動画パイプライン連携API
+  assert.equal((await fetch(`${BASE}/api/pipeline`)).status, 401, "トークンなしは拒否");
+  const auth = { authorization: "Bearer pt", "content-type": "application/json" };
+  await db.execute({
+    sql: "INSERT INTO posts (program_id, link_id, platform, kind, body, created_at, video_status, video_theme, video_service, video_updated_at) VALUES (1, 1, 'tiktok', 'review', '【PR】台本', ?, 'queued', 'fitness', 'kling', ?)",
+    args: [now, now],
+  });
+  const claim = await (await fetch(`${BASE}/api/pipeline?limit=5`, { headers: auth })).json();
+  assert.equal(claim.jobs.length, 1);
+  assert.equal(claim.jobs[0].program.name, "テストプロテイン");
+  assert.equal(claim.jobs[0].linkUrl, `${BASE}/go/t1?ch=tiktok`);
+  assert.equal((await (await fetch(`${BASE}/api/pipeline`, { headers: auth })).json()).jobs.length, 0, "取得済みは再配布しない");
+  const rep = await fetch(`${BASE}/api/pipeline`, {
+    method: "POST",
+    headers: auth,
+    body: JSON.stringify({ id: claim.jobs[0].id, status: "done", result: { title: "テスト動画", videoPaths: ["/out/v.mp4"] } }),
+  });
+  assert.equal(rep.status, 200);
+  const content = await page(`/content?id=${claim.jobs[0].id}`);
+  assert.ok(content.includes("テスト動画") && content.includes("/out/v.mp4"), "生成結果が表示される");
+
+  // CLI（npm start -- hub-sync）との往復: 未知テーマは外部APIを呼ばずに failed で返る
+  await db.execute({
+    sql: "INSERT INTO posts (program_id, platform, kind, body, created_at, video_status, video_theme, video_service, video_updated_at) VALUES (1, 'tiktok', 'hook', 'x', ?, 'queued', 'bogus', 'kling', ?)",
+    args: [now, now],
+  });
+  execFileSync("node", ["src/index.js", "hub-sync"], {
+    cwd: "..",
+    env: { ...process.env, HUB_URL: BASE, HUB_TOKEN: "pt", OPENAI_API_KEY: "dummy" },
+    stdio: "pipe",
+  });
+  const failed = (await db.execute("SELECT video_status, video_result FROM posts WHERE video_theme = 'bogus'")).rows[0];
+  assert.equal(failed.video_status, "failed");
+  assert.ok(String(failed.video_result).includes("未知のテーマ"), "CLIがエラーを報告");
+
   console.log("smoke OK");
 } catch (e) {
   console.error(log.slice(-3000));

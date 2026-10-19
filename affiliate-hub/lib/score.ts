@@ -52,3 +52,30 @@ export const POST_KINDS = [
   ["story", "ストーリー・ビフォーアフター"],
   ["hook", "バズ狙いのフック型"],
 ] as const;
+
+/** 動画パイプライン（リポジトリ直下の src/config/themes.js）のテーマ */
+export const VIDEO_THEMES = [
+  ["fitness", "💪 筋トレ・フィットネス", /筋トレ|フィットネス|ダイエット|プロテイン|ジム/],
+  ["sleep", "😴 睡眠・回復", /睡眠|快眠|枕|マットレス|回復/],
+  ["money", "💰 お金・資産形成", /お金|投資|副業|FX|証券|資産|節約|クレカ|金融/],
+  ["supplements", "💊 サプリ・栄養", /サプリ|栄養|ビタミン|健康食品/],
+  ["skills", "📚 スキル・自己成長", /スキル|英会話|資格|スクール|学習|転職|プログラミング/],
+] as const;
+
+export function guessVideoTheme(text: string): string {
+  return VIDEO_THEMES.find(([, , re]) => re.test(text))?.[0] ?? "skills";
+}
+
+export const VIDEO_SERVICES = [
+  ["kling", "Kling（画像→動画）"],
+  ["sora", "Sora"],
+  ["both", "両方"],
+  ["none", "画像のみ"],
+] as const;
+
+export const VIDEO_STATUS: Record<string, string> = {
+  queued: "待機中",
+  running: "生成中",
+  done: "完了",
+  failed: "失敗",
+};
