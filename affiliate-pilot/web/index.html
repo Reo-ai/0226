@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Affiliate Pilot かんたん版</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: 深緑のサイドバー（スマホは下部タブ）＋ 中央1カラムに「今日の1歩」。初心者向けに画面ごとに1つの仕事だけ置く */
+:root {
+  --bg: #f3f7f4; --card: #ffffff; --fg: #1d2b26; --muted: #5f6f68; --line: #dde5e0; --soft: #edf2ef;
+  --accent: #c2521a; --accent-ink: #ffffff; --accent-soft: #fbeadf;
+  --side: #1d3a33; --side-fg: #c9dad3;
+  --good: #1f8a52; --good-soft: #e3f3ea; --warn: #a66a00; --bad: #c0392b; --c2: #0f9488;
+  --font: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121916; --card: #1a231f; --fg: #e3ebe7; --muted: #9aaba3; --line: #2c3833; --soft: #222d29;
+  --accent: #d96a28; --accent-ink: #ffffff; --accent-soft: #3a2518; --side: #0c1210; --side-fg: #a8bbb3;
+  --good: #5fd497; --good-soft: #1b3127; --warn: #f2c14e; --bad: #f08074; --c2: #22a08c; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121916; --card: #1a231f; --fg: #e3ebe7; --muted: #9aaba3; --line: #2c3833; --soft: #222d29;
+  --accent: #d96a28; --accent-ink: #ffffff; --accent-soft: #3a2518; --side: #0c1210; --side-fg: #a8bbb3;
+  --good: #5fd497; --good-soft: #1b3127; --warn: #f2c14e; --bad: #f08074; --c2: #22a08c; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.65; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+a { color: var(--accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { margin: 0; line-height: 1.3; text-wrap: balance; }
+.app { display: flex; min-height: 100%; }
+.side { position: sticky; top: 0; height: 100dvh; width: 230px; flex-shrink: 0; background: var(--side); color: var(--side-fg); padding: 20px 12px; padding-left: max(12px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 4px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; color: #fff; font-weight: 700; }
+.brand small { display: block; font-weight: 400; font-size: 11px; opacity: .7; }
+.side a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: inherit; text-decoration: none; }
+.side a[aria-current="page"] { background: rgba(255,255,255,.1); color: #fff; font-weight: 700; box-shadow: inset 3px 0 0 var(--accent); }
+.side a:hover { background: rgba(255,255,255,.07); color: #fff; }
+.side .foot { margin-top: auto; font-size: 11px; opacity: .55; padding: 8px; }
+.main { flex: 1; min-width: 0; padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.top h1 { font-size: 22px; font-weight: 900; }
+.top p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: 0 1px 2px rgba(29,43,38,.05); }
+.card h2 { font-size: 16px; margin-bottom: 8px; }
+.hero { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.hero .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+.hero h2 { font-size: 21px; font-weight: 900; margin: 4px 0 6px; }
+.hero p.desc { color: var(--muted); margin: 0 0 14px; }
+.stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; list-style: none; padding: 0; margin: 0; font-size: 12px; text-align: center; }
+.stages li { border: 1px solid var(--line); border-radius: 10px; padding: 7px 4px; color: var(--muted); background: var(--card); }
+.stages li small { display: block; font-size: 10px; }
+.stages li.now { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); font-weight: 700; }
+.stages li.done { border-color: color-mix(in srgb, var(--good) 50%, var(--line)); background: var(--good-soft); color: var(--good); }
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 9px 14px; cursor: pointer; font-weight: 500; text-decoration: none; color: var(--fg); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.btn.big { padding: 13px 20px; font-size: 16px; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.muted { color: var(--muted); } .small { font-size: 13px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; min-width: 0; }
+label.f .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+input, select, textarea { width: 100%; border: 1px solid var(--line); background: var(--card); border-radius: 9px; padding: 9px 11px; font-size: 15px; }
+textarea { min-height: 110px; resize: vertical; }
+details.more { border: 1px dashed var(--line); border-radius: 10px; padding: 8px 12px; }
+details.more summary { cursor: pointer; font-size: 13px; font-weight: 500; }
+details.more > div { margin-top: 10px; }
+.tasks { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.tasks li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.tasks li.done { opacity: .6; text-decoration: line-through; }
+.tasks li button { border: 0; background: none; cursor: pointer; color: var(--accent); padding: 0; font-size: 18px; line-height: 1.2; }
+.tasks .t { flex: 1; min-width: 0; } .tasks .t small { display: block; color: var(--muted); }
+.linkcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.linkcards a { display: block; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); text-decoration: none; color: var(--fg); }
+.linkcards a:hover { border-color: var(--accent); }
+.linkcards a strong { display: block; } .linkcards a span { font-size: 12px; color: var(--muted); }
+.kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kpi div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.kpi div span { font-size: 12px; color: var(--muted); display: flex; gap: 4px; align-items: center; }
+.kpi div strong { display: block; font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.kpi div em { font-style: normal; font-size: 11px; color: var(--muted); }
+.term { display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; border: 1px solid var(--line); font-size: 11px; color: var(--muted); cursor: pointer; background: none; padding: 0; }
+.pop { position: fixed; z-index: 20; max-width: 280px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.15); font-size: 13px; }
+.bar { height: 12px; background: var(--soft); border-radius: 99px; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; background: var(--soft); color: var(--muted); }
+.pill.good { background: var(--good-soft); color: var(--good); } .pill.acc { background: var(--accent-soft); color: var(--accent); }
+.tbl { overflow-x: auto; } table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; } th { color: var(--muted); font-weight: 500; font-size: 12px; } td.n, th.n { text-align: right; }
+.toast { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--side); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.lesson p { margin: 8px 0; max-width: 42em; } .lesson h3 { font-size: 16px; margin: 18px 0 4px; } .lesson ul, .lesson ol { padding-left: 22px; margin: 6px 0; }
+.note { border-left: 3px solid var(--warn); background: var(--soft); padding: 8px 12px; border-radius: 0 8px 8px 0; font-size: 13px; }
+.quiz li { list-style: none; } .quiz label { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; cursor: pointer; font-weight: 400; } .quiz input { width: auto; margin-top: 4px; }
+.courses { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.courses button { text-align: left; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 14px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+.courses button:hover { border-color: var(--accent); }
+.lessons { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.lessons button { width: 100%; text-align: left; display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 10px 12px; cursor: pointer; }
+.lessons button .n { width: 26px; height: 26px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.lessons button.done .n { background: var(--good-soft); color: var(--good); }
+pre.out { white-space: pre-wrap; word-break: break-word; background: var(--soft); border-radius: 10px; padding: 12px; font-family: inherit; margin: 0; }
+.lint li { font-size: 13px; } .lint .ng { color: var(--bad); } .lint .ok { color: var(--good); }
+.bottom { display: none; }
+.chart { width: 100%; height: auto; }
+@media (max-width: 900px) {
+  .side { display: none; }
+  .main { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .bottom { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 6px 0; padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); z-index: 10; }
+  .bottom a { text-decoration: none; color: var(--muted); text-align: center; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .bottom a svg { width: 22px; height: 22px; } .bottom a[aria-current="page"] { color: var(--accent); font-weight: 700; }
+  .stages { font-size: 11px; }
+}
+@media (prefers-reduced-motion: no-preference) { .wrap { animation: in .25s ease-out; } @keyframes in { from { opacity: .4; transform: translateY(4px); } } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="side" aria-label="メインメニュー" id="sidenav"></nav>
+  <main class="main"><div class="wrap" id="view"></div></main>
+</div>
+<nav class="bottom" aria-label="下部メニュー" id="bottomnav"></nav>
+
+<script>
+"use strict";
+// ---------- データ（このブラウザにだけ保存） ----------
+const KEY = "affiliate-pilot-simple-v1";
+let COURSES = [];
+const COURSES_URL = "./courses.json";
+let coursesError = false;
+fetch(COURSES_URL).then((r) => r.json()).then((d) => { COURSES = d; render(); }).catch(() => { coursesError = true; render(); });
+const PLATFORMS = { blog: "ブログ", instagram: "Instagram", x: "X（旧Twitter）", tiktok: "TikTok", youtube: "YouTube" };
+const OFFER_STATUS = { candidate: "候補", applied: "申請中", approved: "提携済み", rejected: "否認", paused: "停止" };
+const ASPS = ["A8.net", "もしもアフィリエイト", "afb（アフィb）", "バリューコマース", "アクセストレード", "Amazonアソシエイト", "楽天アフィリエイト", "その他"];
+const TERMS = {
+  clicks: ["クリック数", "あなたのリンクが押された回数。ASPの管理画面や計測リンクで分かります。"],
+  pending: ["発生報酬", "読者が申し込みや購入をして、ASPに「仮」の成果が記録された金額。まだ確定ではありません。"],
+  confirmed: ["確定報酬", "広告主が成果を認めて「承認」された金額。これが実際にもらえる金額です。"],
+  paid: ["入金額", "実際に口座へ振り込まれた金額。確定から1〜2か月後になることが多いです。"],
+  ctr: ["CTR（クリック率）", "クリック数 ÷ 表示回数。100人が見て2人が押せば 2%。"],
+  cvr: ["CVR（成約率）", "発生した成果の数 ÷ クリック数。目安は 1〜3%。"],
+  imp: ["表示回数", "投稿や記事が見られた回数。SNSの「インプレッション」「閲覧数」です。"],
+};
+let S = load();
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) return JSON.parse(raw); } catch (e) {}
+  return { profile: null, tasks: {}, records: [], offers: [], drafts: [], progress: {}, flags: {} };
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const uid = () => Math.random().toString(36).slice(2, 10);
+const todayKey = (d = new Date()) => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 10); };
+const addDays = (k, n) => { const d = new Date(k + "T00:00:00"); d.setDate(d.getDate() + n); return todayKey(d); };
+const yen = (v) => v == null ? "未計測" : "¥" + Math.round(v).toLocaleString("ja-JP");
+const pct = (v, d = 1) => v == null ? "—" : (v * 100).toFixed(d) + "%";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+const sum = (arr, k) => { const xs = arr.map((r) => r[k]).filter((v) => v != null); return xs.length ? xs.reduce((a, b) => a + b, 0) : null; };
+const ratio = (a, b) => (a == null || b == null || b === 0) ? null : a / b;
+
+// ---------- 今日のタスク（ルールで決める） ----------
+function stage() {
+  if (!S.profile) return 1;
+  const days = Math.floor((new Date(todayKey() + "T00:00:00") - new Date(S.profile.started + "T00:00:00")) / 86400000);
+  return days < 14 ? 1 : days < 30 ? 2 : days < 60 ? 3 : 4;
+}
+function lessonsDone(courseId) { const c = COURSES.find((x) => x.id === courseId); return c ? c.lessons.filter((l) => S.progress[l.id]?.done).length : 0; }
+function buildTasks() {
+  const p = S.profile, t = [], add = (x) => t.push({ id: uid(), status: "todo", ...x });
+  const approved = S.offers.filter((o) => o.status === "approved").length;
+  const yesterday = addDays(todayKey(), -1);
+  const aspDone = lessonsDone("asp");
+  if (aspDone < 3) add({ title: "「ASP完全攻略」を1レッスン進める", desc: "ASPの仕組みが分かると、案件選びで迷わなくなります。", min: 15, go: "learn", pri: 1 });
+  if (S.offers.length < 3) add({ title: `ASPで案件を探し、候補を${3 - S.offers.length}件登録する`, desc: "報酬額や条件は、ASPの画面で確認した値だけを入力します。", min: 25, go: "offers", pri: 2 });
+  else if (!approved) add({ title: "候補の案件に提携申請し、結果を記録する", desc: "承認まで数日かかることがあります。承認後に広告リンクを取得します。", min: 15, go: "offers", pri: 2 });
+  if (approved || aspDone >= 3) add({ title: `${PLATFORMS[p.platform]}の投稿・記事を1本作る`, desc: "「投稿を作る」で下書き → チェック → 公開。", min: p.platform === "blog" ? 60 : 40, go: "make", pri: 2 });
+  if (!S.records.some((r) => r.date === yesterday) && (S.drafts.length || S.records.length)) add({ title: "昨日の数字（クリック・成果）を記録する", desc: "ASPとSNSの管理画面から転記。分からない値は空欄でOK。", min: 10, go: "record", pri: 2 });
+  if (new Date().getDay() === 1 && S.records.length >= 3) add({ title: "1週間を振り返り、来週の重点を決める", desc: "「成果を記録」の14日グラフで、伸びた日・伸びなかった日を見比べます。", min: 20, go: "record", pri: 2 });
+  if (S.records.length >= 7) add({ title: "クリック率の低い投稿を1つ直す", desc: "リンクの位置や、行動をうながす一文を変えて様子を見ます。", min: 25, go: "make", pri: 3 });
+  add({ title: "攻略大学で1レッスン学ぶ", desc: "いまの段階に合う講座から進めましょう。", min: 15, go: "learn", pri: 4 });
+  t.sort((a, b) => a.pri - b.pri);
+  const out = []; let used = 0;
+  for (const x of t) { if (out.length >= 4) break; if (used + x.min <= p.minutes || out.length === 0) { out.push(x); used += x.min; } }
+  return out;
+}
+function todayTasks() {
+  const k = todayKey();
+  if (!S.tasks[k]) { S.tasks = { [k]: buildTasks() }; save(); }
+  return S.tasks[k];
+}
+
+// ---------- 画面 ----------
+const NAV = [["home", "ホーム"], ["learn", "学ぶ"], ["make", "投稿を作る"], ["record", "成果を記録"], ["offers", "案件"], ["settings", "設定"]];
+const ICON = { home: "M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z", learn: "M12 3l10 5-10 5L2 8l10-5zm-6 9v4c0 1 3 3 6 3s6-2 6-3v-4", make: "M4 20h4l10-10-4-4L4 16v4zm10-14l4 4", record: "M4 20V10m6 10V4m6 16v-7", offers: "M3 7h18v12H3zM3 11h18M8 7V5h8v2", settings: "M12 8a4 4 0 100 8 4 4 0 000-8zm8 4l2-1-1-3-2 0-1-2 1-2-2-2-2 1-2-1 0-2H9l0 2-2 1-2-1-2 2 1 2-1 2-2 0-1 3 2 1 0 2-1 2 2 2 2-1 2 1 0 2h6l0-2 2-1 2 1 2-2-1-2 1-2 2 0 1-3-2-1z" };
+const svg = (k) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="${ICON[k]}"/></svg>`;
+let route = "home", sub = null;
+function nav() {
+  const cur = route === "lesson" ? "learn" : route;
+  document.getElementById("sidenav").innerHTML = `<div class="brand"><svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2" opacity=".55"/><path d="M16 5 L20 16 L16 27 L12 16 Z" fill="var(--accent)"/><path d="M5 16 L16 12 L27 16 L16 20 Z" fill="currentColor" opacity=".9"/></svg><span>Affiliate Pilot<small>かんたん版・ブラウザで動く</small></span></div>`
+    + NAV.map(([k, l]) => `<a href="#${k}" ${cur === k ? 'aria-current="page"' : ""}>${svg(k)}${l}</a>`).join("")
+    + `<div class="foot">データはこのブラウザの中にだけ保存されます</div>`;
+  document.getElementById("bottomnav").innerHTML = NAV.filter(([k]) => k !== "settings").map(([k, l]) => `<a href="#${k}" ${cur === k ? 'aria-current="page"' : ""}>${svg(k)}${l.replace("投稿を作る", "作る").replace("成果を記録", "記録")}</a>`).join("");
+}
+function go(r, s) { sub = s ?? null; if (location.hash !== "#" + r) location.hash = r; else render(); }
+function render() {
+  route = (location.hash || "#home").slice(1); if (!NAV.some(([k]) => k === route) && route !== "lesson") route = "home";
+  nav();
+  const v = document.getElementById("view");
+  if (!S.profile && route !== "settings") { v.innerHTML = onboarding(); bind(v); window.scrollTo(0, 0); return; }
+  v.innerHTML = { home, learn, lesson, make, record, offers, settings }[route]();
+  bind(v); window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", render);
+
+function onboarding() {
+  return `<div class="top"><div><h1>はじめに、目標を決めましょう</h1><p>3つ答えるだけ。あとから設定でいつでも変えられます。</p></div></div>
+  <form class="card" id="ob" style="display:flex;flex-direction:column;gap:14px">
+    <label class="f">月にいくら稼ぎたい？（円）<input id="ob-goal" type="number" min="1000" step="1000" value="50000" required><span class="hint">最初は 5万円 がおすすめ。現実的で、達成すると次が見えます。</span></label>
+    <label class="f">1日に使える時間（分）<input id="ob-min" type="number" min="15" step="15" value="90" required></label>
+    <div class="grid2">
+      <label class="f">メインで使う媒体<select id="ob-pf">${Object.entries(PLATFORMS).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></label>
+      <label class="f">ジャンル（決まっていなければ空欄でOK）<input id="ob-niche" placeholder="例: 宅トレ、転職、サブスク"></label>
+    </div>
+    <button class="btn primary big" type="submit" style="align-self:flex-start">90日プランを作って始める</button>
+  </form>
+  <p class="small muted">このブラウザ版は、入力したデータをあなたのブラウザの中にだけ保存します。別の端末には引き継がれません。</p>`;
+}
+
+function home() {
+  const p = S.profile, st = stage(), tasks = todayTasks();
+  const labels = ["土台づくり", "案件を選ぶ", "発信する", "改善する"];
+  const todo = tasks.filter((t) => t.status === "todo"), next = todo[0], rest = tasks.filter((t) => t !== next), done = tasks.filter((t) => t.status === "done").length;
+  const m = todayKey().slice(0, 7), mrec = S.records.filter((r) => r.date.startsWith(m));
+  const confirmed = sum(mrec, "confirmed"), rate = p.goal ? (confirmed ?? 0) / p.goal : 0;
+  return `<div class="top"><div><h1>ホーム</h1><p>${p.niche ? esc(p.niche) + "・" : ""}${PLATFORMS[p.platform]}・1日 ${p.minutes}分</p></div><a class="btn" href="#settings">設定</a></div>
+  <ol class="stages" aria-label="いまの段階">${labels.map((l, i) => `<li class="${i + 1 < st ? "done" : i + 1 === st ? "now" : ""}"><small>${i + 1 < st ? "済み" : i + 1 === st ? "いまここ" : (i + 1) + "段階目"}</small>${l}</li>`).join("")}</ol>
+  <section class="card hero">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">今日やること</h2><span class="small muted">${done}/${tasks.length}件 完了</span></div>
+    ${next ? `<p class="eyebrow" style="margin:12px 0 0">今日の1歩</p><h2>${esc(next.title)}</h2><p class="desc">${esc(next.desc)}</p>
+      <div class="row"><button class="btn primary big" data-go="${next.go}">これをやる →</button><button class="btn big" data-done="${next.id}">✓ できた</button><button class="btn ghost" data-skip="${next.id}">今日は見送る</button><span class="small muted">目安 ${next.min}分</span></div>`
+    : `<p style="margin:12px 0 0;background:var(--good-soft);padding:12px;border-radius:10px"><strong>今日の分は終わりました。</strong>おつかれさまでした。余裕があれば「学ぶ」で1レッスン進めるのもおすすめです。</p>`}
+    ${rest.length ? `<details style="margin-top:14px" ${!next || done ? "open" : ""}><summary class="small muted" style="cursor:pointer">そのほかの今日のタスク（${rest.length}件）</summary><ul class="tasks">${rest.map((t) => `<li class="${t.status}"><button data-toggle="${t.id}" aria-label="${t.status === "done" ? "未完了に戻す" : "完了にする"}">${t.status === "done" ? "☑" : "☐"}</button><div class="t">${esc(t.title)}<small>${esc(t.desc)} ・ 目安${t.min}分</small></div><a href="#${t.go}" class="small">開く</a></li>`).join("")}</ul></details>` : ""}
+  </section>
+  <section class="card"><h2>今月の成果</h2>
+    <div class="row" style="justify-content:space-between"><span class="muted">確定した報酬 ${term("confirmed")}</span><strong style="font-size:30px;font-variant-numeric:tabular-nums">${yen(confirmed)}</strong></div>
+    <div class="bar" role="progressbar" aria-label="目標達成率" aria-valuenow="${Math.round(rate * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, rate * 100)}%"></i></div>
+    <p class="small muted" style="margin:8px 0 0">目標 ${yen(p.goal)}（達成率 ${pct(rate, 0)}）。${(confirmed ?? 0) < p.goal ? "あと " + yen(p.goal - (confirmed ?? 0)) + "。" : "目標に到達しました。"}報酬は、申し込みが「承認」されてから確定します。</p>
+    ${tips()}
+  </section>
+  <div class="linkcards"><a href="#learn"><strong>学ぶ</strong><span>用語や手順が分からないとき</span></a><a href="#make"><strong>投稿を作る</strong><span>テンプレで下書きを作る</span></a><a href="#record"><strong>成果を記録</strong><span>昨日の数字を入れる</span></a></div>`;
+}
+function tips() {
+  const r = S.records.slice(-14), clicks = sum(r, "clicks"), imp = sum(r, "imp"), conv = sum(r, "conv"), ctr = ratio(clicks, imp), cvr = ratio(conv, clicks);
+  const out = [];
+  if (ctr != null && ctr < 0.01) out.push("クリック率が1%未満です。リンクを文章の前半にも置く、行動をうながす一文（「公式サイトで料金を見る」など）を添えると改善しやすいです。");
+  if (cvr != null && cvr < 0.005 && clicks >= 50) out.push("クリックはあるのに成果が少ない状態です。案件の成果条件（無料登録か購入か）と、投稿の内容が合っているか見直しましょう。");
+  if (!S.offers.some((o) => o.status === "approved") && S.records.length) out.push("提携済みの案件がまだありません。「案件」で申請状況を更新しましょう。");
+  return out.length ? `<div class="note" style="margin-top:12px"><strong>改善のヒント</strong><ul style="margin:4px 0 0;padding-left:18px">${out.map((x) => `<li>${x}</li>`).join("")}</ul></div>` : "";
+}
+const term = (k) => `<button type="button" class="term" data-term="${k}" aria-label="${TERMS[k][0]}の説明">?</button>`;
+
+function learn() {
+  if (sub) { const c = COURSES.find((x) => x.id === sub); return `<div class="top"><div><h1>${esc(c.title)}</h1><p>${c.level}・全${c.lessons.length}レッスン・${lessonsDone(c.id)}完了</p></div><button class="btn" data-go="learn">← 講座一覧</button></div>
+    <p class="muted small" style="margin:0">${esc(c.summary)}</p>
+    <ul class="lessons">${c.lessons.map((l, i) => `<li><button class="${S.progress[l.id]?.done ? "done" : ""}" data-lesson="${l.id}"><span class="n">${S.progress[l.id]?.done ? "✓" : i + 1}</span><span style="flex:1">${esc(l.title)}</span><span class="small muted">${l.min}分</span></button></li>`).join("")}</ul>`; }
+  if (!COURSES.length) return `<div class="top"><div><h1>学ぶ</h1></div></div><p class="muted">${coursesError ? "講座データを読み込めませんでした。インターネット接続を確認して、ページを再読み込みしてください。" : "講座データを読み込んでいます…"}</p>`;
+  return `<div class="top"><div><h1>学ぶ</h1><p>8講座・57レッスン。上から順に進めるのがおすすめです。</p></div></div>
+  <div class="courses">${COURSES.map((c) => { const d = lessonsDone(c.id); return `<button data-course="${c.id}"><span class="row" style="justify-content:space-between"><strong>${c.no}. ${esc(c.title)}</strong><span class="pill ${d === c.lessons.length ? "good" : d ? "acc" : ""}">${d}/${c.lessons.length}</span></span><span class="small muted">${esc(c.summary.slice(0, 60))}…</span><span class="bar" style="height:6px"><i style="width:${d / c.lessons.length * 100}%"></i></span></button>`; }).join("")}</div>`;
+}
+function lesson() {
+  let c, l, idx; for (const co of COURSES) { const i = co.lessons.findIndex((x) => x.id === sub); if (i >= 0) { c = co; l = co.lessons[i]; idx = i; } }
+  if (!l) { sub = null; return learn(); }
+  const nxt = c.lessons[idx + 1], done = S.progress[l.id]?.done;
+  const body = l.body.map((b) => b.type === "h" ? `<h3>${md(b.text)}</h3>` : b.type === "p" ? `<p>${md(b.text)}</p>` : `<${b.type}>${b.items.map((x) => `<li>${md(x)}</li>`).join("")}</${b.type}>`).join("");
+  return `<div class="top"><div><p class="small muted" style="margin:0">${esc(c.title)}・${idx + 1}/${c.lessons.length}</p><h1>${esc(l.title)}</h1></div><button class="btn" data-course="${c.id}">← レッスン一覧</button></div>
+  <section class="card lesson"><h2>このレッスンでできるようになること</h2><ul>${l.objectives.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>${body}
+  ${l.cautions?.length ? `<div class="note" style="margin-top:14px"><strong>注意</strong><ul style="margin:4px 0 0;padding-left:18px">${l.cautions.map((x) => `<li>${md(x)}</li>`).join("")}</ul></div>` : ""}
+  ${l.glossary?.length ? `<details class="more" style="margin-top:14px"><summary>用語集（${l.glossary.length}語）</summary><div><dl style="margin:0">${l.glossary.map((g) => `<dt><strong>${esc(g.term)}</strong></dt><dd style="margin:0 0 6px;color:var(--muted)">${esc(g.definition)}</dd>`).join("")}</dl></div></details>` : ""}</section>
+  <form class="card quiz" id="quiz"><h2>確認クイズ（80%以上で完了）</h2>${l.quiz.map((q, qi) => `<fieldset style="border:0;padding:0;margin:0 0 12px"><legend style="font-weight:700">Q${qi + 1}. ${esc(q.question)}</legend><ul style="padding:0;margin:0">${q.choices.map((ch, ci) => `<li><label><input type="radio" name="q${qi}" value="${ci}" required>${esc(ch)}</label></li>`).join("")}</ul><p class="small muted" id="exp${qi}" hidden>${esc(q.explanation)}</p></fieldset>`).join("")}
+  <div class="row"><button class="btn primary" type="submit">採点する</button>${done ? '<span class="pill good">完了済み</span>' : ""}<span id="score" class="small"></span></div></form>
+  <div class="row">${nxt ? `<button class="btn" data-lesson="${nxt.id}">次のレッスン：${esc(nxt.title)} →</button>` : `<button class="btn" data-go="learn">講座一覧へ</button>`}${l.actions?.length ? `<a class="btn" href="#${l.actions[0].href?.includes("offers") ? "offers" : l.actions[0].href?.includes("content") ? "make" : l.actions[0].href?.includes("analytics") ? "record" : "home"}">${esc(l.actions[0].label)}</a>` : ""}</div>`;
+}
+
+// ---------- 投稿を作る（テンプレート。AIは使わない） ----------
+const TYPES = { ig: "Instagram キャプション", x: "X の投稿", blog: "ブログ記事の書き出し", cta: "行動をうながす一文（CTA）" };
+function generate(type, o, target, point) {
+  const name = o ? o.name : "この商品", tgt = target || "気になっている人", pt = point || "（根拠資料で確認した特徴をここに）";
+  const pr = "#PR ";
+  if (type === "x") return `${pr}${tgt}へ。${name}を使ってみた正直な感想。\n\n良かった点：${pt}\n気になった点：（正直に書く）\n\n詳しくはプロフィールのリンクから。`;
+  if (type === "blog") return `${pr}【この記事は広告（アフィリエイトリンク）を含みます】\n\n「${tgt}」なら、${name}が選択肢に入ります。この記事では、公式情報と自分で使った範囲で分かったことだけをまとめます。\n\n## 結論\n${pt}\n\n## 向いている人・向いていない人\n- 向いている人：\n- 向いていない人：\n\n## 料金と始め方（公式サイトで確認した内容）\n`;
+  if (type === "cta") return `公式サイトで料金と条件を確認する →（${name}）`;
+  return `${pr}${tgt}に向けて、${name}を紹介します。\n\n✔ ${pt}\n✔（2つ目の特徴）\n✔（3つ目の特徴）\n\n気になった点も正直に：\n（ここに書く）\n\n詳しくはプロフィールのリンクから。\n#${(S.profile.niche || "暮らし").replace(/\s/g, "")} #PR`;
+}
+function lint(text) {
+  const out = [];
+  out.push(/#PR|広告|プロモーション/.test(text) ? ["ok", "広告であることの表記（#PR など）があります"] : ["ng", "「#PR」や「広告を含みます」の表記がありません（ステマ規制）"]);
+  const ng = ["絶対", "必ず", "100%", "確実に", "誰でも稼げる", "痩せる", "治る"].filter((w) => text.includes(w));
+  out.push(ng.length ? ["ng", "言い切り・効果を保証する表現があります：" + ng.join("、")] : ["ok", "言い切り・効果保証の表現はありません"]);
+  out.push(/（.*?）/.test(text) ? ["ng", "（ ）の下書きメモが残っています。書き換えてください"] : ["ok", "書き換えメモは残っていません"]);
+  out.push(["ok", `${text.length}文字`]);
+  return out;
+}
+function make() {
+  const draft = sub && S.drafts.find((d) => d.id === sub);
+  return `<div class="top"><div><h1>投稿を作る</h1><p>型に当てはめて下書きを作り、チェックしてからコピーします。</p></div></div>
+  <form class="card" id="gen" style="display:flex;flex-direction:column;gap:12px">
+    <div class="grid2"><label class="f">作るもの<select id="g-type">${Object.entries(TYPES).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></label>
+    <label class="f">紹介する案件<select id="g-offer"><option value="">選ばない</option>${S.offers.map((o) => `<option value="${o.id}">${esc(o.name)}</option>`).join("")}</select><span class="hint">案件は「案件」画面で登録します</span></label></div>
+    <label class="f">誰に向けて？<input id="g-target" placeholder="例: 在宅勤務で運動不足の30代"></label>
+    <details class="more"><summary>くわしく指定する（特徴・根拠資料）</summary><div style="display:flex;flex-direction:column;gap:10px"><label class="f">いちばん伝えたい特徴<input id="g-point" placeholder="公式サイトや自分の体験で確認できること"></label><label class="f">根拠資料（メモ）<textarea id="g-ev" placeholder="料金、公式の説明、使ってみたメモ。ここに無い数字や効果は書かない。"></textarea></label></div></details>
+    <button class="btn primary big" type="submit" style="align-self:flex-start">下書きを作る</button>
+  </form>
+  <section class="card" id="out" ${draft ? "" : "hidden"}><h2>下書き</h2><textarea id="g-body" aria-label="下書き本文" style="min-height:200px">${esc(draft?.body ?? "")}</textarea>
+    <ul class="lint" id="lint" style="margin:8px 0;padding-left:18px"></ul>
+    <div class="row"><button class="btn primary" id="copy" type="button">本文をコピー</button><button class="btn" id="savedraft" type="button">保存する</button><span class="small muted">公開は各SNS・ブログで手動で行います（自動投稿はしません）</span></div></section>
+  ${S.drafts.length ? `<section class="card"><h2>保存した下書き（${S.drafts.length}件）</h2><ul class="tasks">${S.drafts.slice().reverse().map((d) => `<li><div class="t">${esc(d.title)}<small>${d.createdAt.slice(0, 10)}・${d.body.length}文字</small></div><button class="btn" data-opendraft="${d.id}">開く</button><button class="btn ghost" data-deldraft="${d.id}">削除</button></li>`).join("")}</ul></section>` : ""}`;
+}
+
+// ---------- 成果を記録 ----------
+function record() {
+  const m = todayKey().slice(0, 7), mrec = S.records.filter((r) => r.date.startsWith(m));
+  const clicks = sum(mrec, "clicks"), imp = sum(mrec, "imp"), conv = sum(mrec, "conv");
+  const days = Array.from({ length: 14 }, (_, i) => addDays(todayKey(), i - 13));
+  const series = days.map((d) => ({ d, v: sum(S.records.filter((r) => r.date === d), "confirmed") ?? 0, p: sum(S.records.filter((r) => r.date === d), "pending") ?? 0 }));
+  const max = Math.max(1, ...series.map((s) => Math.max(s.v, s.p)));
+  const W = 560, H = 150, bw = W / 14;
+  const chart = `<svg class="chart" viewBox="0 0 ${W + 10} ${H + 28}" role="img" aria-label="直近14日の発生報酬と確定報酬"><g font-size="10" fill="var(--muted)">${series.map((s, i) => `<rect x="${i * bw + 6}" y="${H - s.p / max * H}" width="${bw * .35}" height="${s.p / max * H}" fill="var(--c2)" opacity=".7"><title>${s.d} 発生 ${yen(s.p)}</title></rect><rect x="${i * bw + 6 + bw * .4}" y="${H - s.v / max * H}" width="${bw * .35}" height="${s.v / max * H}" fill="var(--accent)"><title>${s.d} 確定 ${yen(s.v)}</title></rect>${i % 3 === 0 ? `<text x="${i * bw + 6}" y="${H + 16}">${s.d.slice(5).replace("-", "/")}</text>` : ""}`).join("")}<line x1="0" x2="${W + 10}" y1="${H}" y2="${H}" stroke="var(--line)"/></g></svg><p class="small muted" style="margin:0"><span style="color:var(--c2)">■</span> 発生　<span style="color:var(--accent)">■</span> 確定　（最大 ${yen(max)}）</p>`;
+  return `<div class="top"><div><h1>成果を記録</h1><p>発生（仮）・確定（承認済み）・入金を分けて記録します。空欄は「未計測」として 0 と区別します。</p></div></div>
+  <div class="kpi"><div><span>確定報酬 ${term("confirmed")}</span><strong>${yen(sum(mrec, "confirmed"))}</strong><em>今月</em></div><div><span>発生報酬 ${term("pending")}</span><strong>${yen(sum(mrec, "pending"))}</strong><em>今月</em></div><div><span>クリック ${term("clicks")}</span><strong>${clicks ?? "未計測"}</strong><em>今月</em></div><div><span>CTR ${term("ctr")}</span><strong>${pct(ratio(clicks, imp))}</strong><em>クリック ÷ 表示</em></div><div><span>CVR ${term("cvr")}</span><strong>${pct(ratio(conv, clicks))}</strong><em>成約 ÷ クリック</em></div></div>
+  <section class="card"><h2>直近14日</h2>${S.records.length ? chart : '<p class="muted small" style="margin:0">記録がまだありません。下のフォームから昨日の数字を入れましょう。</p>'}</section>
+  <form class="card" id="rec" style="display:flex;flex-direction:column;gap:12px"><h2>記録する</h2>
+    <div class="grid2"><label class="f">日付<input id="r-date" type="date" value="${addDays(todayKey(), -1)}" required></label><label class="f">媒体<select id="r-pf">${Object.entries(PLATFORMS).map(([k, l]) => `<option value="${k}" ${k === S.profile.platform ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <label class="f">クリック数<input id="r-clicks" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">発生報酬（円）<input id="r-pending" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"><span class="hint">ASPの「発生」「未確定」の合計</span></label><label class="f">確定報酬（円）<input id="r-confirmed" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"><span class="hint">ASPで「承認」された分</span></label></div>
+    <details class="more"><summary>くわしく入力する（表示回数・成約数・入金額・メモ）</summary><div class="grid2"><label class="f">表示回数<input id="r-imp" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">発生した成約数<input id="r-conv" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">入金額（円）<input id="r-paid" type="number" min="0" inputmode="numeric" placeholder="空欄＝未計測"></label><label class="f">メモ<input id="r-note" maxlength="200"></label></div></details>
+    <button class="btn primary big" type="submit" style="align-self:flex-start">記録する</button><p class="small muted" style="margin:0">同じ日・同じ媒体の記録は上書きされます。</p></form>
+  ${S.records.length ? `<section class="card"><h2>記録一覧（新しい順）</h2><div class="tbl"><table><thead><tr><th>日付</th><th>媒体</th><th class="n">表示</th><th class="n">クリック</th><th class="n">成約</th><th class="n">発生</th><th class="n">確定</th><th class="n">入金</th><th></th></tr></thead><tbody>${S.records.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 60).map((r) => `<tr><td>${r.date}</td><td>${PLATFORMS[r.platform]}</td><td class="n">${r.imp ?? "—"}</td><td class="n">${r.clicks ?? "—"}</td><td class="n">${r.conv ?? "—"}</td><td class="n">${yen(r.pending).replace("未計測", "—")}</td><td class="n">${yen(r.confirmed).replace("未計測", "—")}</td><td class="n">${yen(r.paid).replace("未計測", "—")}</td><td><button class="btn ghost small" data-delrec="${r.id}">削除</button></td></tr>`).join("")}</tbody></table></div><p class="small muted">「—」は未計測（入力なし）。0 と区別しています。</p><button class="btn" id="csv" type="button">CSV形式でコピー</button></section>` : ""}`;
+}
+
+// ---------- 案件 ----------
+function offers() {
+  const o = sub && S.offers.find((x) => x.id === sub);
+  return `<div class="top"><div><h1>案件</h1><p>ASPで見つけた案件を登録して、提携状況を管理します。</p></div></div>
+  <form class="card" id="of" style="display:flex;flex-direction:column;gap:12px"><h2>${o ? "案件を編集" : "案件を登録"}</h2>${o ? `<input type="hidden" id="o-id" value="${o.id}">` : ""}
+    <label class="f">案件名（商品・サービス名）<input id="o-name" required maxlength="80" value="${esc(o?.name ?? "")}" placeholder="ASPに表示されている名前"></label>
+    <div class="grid2"><label class="f">ASP<select id="o-asp">${ASPS.map((a) => `<option ${o?.asp === a ? "selected" : ""}>${a}</option>`).join("")}</select></label><label class="f">1件の報酬（円）<input id="o-amount" type="number" min="0" inputmode="numeric" value="${o?.amount ?? ""}"><span class="hint">ASPで確認した値だけ</span></label><label class="f">提携状態<select id="o-status">${Object.entries(OFFER_STATUS).map(([k, l]) => `<option value="${k}" ${o?.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+    <details class="more" ${o?.note || o?.cond ? "open" : ""}><summary>くわしく入力する（成果条件・承認率・メモ）</summary><div style="display:flex;flex-direction:column;gap:10px"><label class="f">成果条件<input id="o-cond" value="${esc(o?.cond ?? "")}" placeholder="例: 新規の無料会員登録完了"></label><label class="f">承認率（%・ASPに表示があれば）<input id="o-appr" type="number" min="0" max="100" value="${o?.appr ?? ""}"></label><label class="f">メモ<input id="o-note" value="${esc(o?.note ?? "")}" placeholder="NG表現、特別単価の条件など"></label></div></details>
+    <div class="row"><button class="btn primary" type="submit">${o ? "更新する" : "登録する"}</button>${o ? '<button class="btn ghost" type="button" data-go="offers">キャンセル</button>' : ""}</div></form>
+  ${S.offers.length ? `<section class="card"><h2>登録した案件（${S.offers.length}件）</h2><div class="tbl"><table><thead><tr><th>案件</th><th>ASP</th><th class="n">報酬</th><th class="n">承認率</th><th>状態</th><th></th></tr></thead><tbody>${S.offers.map((x) => `<tr><td>${esc(x.name)}${x.cond ? `<br><span class="small muted">${esc(x.cond)}</span>` : ""}</td><td>${esc(x.asp)}</td><td class="n">${x.amount != null ? yen(x.amount) : "—"}</td><td class="n">${x.appr != null ? x.appr + "%" : "—"}</td><td><span class="pill ${x.status === "approved" ? "good" : x.status === "applied" ? "acc" : ""}">${OFFER_STATUS[x.status]}</span></td><td class="row"><button class="btn ghost" data-editoffer="${x.id}">編集</button><button class="btn ghost" data-deloffer="${x.id}">削除</button></td></tr>`).join("")}</tbody></table></div></section>` : '<p class="muted small">まだ案件がありません。ASPの管理画面で「ジャンル」で検索し、気になる案件を3件登録するところから始めましょう。</p>'}`;
+}
+
+// ---------- 設定 ----------
+function settings() {
+  const p = S.profile || { goal: 50000, minutes: 90, platform: "instagram", niche: "", started: todayKey() };
+  return `<div class="top"><div><h1>設定</h1></div></div>
+  <form class="card" id="st" style="display:flex;flex-direction:column;gap:12px"><h2>目標とペース</h2><div class="grid2"><label class="f">月の目標（円）<input id="s-goal" type="number" min="1000" step="1000" value="${p.goal}" required></label><label class="f">1日に使える時間（分）<input id="s-min" type="number" min="15" step="15" value="${p.minutes}" required></label><label class="f">メインの媒体<select id="s-pf">${Object.entries(PLATFORMS).map(([k, l]) => `<option value="${k}" ${k === p.platform ? "selected" : ""}>${l}</option>`).join("")}</select></label><label class="f">ジャンル<input id="s-niche" value="${esc(p.niche)}"></label><label class="f">開始日（段階の計算に使います）<input id="s-start" type="date" value="${p.started}"></label></div><button class="btn primary" type="submit" style="align-self:flex-start">保存する</button></form>
+  <section class="card"><h2>データの持ち出し・引き継ぎ</h2><p class="small muted" style="margin:0 0 8px">データはこのブラウザの中にだけあります。別の端末やPC版アプリに移すときは、下の文字列をコピーして貼り付けてください。</p><div class="row"><button class="btn" id="exp" type="button">JSONをコピー</button><button class="btn" id="impbtn" type="button">貼り付けて読み込む</button></div><textarea id="imp" hidden placeholder="ここにJSONを貼り付けて、もう一度「貼り付けて読み込む」を押す"></textarea></section>
+  <section class="card"><h2>最初からやり直す</h2><p class="small muted" style="margin:0 0 8px">すべての記録・案件・下書き・学習の進み具合を消します。元に戻せません。</p><button class="btn" id="reset1" type="button">全データを削除…</button><div class="row" id="reset2" hidden><span class="small">本当に削除しますか？</span><button class="btn" id="reset3" type="button" style="color:var(--bad)">はい、削除する</button><button class="btn ghost" id="reset4" type="button">やめる</button></div></section>
+  <p class="small muted">PC版（Affiliate Pilot AI）では、ローカルAI（Ollama）による相談・自動化、ロードマップ、アカウント診断などの全機能が使えます。</p>`;
+}
+
+// ---------- 操作 ----------
+const $ = (id) => document.getElementById(id);
+const num = (id) => { const v = $(id)?.value; return v === "" || v == null ? null : Number(v); };
+function toast(msg) { document.querySelectorAll(".toast").forEach((x) => x.remove()); const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 1800); }
+async function copy(text) { try { await navigator.clipboard.writeText(text); toast("コピーしました"); } catch (e) { const ta = $("g-body") || document.createElement("textarea"); if (!ta.isConnected) { ta.value = text; document.body.appendChild(ta); } ta.select(); toast("選択しました。Ctrl+C / ⌘C でコピーしてください"); } }
+function bind(v) {
+  v.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
+  v.querySelectorAll("[data-course]").forEach((b) => b.onclick = () => go("learn", b.dataset.course));
+  v.querySelectorAll("[data-lesson]").forEach((b) => b.onclick = () => go("lesson", b.dataset.lesson));
+  v.querySelectorAll("[data-term]").forEach((b) => b.onclick = (e) => showTerm(b, e));
+  const tk = S.profile ? todayTasks() : [], setT = (id, st) => { const t = tk.find((x) => x.id === id); if (t) { t.status = st; save(); render(); if (st === "done") toast("おつかれさま！1歩進みました"); } };
+  v.querySelectorAll("[data-done]").forEach((b) => b.onclick = () => setT(b.dataset.done, "done"));
+  v.querySelectorAll("[data-skip]").forEach((b) => b.onclick = () => setT(b.dataset.skip, "skipped"));
+  v.querySelectorAll("[data-toggle]").forEach((b) => b.onclick = () => { const t = tk.find((x) => x.id === b.dataset.toggle); setT(t.id, t.status === "done" ? "todo" : "done"); });
+  if ($("ob")) $("ob").onsubmit = (e) => { e.preventDefault(); S.profile = { goal: num("ob-goal"), minutes: num("ob-min"), platform: $("ob-pf").value, niche: $("ob-niche").value.trim(), started: todayKey() }; S.tasks = {}; save(); toast("準備ができました。今日の1歩から始めましょう"); render(); };
+  if ($("st")) $("st").onsubmit = (e) => { e.preventDefault(); S.profile = { ...(S.profile || {}), goal: num("s-goal"), minutes: num("s-min"), platform: $("s-pf").value, niche: $("s-niche").value.trim(), started: $("s-start").value || todayKey() }; S.tasks = {}; save(); toast("保存しました"); render(); };
+  if ($("quiz")) $("quiz").onsubmit = (e) => { e.preventDefault(); const l = COURSES.flatMap((c) => c.lessons).find((x) => x.id === sub); let ok = 0; l.quiz.forEach((q, i) => { const a = Number(new FormData($("quiz")).get("q" + i)); $("exp" + i).hidden = false; $("exp" + i).style.color = a === q.answer ? "var(--good)" : "var(--bad)"; if (a === q.answer) ok++; }); const sc = ok / l.quiz.length; $("score").textContent = `${ok}/${l.quiz.length} 正解（${Math.round(sc * 100)}%）`; if (sc >= 0.8) { S.progress[l.id] = { done: true, score: sc, at: todayKey() }; save(); toast("レッスン完了！"); $("score").insertAdjacentHTML("beforebegin", '<span class="pill good">完了</span>'); } else toast("もう一度本文を読んで挑戦してみましょう"); };
+  if ($("gen")) { $("gen").onsubmit = (e) => { e.preventDefault(); const o = S.offers.find((x) => x.id === $("g-offer").value); $("g-body").value = generate($("g-type").value, o, $("g-target").value.trim(), $("g-point").value.trim()); $("out").hidden = false; runLint(); $("out").scrollIntoView({ behavior: "smooth" }); };
+    $("g-body").oninput = runLint; if (!$("out").hidden) runLint();
+    $("copy").onclick = () => copy($("g-body").value);
+    $("savedraft").onclick = () => { const body = $("g-body").value; if (!body.trim()) return toast("本文が空です"); const ex = sub && S.drafts.find((d) => d.id === sub); if (ex) ex.body = body; else S.drafts.push({ id: uid(), title: TYPES[$("g-type").value] + (body.split("\n")[0] ? "：" + body.split("\n")[0].slice(0, 24) : ""), body, createdAt: new Date().toISOString() }); save(); toast("保存しました"); render(); };
+    v.querySelectorAll("[data-opendraft]").forEach((b) => b.onclick = () => go("make", b.dataset.opendraft));
+    v.querySelectorAll("[data-deldraft]").forEach((b) => b.onclick = () => { S.drafts = S.drafts.filter((d) => d.id !== b.dataset.deldraft); if (sub === b.dataset.deldraft) sub = null; save(); render(); }); }
+  if ($("rec")) { $("rec").onsubmit = (e) => { e.preventDefault(); const r = { id: uid(), date: $("r-date").value, platform: $("r-pf").value, clicks: num("r-clicks"), pending: num("r-pending"), confirmed: num("r-confirmed"), imp: num("r-imp"), conv: num("r-conv"), paid: num("r-paid"), note: $("r-note").value.trim() }; if (!r.date) return; S.records = S.records.filter((x) => !(x.date === r.date && x.platform === r.platform)); S.records.push(r); save(); toast("記録しました"); render(); };
+    v.querySelectorAll("[data-delrec]").forEach((b) => b.onclick = () => { S.records = S.records.filter((r) => r.id !== b.dataset.delrec); save(); render(); });
+    if ($("csv")) $("csv").onclick = () => copy(["日付,媒体,表示回数,クリック数,成約数,発生報酬,確定報酬,入金額,メモ", ...S.records.map((r) => [r.date, PLATFORMS[r.platform], r.imp, r.clicks, r.conv, r.pending, r.confirmed, r.paid, r.note].map((x) => x ?? "").join(","))].join("\n")); }
+  if ($("of")) { $("of").onsubmit = (e) => { e.preventDefault(); const o = { id: $("o-id")?.value || uid(), name: $("o-name").value.trim(), asp: $("o-asp").value, amount: num("o-amount"), status: $("o-status").value, cond: $("o-cond").value.trim(), appr: num("o-appr"), note: $("o-note").value.trim() }; const i = S.offers.findIndex((x) => x.id === o.id); if (i >= 0) S.offers[i] = o; else S.offers.push(o); sub = null; save(); toast(i >= 0 ? "更新しました" : "登録しました"); render(); };
+    v.querySelectorAll("[data-editoffer]").forEach((b) => b.onclick = () => go("offers", b.dataset.editoffer));
+    v.querySelectorAll("[data-deloffer]").forEach((b) => b.onclick = () => { S.offers = S.offers.filter((o) => o.id !== b.dataset.deloffer); save(); render(); }); }
+  if ($("exp")) { $("exp").onclick = () => copy(JSON.stringify(S)); $("impbtn").onclick = () => { const ta = $("imp"); if (ta.hidden) { ta.hidden = false; ta.focus(); return; } try { const d = JSON.parse(ta.value); if (!d || typeof d !== "object" || !("records" in d)) throw 0; S = { profile: null, tasks: {}, records: [], offers: [], drafts: [], progress: {}, flags: {}, ...d }; save(); toast("読み込みました"); render(); } catch (e) { toast("読み込めませんでした。JSONを確認してください"); } };
+    $("reset1").onclick = () => { $("reset2").hidden = false; }; $("reset4").onclick = () => { $("reset2").hidden = true; }; $("reset3").onclick = () => { S = { profile: null, tasks: {}, records: [], offers: [], drafts: [], progress: {}, flags: {} }; save(); toast("削除しました"); go("home"); }; }
+}
+function runLint() { $("lint").innerHTML = lint($("g-body").value).map(([c, m]) => `<li class="${c}">${c === "ok" ? "✓" : "！"} ${esc(m)}</li>`).join(""); }
+let pop;
+function showTerm(btn, e) { e.stopPropagation(); if (pop) pop.remove(); const [t, d] = TERMS[btn.dataset.term]; pop = document.createElement("div"); pop.className = "pop"; pop.setAttribute("role", "dialog"); pop.innerHTML = `<strong>${t}</strong><br>${d}`; document.body.appendChild(pop); const r = btn.getBoundingClientRect(); pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.left)) + "px"; pop.style.top = (r.bottom + 6) + "px"; }
+document.addEventListener("click", () => { if (pop) { pop.remove(); pop = null; } });
+render();
+</script>
+
+</body>
+</html>
