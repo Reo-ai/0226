@@ -30,6 +30,7 @@ export const SEGMENT_LABEL: Record<string, string> = {
   academy: "攻略大学",
   offers: "案件分析",
   compare: "案件比較",
+  asp: "ASP一覧",
   content: "コンテンツ工房",
   automation: "自動化センター",
   analytics: "収益分析",

@@ -14,6 +14,7 @@ import { Field } from "@/components/ui/label";
 import { EmptyState, ErrorNote } from "@/components/ui/states";
 import { addFactItem, deleteDraft, generateDraft, queueVideo, recordPublication, saveDraft, setDraftStatus, toggleCheck } from "@/lib/actions/content";
 import { CONTENT_TYPES, contentTypeLabel, DRAFT_STATUS, platformLabel, PLATFORMS } from "@/lib/constants";
+import { activeProvider } from "@/lib/ai";
 import { lintContent } from "@/lib/content";
 import { prisma } from "@/lib/db";
 import { fmtDateTime } from "@/lib/format";
@@ -40,6 +41,7 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
   const checks = current ? parseJson(contentChecksSchema, current.checks, { adDisclosure: false, userReviewed: false, facts: [] }) : null;
   const lint = current ? lintContent(`${current.title}\n${current.body}\n${current.cta}`) : null;
   const video = current?.videoResult ? parseJson(videoResultSchema, current.videoResult, {}) : null;
+  const ai = await activeProvider();
   const defaultType = CONTENT_TYPES.find((c) => c.platform === profile.platforms[0])?.id ?? "blog_outline";
 
   return (
@@ -178,6 +180,10 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
                 <Field label="文字数の目安" htmlFor="g-len"><Input id="g-len" name="length" inputMode="numeric" placeholder="空欄で種類に合わせる" /></Field>
               </div>
               <Field label="根拠資料" htmlFor="g-ev" hint="ここに書かれていない数字・効果は書きません"><Textarea id="g-ev" name="evidence" className="min-h-24" placeholder="公式サイトの説明、料金、自分の使用メモなど" /></Field>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" name="background" defaultChecked={ai.provider !== "fallback"} className="mt-0.5 size-4 accent-[var(--primary)]" />
+                <span>バックグラウンドで作る<span className="block text-xs text-muted-foreground">AIの応答を待たずに他の画面を使えます。自動化センターで進み具合の確認・キャンセルができます。</span></span>
+              </label>
               <SubmitButton pendingLabel="生成中…（ローカルAIは1〜2分かかることがあります）">下書きを作る</SubmitButton>
             </ActionForm>
           </CardContent>
@@ -193,7 +199,7 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
                 {drafts.map((d) => (
                   <li key={d.id}>
                     <Link href={`/content?id=${d.id}`} className={cn("flex flex-col gap-1 py-3 hover:bg-muted/50 rounded-md px-2 -mx-2", d.id === current?.id && "bg-muted")}>
-                      <span className="flex flex-wrap items-center gap-2"><strong className="text-sm">{d.title}</strong><Badge variant={d.status === "published" ? "success" : d.status === "approved" ? "default" : "secondary"}>{DRAFT_STATUS[d.status]}</Badge>{d.isDemo && <Badge variant="outline">デモ</Badge>}</span>
+                      <span className="flex flex-wrap items-center gap-2"><strong className="text-sm">{d.title}</strong><Badge variant={d.status === "published" ? "success" : d.status === "approved" ? "default" : "secondary"}>{DRAFT_STATUS[d.status]}</Badge>{d.isDemo && <Badge variant="outline">サンプル</Badge>}</span>
                       <span className="text-xs text-muted-foreground">{platformLabel(d.platform)}・{contentTypeLabel(d.contentType)}{d.offer && `・${d.offer.name}`}・{fmtDateTime(d.updatedAt)}{d._count.publications > 0 && `・公開${d._count.publications}件`}</span>
                     </Link>
                   </li>

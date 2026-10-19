@@ -1,8 +1,9 @@
-import { Trash2 } from "lucide-react";
+import { Loader2, RotateCcw, Square, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { z } from "zod";
 import { ActionForm } from "@/components/action-form";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { CopyButton } from "@/components/copy-button";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton } from "@/components/submit-button";
@@ -11,9 +12,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
-import { EmptyState } from "@/components/ui/states";
-import { approveJob, deleteJob, deleteTemplate, runJobAction, saveTemplate, setJobStatus, setRecommendationStatus } from "@/lib/actions/automation";
-import { improvementSchema, JOB_TYPES, weeklySchema } from "@/lib/automation";
+import { EmptyState, Notice } from "@/components/ui/states";
+import { approveJob, cancelJobAction, deleteJob, deleteTemplate, rerunJobAction, runJobAction, saveTemplate, setJobStatus, setRecommendationStatus } from "@/lib/actions/automation";
+import { improvementSchema, isRunning, JOB_TYPES, weeklySchema } from "@/lib/automation";
 import { CONTENT_TYPES, JOB_STATUS } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { fmtDateTime, minutesLabel, yen } from "@/lib/format";
@@ -38,11 +39,16 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
     getTemplates(),
   ]);
   const focus = sp.job ?? jobs.find((j) => j.status === "awaiting_review")?.id;
+  // 実行中＝このサーバーで処理中。開始済みで完了していないのに処理していないものは、再起動などで中断したもの
+  const stateOf = (j: (typeof jobs)[number]) => (isRunning(j.id) ? "running" : j.status === "draft" && j.startedAt && !j.completedAt && !j.result ? "interrupted" : j.status);
+  const anyRunning = jobs.some((j) => stateOf(j) === "running");
 
   return (
     <>
+      <AutoRefresh active={anyRunning} />
       <PageHeader title="自動化センター" description="計画・下書き・集計・改善案・週次レポートを自動で作ります。AIの出力は「確認待ち」になり、承認してから反映されます。SNSへの自動投稿はしません。" />
 
+      {sp.started === "content" && <Notice className="mb-4" message="コンテンツの下書きをバックグラウンドで作っています。完了すると下の履歴に「確認待ち」で表示されます。待つ間も他の画面を使えます。" />}
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {(["daily_tasks", "performance_rollup", "improvement", "weekly_report"] as const).map((t) => (
           <Card key={t}>
@@ -73,17 +79,19 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
           <CardContent>
             {jobs.length === 0 ? <EmptyState title="まだジョブはありません" description="上のボタンから実行できます。" /> : (
               <ul className="flex flex-col gap-3">
-                {jobs.map((j) => (
+                {jobs.map((j) => { const st = stateOf(j); return (
                   <li key={j.id}>
                     <details open={j.id === focus} className={cn("rounded-lg border", j.status === "awaiting_review" && "border-warning/60")}>
                       <summary className="flex cursor-pointer flex-wrap items-center gap-2 p-3">
                         <strong className="text-sm">{j.name}</strong>
-                        <Badge variant={statusVariant(j.status)}>{JOB_STATUS[j.status]}</Badge>
+                        {st === "running" ? <Badge variant="secondary"><Loader2 className="size-3 animate-spin" />実行中</Badge> : st === "interrupted" ? <Badge variant="warning">中断</Badge> : <Badge variant={statusVariant(j.status)}>{JOB_STATUS[j.status]}</Badge>}
                         <span className="ml-auto text-xs text-muted-foreground">{fmtDateTime(j.startedAt ?? j.createdAt)}</span>
                       </summary>
                       <div className="flex flex-col gap-3 border-t p-3 text-sm">
                         <JobResult jobType={j.jobType} result={j.result} />
-                        {j.errorMessage && <p className="text-destructive">エラー：{j.errorMessage}<br /><span className="text-muted-foreground">設定画面でAIの接続を確認するか、もう一度実行してください。</span></p>}
+                        {st === "running" && <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="size-4 animate-spin" />処理しています。この画面を離れても処理は続きます。</p>}
+                        {st === "interrupted" && <p className="text-warning">アプリの再起動などで処理が止まりました。「再実行」してください。</p>}
+                        {j.errorMessage && <p className="text-destructive">エラー：{j.errorMessage}<br /><span className="text-muted-foreground">設定画面でAIの接続を確認するか、「再実行」を押してください。</span></p>}
                         <dl className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                           <dt>開始</dt><dd>{fmtDateTime(j.startedAt)}</dd>
                           <dt>完了</dt><dd>{fmtDateTime(j.completedAt)}</dd>
@@ -94,6 +102,8 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
                           </ol>
                         )}
                         <div className="flex flex-wrap gap-2">
+                          {st === "running" && <form action={cancelJobAction}><input type="hidden" name="id" value={j.id} /><Button size="sm" variant="outline"><Square />キャンセル</Button></form>}
+                          {st !== "running" && <form action={rerunJobAction}><input type="hidden" name="id" value={j.id} /><Button size="sm" variant="outline"><RotateCcw />再実行</Button></form>}
                           {j.status === "awaiting_review" && (
                             <>
                               <form action={approveJob}><input type="hidden" name="id" value={j.id} /><Button size="sm">承認して反映</Button></form>
@@ -106,7 +116,7 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
                       </div>
                     </details>
                   </li>
-                ))}
+                ); })}
               </ul>
             )}
           </CardContent>

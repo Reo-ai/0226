@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CONTENT_TYPES, PLATFORM_IDS } from "../constants";
+import { runJob } from "../automation";
 import { generateContent, lintContent, platformOf } from "../content";
 import { prisma } from "../db";
 import { appBaseUrl } from "../env";
@@ -39,6 +40,11 @@ export async function generateDraft(_: ActionState, fd: FormData): Promise<Actio
   const link = offer?.trackingLinks[0];
   const linkUrl = link ? `${await appBaseUrl()}/go/${link.code}?ch=${platform}` : null;
 
+  // バックグラウンドで作る場合は自動化ジョブに任せ、すぐに戻る（キャンセル可能）
+  if (fd.get("background") === "on") {
+    await runJob("content_draft", { contentType: type, offerId: offer?.id ?? "", platform, inputs }, { background: true });
+    redirect("/automation?started=content");
+  }
   const r = await generateContent(type, inputs, offer ? { name: offer.name, conversionConditions: offer.conversionConditions, notes: offer.notes } : null, linkUrl);
   const lint = lintContent(`${r.data.title}\n${r.data.body}\n${r.data.cta}`);
   const draft = await prisma.contentDraft.create({

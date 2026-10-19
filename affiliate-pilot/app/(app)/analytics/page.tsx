@@ -99,6 +99,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           <Card className="lg:col-span-2"><CardHeader><CardTitle>日別クリック</CardTitle></CardHeader><CardContent><ClicksChart data={daily.map((d) => ({ label: d.date, clicks: d.clicks }))} /></CardContent></Card>
           <BreakdownCard title="媒体別" groups={byPlatform} />
           <BreakdownCard title="案件別" groups={byOffer} />
+          <WorkTimeCard weeks={byWeek(rows)} platforms={byPlatform} />
         </div>
       )}
 
@@ -152,7 +153,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               <tbody className="tabular">
                 {[...rows].reverse().slice(0, 200).map((x) => (
                   <tr key={x.id} className="border-b">
-                    <td className="p-2">{fmtDate(x.recordDate)}</td>
+                    <td className="p-2">{fmtDate(x.recordDate)}{x.isDemo && <span className="ml-1 rounded bg-warning/20 px-1 text-xs">サンプル</span>}</td>
                     <td className="p-2">{platformLabel(x.platform)}</td>
                     <td className="max-w-40 truncate p-2">{x.affiliateOfferId ? offerName(x.affiliateOfferId) : "—"}</td>
                     {RECORD_FIELDS.map(([k]) => <td key={k} className={cn("p-2 text-right", x[k] === null && "text-muted-foreground")}>{x[k] === null ? "—" : k.endsWith("Revenue") ? yen(x[k]) : num(x[k])}</td>)}
@@ -169,6 +170,32 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   );
 }
 
+/** 作業時間分析：週ごとの作業時間と、時間あたりの確定報酬が高い媒体 */
+function WorkTimeCard({ weeks, platforms }: { weeks: Group[]; platforms: Group[] }) {
+  const measured = weeks.filter((w) => w.totals.workMinutes !== null);
+  const best = [...platforms].filter((p) => p.rates.confirmedPerHour !== null).sort((a, b) => b.rates.confirmedPerHour! - a.rates.confirmedPerHour!)[0];
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader><CardTitle>作業時間分析</CardTitle><CardDescription>成果記録に作業時間（分）を入れると、時間の使い方を比べられます。</CardDescription></CardHeader>
+      <CardContent className="flex flex-col gap-3 text-sm">
+        {measured.length === 0 ? <p className="text-muted-foreground">作業時間がまだ記録されていません。</p> : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[480px]">
+              <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="p-2">週</th><th className="p-2 text-right">作業時間</th><th className="p-2 text-right">確定報酬</th><th className="p-2 text-right">1時間あたり確定</th><th className="p-2 text-right">発生報酬</th></tr></thead>
+              <tbody className="tabular">
+                {measured.map((w) => (
+                  <tr key={w.key} className="border-b"><th scope="row" className="p-2 text-left font-normal">{w.label}</th><td className="p-2 text-right">{minutesLabel(w.totals.workMinutes!)}</td><td className="p-2 text-right">{yen(w.totals.confirmedRevenue)}</td><td className="p-2 text-right">{yen(w.rates.confirmedPerHour)}</td><td className="p-2 text-right">{yen(w.totals.pendingRevenue)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {best && <p>時間あたりの確定報酬がいちばん高い媒体は<strong>{best.label}</strong>（{yen(best.rates.confirmedPerHour)}／時間）です。<span className="text-muted-foreground">記録された数字からの計算で、今後も同じ結果になるとは限りません。</span></p>}
+      </CardContent>
+    </Card>
+  );
+}
+
 function toBar(g: Group) {
   return { label: g.label, pending: g.totals.pendingRevenue, confirmed: g.totals.confirmedRevenue };
 }
@@ -179,8 +206,8 @@ function BreakdownCard({ title, groups }: { title: string; groups: Group[] }) {
     <Card>
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
       <CardContent className="overflow-x-auto">
-        <table className="w-full min-w-[480px] text-sm">
-          <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="p-2" /><th className="p-2 text-right">確定報酬</th><th className="p-2 text-right">発生報酬</th><th className="p-2 text-right">CTR</th><th className="p-2 text-right">CVR</th><th className="p-2 text-right">承認率</th></tr></thead>
+        <table className="w-full min-w-[640px] text-sm">
+          <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="p-2" /><th className="p-2 text-right">確定報酬</th><th className="p-2 text-right">発生報酬</th><th className="p-2 text-right">CTR</th><th className="p-2 text-right">CVR</th><th className="p-2 text-right">承認率</th><th className="p-2 text-right">作業時間</th><th className="p-2 text-right">1時間あたり確定</th></tr></thead>
           <tbody className="tabular">
             {sorted.map((g) => (
               <tr key={g.key} className="border-b">
@@ -190,6 +217,8 @@ function BreakdownCard({ title, groups }: { title: string; groups: Group[] }) {
                 <td className="p-2 text-right">{pct(g.rates.ctr, 2)}</td>
                 <td className="p-2 text-right">{pct(g.rates.cvr, 2)}</td>
                 <td className="p-2 text-right">{pct(g.rates.approvalRate, 0)}</td>
+                <td className="p-2 text-right">{g.totals.workMinutes === null ? "未計測" : minutesLabel(g.totals.workMinutes)}</td>
+                <td className="p-2 text-right">{yen(g.rates.confirmedPerHour)}</td>
               </tr>
             ))}
           </tbody>

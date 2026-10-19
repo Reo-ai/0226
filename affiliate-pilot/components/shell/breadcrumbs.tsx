@@ -16,7 +16,7 @@ export function Breadcrumbs({ labels = {} }: { labels?: Record<string, string> }
         {parts.map((p, i) => {
           const href = "/" + parts.slice(0, i + 1).join("/");
           // 攻略大学の講座ID・レッスンIDは各ページ内に名前を出すので、ここでは種類だけ表示する
-          const label = labels[p] ?? SEGMENT_LABEL[p] ?? (parts[0] === "academy" ? (i === 1 ? "講座" : "レッスン") : decodeURIComponent(p));
+          const label = labels[p] ?? SEGMENT_LABEL[p] ?? (parts[0] === "academy" ? (i === 1 ? "講座" : "レッスン") : parts[1] === "asp" && i === 2 ? "ASP攻略" : decodeURIComponent(p));
           const last = i === parts.length - 1;
           return (
             <li key={href} className="flex min-w-0 items-center gap-1">

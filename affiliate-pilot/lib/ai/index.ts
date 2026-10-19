@@ -3,9 +3,9 @@ import { getSetting } from "../settings";
 import { ClaudeProvider } from "./claude";
 import { FallbackProvider } from "./fallback";
 import { isAllowedOllamaUrl, OllamaProvider } from "./ollama";
-import { AIError, type AIProvider, type HealthStatus, type ProviderId } from "./types";
+import { AICancelledError, AIError, type AIProvider, type HealthStatus, type ProviderId } from "./types";
 
-export { AIError } from "./types";
+export { AICancelledError, AIError } from "./types";
 export type { AIProvider, HealthStatus, ProviderId } from "./types";
 
 export const aiConfigSchema = z.object({
@@ -57,13 +57,20 @@ export async function healthAll(): Promise<HealthStatus[]> {
   return Promise.all(chain.map((p) => p.healthCheck()));
 }
 
-/** ヘッダー表示用: 実際に使われるプロバイダー */
+const cache = globalThis as unknown as { __aiHealth?: { at: number; key: string; value: HealthStatus } };
+
+/** ヘッダー表示用: 実際に使われるプロバイダー（毎回の画面表示を遅くしないよう30秒キャッシュ） */
 export async function activeProvider(): Promise<HealthStatus> {
-  for (const p of await providerChain()) {
+  const cfg = await aiConfig();
+  const key = JSON.stringify(cfg);
+  if (cache.__aiHealth && cache.__aiHealth.key === key && Date.now() - cache.__aiHealth.at < 30_000) return cache.__aiHealth.value;
+  let value: HealthStatus = { provider: "fallback", ok: true, message: "AIなし（ルール・テンプレートで動作）" };
+  for (const p of await providerChain(cfg)) {
     const h = await p.healthCheck();
-    if (h.ok) return h;
+    if (h.ok) { value = h; break; }
   }
-  return { provider: "fallback", ok: true, message: "AIなし（ルール・テンプレートで動作）" };
+  cache.__aiHealth = { at: Date.now(), key, value };
+  return value;
 }
 
 /** すべてのAI機能で共通のルール（指示書 8章） */
@@ -99,19 +106,23 @@ export async function runAI<T>(opts: {
   schema: z.ZodType<T>;
   fallback: () => T | Promise<T>;
   maxTokens?: number;
+  signal?: AbortSignal;
 }): Promise<AIResult<T>> {
   const errors: string[] = [];
   for (const p of await providerChain()) {
     if (p.id === "fallback") break;
+    if (opts.signal?.aborted) throw new AICancelledError();
     try {
       const data = await p.generateStructuredOutput({
         system: `${opts.system}\n\n${COMMON_RULES}`,
         prompt: opts.prompt,
         schema: opts.schema,
         maxTokens: opts.maxTokens,
+        signal: opts.signal,
       });
       return { data, generatedBy: p.id, warning: null };
     } catch (e) {
+      if (e instanceof AICancelledError || opts.signal?.aborted) throw new AICancelledError();
       const msg = e instanceof AIError ? `${e.message}。${e.retryHint}` : "AIの呼び出しで予期しないエラーが起きました";
       if (!(e instanceof AIError)) console.error(e);
       errors.push(`${p.id}: ${msg}`);

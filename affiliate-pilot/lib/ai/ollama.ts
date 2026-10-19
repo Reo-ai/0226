@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { parseStructured } from "./json";
-import { AIError, type AIProvider, type HealthStatus, type StructuredRequest, type TextRequest } from "./types";
+import { AICancelledError, AIError, type AIProvider, type HealthStatus, type StructuredRequest, type TextRequest } from "./types";
 
 /** 通信先はローカル／LANのみ許可（外部サーバーに送らない） */
 export function isAllowedOllamaUrl(raw: string): boolean {
@@ -32,16 +32,17 @@ export class OllamaProvider implements AIProvider {
     if (!isAllowedOllamaUrl(baseUrl)) throw new AIError("Ollama の接続先はローカルまたは LAN 内のアドレスにしてください");
   }
 
-  private async post(path: string, body: unknown): Promise<unknown> {
+  private async post(path: string, body: unknown, cancel?: AbortSignal): Promise<unknown> {
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl.replace(/\/$/, "")}${path}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(this.timeoutMs),
+        signal: cancel ? AbortSignal.any([AbortSignal.timeout(this.timeoutMs), cancel]) : AbortSignal.timeout(this.timeoutMs),
       });
     } catch (e) {
+      if (cancel?.aborted) throw new AICancelledError();
       const timeout = e instanceof Error && e.name === "TimeoutError";
       throw new AIError(
         timeout ? "ローカルAIの応答が時間内に返りませんでした" : "ローカルAI（Ollama）に接続できませんでした",
@@ -67,7 +68,7 @@ export class OllamaProvider implements AIProvider {
         { role: "system", content: req.system },
         { role: "user", content: req.prompt },
       ],
-    })) as { message?: { content?: string } };
+    }, req.signal)) as { message?: { content?: string } };
     const text = data.message?.content?.trim();
     if (!text) throw new AIError("ローカルAIの応答が空でした");
     return text;
@@ -83,7 +84,7 @@ export class OllamaProvider implements AIProvider {
         { role: "system", content: `${req.system}\n\n出力はJSONのみ。説明文やコードブロックは付けないこと。` },
         { role: "user", content: req.prompt },
       ],
-    })) as { message?: { content?: string } };
+    }, req.signal)) as { message?: { content?: string } };
     return parseStructured(data.message?.content ?? "", req.schema);
   }
 

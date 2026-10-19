@@ -6,6 +6,8 @@ export type TextRequest = {
   system: string;
   prompt: string;
   maxTokens?: number;
+  /** ユーザーがキャンセルしたら中断する */
+  signal?: AbortSignal;
 };
 
 export type StructuredRequest<T> = TextRequest & {
@@ -26,6 +28,13 @@ export interface AIProvider {
   generateText(req: TextRequest): Promise<string>;
   generateStructuredOutput<T>(req: StructuredRequest<T>): Promise<T>;
   healthCheck(): Promise<HealthStatus>;
+}
+
+/** ユーザーによるキャンセル（フォールバックせずに止める） */
+export class AICancelledError extends Error {
+  constructor() {
+    super("キャンセルしました");
+  }
 }
 
 export class AIError extends Error {

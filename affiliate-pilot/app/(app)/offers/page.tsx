@@ -53,7 +53,13 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title="案件分析"
         description="ASP案件を登録・比較します。報酬額や条件はASPで確認した値だけを入力し、推測では埋めません。"
-        actions={<Link href="/offers/compare" className={buttonVariants({ variant: "outline" })}>案件を比較する</Link>}
+        actions={
+          <>
+            <Link href="/offers/asp" className={buttonVariants({ variant: "outline" })}>ASP一覧</Link>
+            <Link href="/offers/compare" className={buttonVariants({ variant: "outline" })}>案件を比較する</Link>
+            <a href="/api/offers/export" className={buttonVariants({ variant: "ghost" })}>CSVエクスポート</a>
+          </>
+        }
       />
 
       <form className="mb-4 flex flex-wrap items-end gap-2" role="search">
@@ -86,7 +92,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
                         <div className="flex flex-wrap items-center gap-2">
                           <CardTitle className="text-base">{o.name}</CardTitle>
                           <Badge variant={o.partnershipStatus === "approved" ? "success" : o.partnershipStatus === "rejected" ? "destructive" : "secondary"}>{OFFER_STATUS[o.partnershipStatus]}</Badge>
-                          {o.isDemo && <Badge variant="outline">デモ</Badge>}
+                          {o.isDemo && <Badge variant="outline">サンプル</Badge>}
                           {o.fitScore !== null && <Badge variant="outline">適合 {o.fitScore}点</Badge>}
                         </div>
                         <CardDescription>{o.network?.name ?? "ASP未選択"}{o.category && `・${o.category}`}{o.targetAudience && `・対象：${o.targetAudience}`}</CardDescription>

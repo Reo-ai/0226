@@ -1,9 +1,9 @@
-// 講座データの検証: npx tsx scripts/check-course.ts asp
+// 講座データの検証: npx tsx scripts/check-course.ts asp（教材は content/academy/）
 import { courseSchema } from "../lib/academy/schema";
 
 async function main() {
   const id = process.argv[2];
-  const mod = await import(`../lib/academy/courses/${id}.ts`);
+  const mod = await import(`../content/academy/${id}.ts`);
   const r = courseSchema.safeParse(mod.default);
   if (!r.success) {
     console.error(r.error.issues.slice(0, 20).map((i) => `${i.path.join(".")}: ${i.message}`).join("\n"));

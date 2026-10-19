@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { parseStructured } from "./json";
-import { AIError, type AIProvider, type HealthStatus, type StructuredRequest, type TextRequest } from "./types";
+import { AICancelledError, AIError, type AIProvider, type HealthStatus, type StructuredRequest, type TextRequest } from "./types";
 
 /** 任意: ANTHROPIC_API_KEY があるときだけ使う有料プロバイダー */
 export class ClaudeProvider implements AIProvider {
@@ -15,13 +15,14 @@ export class ClaudeProvider implements AIProvider {
         max_tokens: req.maxTokens ?? 3000,
         system: req.system,
         messages: [{ role: "user", content: req.prompt }],
-      });
+      }, { signal: req.signal });
       if (res.stop_reason === "refusal") throw new AIError("AIが生成を断りました。内容を変えて試してください");
       const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
       if (!text) throw new AIError("AIの応答が空でした");
       return text;
     } catch (e) {
       if (e instanceof AIError) throw e;
+      if (req.signal?.aborted) throw new AICancelledError();
       if (e instanceof Anthropic.APIError) throw new AIError(`Claude API エラー（${e.status ?? "network"}）`);
       throw e;
     }

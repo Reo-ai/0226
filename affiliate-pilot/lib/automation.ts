@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { dataBlock, runAI } from "./ai";
+import { AICancelledError, dataBlock, runAI } from "./ai";
 import { records } from "./analytics";
 import { platformLabel, type ContentType } from "./constants";
-import { generateContent, lintContent } from "./content";
+import { generateContent, lintContent, platformOf } from "./content";
 import { prisma } from "./db";
 import { addDays, jstDay, minutesLabel, pct, yen } from "./format";
 import { rates, totals, type Totals } from "./metrics";
@@ -21,26 +21,66 @@ export type JobType = keyof typeof JOB_TYPES;
 
 type Log = (action: string, result: string) => Promise<void>;
 
-/** ジョブを作成して実行する。失敗しても例外は投げず、failed として記録する */
-export async function runJob(jobType: JobType, payload: Record<string, unknown> = {}) {
-  const job = await prisma.automationJob.create({ data: { name: JOB_TYPES[jobType], jobType, payload: JSON.stringify(payload), status: "draft" } });
+/** 実行中ジョブのキャンセル用（このサーバープロセス内で管理） */
+const g = globalThis as unknown as { __jobControllers?: Map<string, AbortController> };
+const controllers = (g.__jobControllers ??= new Map());
+
+/** 実行中かどうか（開始済み・未完了・キャンセル可能） */
+export function isRunning(jobId: string) {
+  return controllers.has(jobId);
+}
+
+export function cancelJob(jobId: string): boolean {
+  const c = controllers.get(jobId);
+  if (!c) return false;
+  c.abort();
+  return true;
+}
+
+/**
+ * ジョブを作成して実行する。失敗しても例外は投げず、failed として記録する。
+ * background: true なら完了を待たずにIDを返す（AIの応答を待つ間も他の画面を操作できる）
+ */
+export async function runJob(jobType: JobType, payload: Record<string, unknown> = {}, opts: { background?: boolean } = {}) {
+  const job = await prisma.automationJob.create({ data: { name: JOB_TYPES[jobType], jobType, payload: JSON.stringify(payload), status: "draft", startedAt: new Date() } });
+  const controller = new AbortController();
+  controllers.set(job.id, controller);
   const log: Log = async (action, result) => {
     await prisma.automationLog.create({ data: { automationJobId: job.id, action, result: result.slice(0, 4000) } });
   };
-  await prisma.automationJob.update({ where: { id: job.id }, data: { startedAt: new Date() } });
-  try {
-    const { status, result } = await RUNNERS[jobType](payload, log);
-    await prisma.automationJob.update({ where: { id: job.id }, data: { status, result: JSON.stringify(result), completedAt: status === "completed" ? new Date() : null } });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    await log("エラー", message);
-    await prisma.automationJob.update({ where: { id: job.id }, data: { status: "failed", errorMessage: message.slice(0, 1000), completedAt: new Date() } });
-  }
+  const work = (async () => {
+    try {
+      const { status, result } = await RUNNERS[jobType](payload, log, controller.signal);
+      if (controller.signal.aborted) throw new AICancelledError();
+      await prisma.automationJob.update({ where: { id: job.id }, data: { status, result: JSON.stringify(result), completedAt: status === "completed" ? new Date() : null } });
+    } catch (e) {
+      const cancelled = e instanceof AICancelledError || controller.signal.aborted;
+      const message = cancelled ? "ユーザーがキャンセルしました" : e instanceof Error ? e.message : String(e);
+      await log(cancelled ? "キャンセル" : "エラー", message);
+      await prisma.automationJob.update({ where: { id: job.id }, data: { status: "failed", errorMessage: message.slice(0, 1000), completedAt: new Date() } });
+    } finally {
+      controllers.delete(job.id);
+    }
+  })();
+  if (!opts.background) await work;
   return job.id;
 }
 
+/** 同じ種類・同じ入力でもう一度実行する */
+export async function rerunJob(jobId: string, opts: { background?: boolean } = {}) {
+  const job = await prisma.automationJob.findUnique({ where: { id: jobId } });
+  if (!job || !(job.jobType in JOB_TYPES)) throw new Error("ジョブが見つかりません");
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = JSON.parse(job.payload);
+  } catch {
+    payload = {};
+  }
+  return runJob(job.jobType as JobType, payload, opts);
+}
+
 type RunResult = { status: "completed" | "awaiting_review"; result: unknown };
-const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log) => Promise<RunResult>> = {
+const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log, signal: AbortSignal) => Promise<RunResult>> = {
   // ワークフローA：毎日の作業計画
   async daily_tasks(_, log) {
     const profile = await getProfile();
@@ -54,21 +94,31 @@ const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log) => P
   },
 
   // ワークフローB：コンテンツ制作（下書き → ユーザー確認待ち）
-  async content_draft(payload, log) {
+  async content_draft(payload, log, signal) {
     const type = String(payload.contentType ?? "instagram_post") as ContentType;
     const offer = payload.offerId ? await prisma.affiliateOffer.findUnique({ where: { id: String(payload.offerId) } }) : null;
-    if (!offer) throw new Error("案件を選んでください");
-    await log("案件", offer.name);
-    const inputs = contentInputsSchema.parse({ product: offer.name, genre: offer.category, target: offer.targetAudience, appeal: "", evidence: offer.notes });
-    const r = await generateContent(type, inputs, { name: offer.name, conversionConditions: offer.conversionConditions, notes: offer.notes }, null);
+    if (payload.offerId && !offer) throw new Error("案件が見つかりません。削除された可能性があります");
+    // コンテンツ工房から渡された入力があれば使い、なければ案件の情報から作る
+    const given = contentInputsSchema.safeParse(payload.inputs ?? {});
+    const inputs = contentInputsSchema.parse({
+      ...(given.success ? given.data : {}),
+      product: (given.success && given.data.product) || offer?.name || "",
+      genre: (given.success && given.data.genre) || offer?.category || "",
+      target: (given.success && given.data.target) || offer?.targetAudience || "",
+      evidence: (given.success && given.data.evidence) || offer?.notes || "",
+    });
+    if (!inputs.product) throw new Error("案件を選ぶか、商品名を入力してください");
+    await log("入力", `${inputs.product}（${type}）`);
+    await log("生成", "AIに下書きを依頼しました（ローカルAIは1〜2分かかることがあります）");
+    const r = await generateContent(type, inputs, offer ? { name: offer.name, conversionConditions: offer.conversionConditions, notes: offer.notes } : null, null, signal);
     if (r.warning) await log("AI", r.warning);
     const lint = lintContent(`${r.data.title}\n${r.data.body}`);
     const draft = await prisma.contentDraft.create({
       data: {
-        platform: type.startsWith("blog") || type === "comparison_outline" ? "blog" : type.split("_")[0],
+        platform: String(payload.platform || "") || platformOf(type) || "blog",
         contentType: type, title: r.data.title, body: r.data.body, cta: r.data.cta, inputs: JSON.stringify(inputs),
         checks: JSON.stringify({ adDisclosure: false, userReviewed: false, facts: [...r.data.factCheckItems, ...lint.issues.map((x) => `注意表現：${x}`)].map((item) => ({ item, checked: false })) }),
-        affiliateOfferId: offer.id, status: "awaiting_review", generatedBy: r.generatedBy === "fallback" ? "template" : r.generatedBy,
+        affiliateOfferId: offer?.id ?? null, status: "awaiting_review", generatedBy: r.generatedBy === "fallback" ? "template" : r.generatedBy,
       },
     });
     await log("下書き", `「${draft.title}」を作成しました。公開前にコンテンツ工房で確認してください`);
@@ -87,7 +137,7 @@ const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log) => P
   },
 
   // ワークフローC：成果改善
-  async improvement(_, log) {
+  async improvement(_, log, signal) {
     const today = jstDay();
     const cur = await records(addDays(today, -13));
     const prev = (await records(addDays(today, -27))).filter((r) => r.recordDate < addDays(today, -13));
@@ -109,6 +159,7 @@ const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log) => P
       ].join("\n\n"),
       schema: improvementSchema,
       fallback: () => ({ facts, hypotheses: [], suggestions: rule }),
+      signal,
     });
     if (ai.warning) await log("AI", ai.warning);
     await log("改善案", `${ai.data.suggestions.length}件を作成しました（承認すると提案とタスクに反映）`);
@@ -116,7 +167,7 @@ const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log) => P
   },
 
   // ワークフローD：週次レポート
-  async weekly_report(_, log) {
+  async weekly_report(_, log, signal) {
     const profile = await getProfile();
     if (!profile) throw new Error("初期設定がまだです");
     const today = jstDay();
@@ -142,6 +193,7 @@ const RUNNERS: Record<JobType, (payload: Record<string, unknown>, log: Log) => P
         issues,
         nextWeek: ruleSuggestions(t, rows.length < 3).slice(0, 3).map((s) => s.title),
       }),
+      signal,
     });
     if (ai.warning) await log("AI", ai.warning);
     return {

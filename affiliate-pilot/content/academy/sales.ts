@@ -1,4 +1,4 @@
-import type { Course } from "../schema";
+import type { Course } from "../../lib/academy/schema";
 
 const course: Course = {
   id: "sales",

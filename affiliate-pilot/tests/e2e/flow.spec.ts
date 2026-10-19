@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import asp from "../../lib/academy/courses/asp";
+import asp from "../../content/academy/asp";
 
 test.describe.configure({ mode: "serial" });
 
@@ -123,7 +123,9 @@ test("11-12. 収益を記録し、グラフと改善提案を確認する", asyn
 
   await page.goto("/automation");
   await page.getByRole("button", { name: "実行する" }).nth(2).click(); // 改善案生成
-  await expect(page.getByText(/内容を確認して承認してください/)).toBeVisible();
+  await expect(page.getByText(/を開始しました/)).toBeVisible();
+  // バックグラウンドで終わると自動で画面が更新され、確認待ちになる
+  await expect(page.getByRole("button", { name: "承認して反映" }).first()).toBeVisible({ timeout: 20_000 });
   await page.getByRole("button", { name: "承認して反映" }).first().click();
   await expect(page.getByRole("heading", { name: "改善提案" }).locator("..").locator("..").getByRole("button", { name: "対応した" }).first()).toBeVisible();
   await page.goto("/");
@@ -135,4 +137,48 @@ test("収益データをCSVエクスポートできる", async ({ request }) => 
   expect(res.ok()).toBe(true);
   expect(res.headers()["content-type"]).toContain("text/csv");
   expect(await res.text()).toContain("日付,媒体");
+});
+
+test("ASP一覧と攻略ページ、最終確認日の記録", async ({ page }) => {
+  await page.goto("/offers/asp");
+  for (const name of ["A8.net", "もしもアフィリエイト", "afb（アフィb）", "バリューコマース", "Amazonアソシエイト", "楽天アフィリエイト", "アクセストレード"]) {
+    await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
+  }
+  await page.getByRole("link", { name: "A8.net", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "A8.net 攻略" })).toBeVisible();
+  await expect(page.getByText("最終確認日：未確認")).toBeVisible();
+  await page.getByRole("button", { name: "今日、公式サイトで確認した" }).click();
+  await expect(page.getByText("最終確認日：未確認")).toBeHidden();
+  await expect(page.getByRole("link", { name: /A8\.net攻略 →/ })).toBeVisible();
+});
+
+test("案件をCSVエクスポートできる", async ({ request }) => {
+  const res = await request.get("/api/offers/export");
+  const text = await res.text();
+  expect(text).toContain("ASP名,案件名");
+  expect(text).toContain("E2Eテスト案件");
+});
+
+test("自動化ジョブの再実行と実行履歴", async ({ page }) => {
+  await page.goto("/automation");
+  await page.getByRole("button", { name: "実行する" }).first().click(); // 日次タスク生成
+  await expect(page.getByText("「日次タスク生成」が完了しました")).toBeVisible();
+  const jobs = page.locator("details");
+  const before = await jobs.count();
+  await jobs.first().locator("summary").click(); // 最新のジョブを開く
+  await expect(jobs.first()).toContainText("日次タスク生成");
+  await expect(jobs.first()).toContainText("開始");
+  await jobs.first().getByRole("button", { name: "再実行" }).click();
+  await expect(jobs).toHaveCount(before + 1);
+});
+
+test("サンプルデータは「サンプル」と表示され、削除できる", async ({ page }) => {
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "サンプルデータを入れる" }).click();
+  await expect(page.getByRole("note")).toContainText("サンプルデータを表示中");
+  await page.goto("/offers");
+  await expect(page.getByText("サンプル", { exact: true }).first()).toBeVisible();
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "サンプルデータを削除" }).click();
+  await expect(page.getByRole("note")).toBeHidden();
 });

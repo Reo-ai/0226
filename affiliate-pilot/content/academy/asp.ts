@@ -1,4 +1,4 @@
-import type { Course, Source } from "../schema";
+import type { Course, Source } from "../../lib/academy/schema";
 
 // 出典はすべて未確認（このセッションでは確認できないため）。確認したら verifiedAt と status を更新する。
 const src = (title: string, url: string): Source => ({ title, url, verifiedAt: null, status: "unverified" });

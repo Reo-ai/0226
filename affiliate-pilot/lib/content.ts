@@ -86,7 +86,7 @@ export function templateFor(type: ContentType, i: ContentInputs): Generated {
 }
 
 /** コンテンツAI：下書きを生成。AIなしならテンプレート */
-export async function generateContent(type: ContentType, i: ContentInputs, offer: { name: string; conversionConditions: string; notes: string } | null, linkUrl: string | null) {
+export async function generateContent(type: ContentType, i: ContentInputs, offer: { name: string; conversionConditions: string; notes: string } | null, linkUrl: string | null, signal?: AbortSignal) {
   const length = i.length ?? DEFAULT_LENGTH[type];
   return runAI({
     system: `あなたはアフィリエイト向けのコンテンツを書くAIです。読者の悩みに寄り添い、誇張せず、根拠のある情報だけで商品を紹介します。
@@ -104,6 +104,7 @@ export async function generateContent(type: ContentType, i: ContentInputs, offer
     ].filter(Boolean).join("\n\n"),
     schema: generatedSchema,
     maxTokens: Math.min(8000, Math.round(length * 2.5) + 800),
+    signal,
     fallback: () => templateFor(type, i),
   });
 }

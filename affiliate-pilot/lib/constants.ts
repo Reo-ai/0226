@@ -10,7 +10,7 @@ export const PLATFORM_IDS = PLATFORMS.map((p) => p.id) as [Platform, ...Platform
 export const platformLabel = (id: string) => PLATFORMS.find((p) => p.id === id)?.label ?? (id || "未指定");
 
 export const EXPERIENCE_LEVELS = [
-  { id: "none", label: "まったく初めて" },
+  { id: "none", label: "初心者（まったく初めて）" },
   { id: "beginner", label: "少し触ったことがある（成果0〜数件）" },
   { id: "intermediate", label: "成果が出たことがある（月1万円未満）" },
   { id: "advanced", label: "継続的に成果がある（月1万円以上）" },

@@ -47,12 +47,12 @@ export async function loadDemoAction(): Promise<ActionState> {
   const profile = await requireProfile();
   await loadDemo(profile.id);
   revalidatePath("/", "layout");
-  return { ok: "デモデータを入れました（「デモ」と表示されます）" };
+  return { ok: "サンプルデータを入れました（「サンプル」と表示されます）" };
 }
 
 export async function clearDemoAction(): Promise<ActionState> {
   await requireProfile();
   await clearDemo();
   revalidatePath("/", "layout");
-  return { ok: "デモデータを削除しました" };
+  return { ok: "サンプルデータを削除しました" };
 }

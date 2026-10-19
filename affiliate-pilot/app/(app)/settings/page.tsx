@@ -100,11 +100,11 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle>デモデータ</CardTitle><CardDescription>画面の動きを試すための架空のデータです。実際の記録とは区別され、まとめて削除できます。</CardDescription></CardHeader>
+        <Card id="sample">
+          <CardHeader><CardTitle>サンプルデータ</CardTitle><CardDescription>画面の動きを試すための架空のデータです。実際の記録とは区別され、まとめて削除できます。</CardDescription></CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <ActionForm action={loadDemoAction}><SubmitButton variant="outline" size="sm">デモデータを入れる</SubmitButton></ActionForm>
-            {demoCount > 0 && <ActionForm action={clearDemoAction}><SubmitButton variant="ghost" size="sm" className="text-destructive">デモデータを削除</SubmitButton></ActionForm>}
+            <ActionForm action={loadDemoAction}><SubmitButton variant="outline" size="sm">サンプルデータを入れる</SubmitButton></ActionForm>
+            {demoCount > 0 && <ActionForm action={clearDemoAction}><SubmitButton variant="ghost" size="sm" className="text-destructive">サンプルデータを削除</SubmitButton></ActionForm>}
           </CardContent>
         </Card>
 

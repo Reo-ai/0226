@@ -38,7 +38,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                 <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
                     <CardTitle className="truncate">{a.accountName}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{platformLabel(a.platform)}{a.niche && `・${a.niche}`}{a.isDemo && "・デモ"}</p>
+                    <p className="text-sm text-muted-foreground">{platformLabel(a.platform)}{a.niche && `・${a.niche}`}{a.isDemo && "・サンプル"}</p>
                   </div>
                   {last && <Badge variant={last.stage === "grown" ? "success" : last.stage === "insufficient" ? "outline" : "secondary"}>{STAGE_LABEL[last.stage]}{last.overallScore !== null && ` ${last.overallScore}点`}</Badge>}
                 </CardHeader>

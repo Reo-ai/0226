@@ -3,7 +3,7 @@
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { improvementSchema, JOB_TYPES, type JobType, runJob, weeklySchema } from "../automation";
+import { cancelJob, improvementSchema, JOB_TYPES, type JobType, rerunJob, runJob, weeklySchema } from "../automation";
 import { prisma } from "../db";
 import { getProfile, requireProfile } from "../profile";
 import { parseJson } from "../schemas";
@@ -16,12 +16,33 @@ export async function runJobAction(_: ActionState, fd: FormData): Promise<Action
   const type = String(fd.get("jobType")) as JobType;
   if (!(type in JOB_TYPES)) return { error: "不明なジョブです" };
   const payload = type === "content_draft" ? { offerId: String(fd.get("offerId") ?? ""), contentType: String(fd.get("contentType") ?? "instagram_post") } : {};
-  const id = await runJob(type, payload);
-  const job = await prisma.automationJob.findUnique({ where: { id } });
+  // AIを使うジョブはバックグラウンドで動かし、待たずに他の画面を使えるようにする
+  const background = BACKGROUND.has(type);
+  const id = await runJob(type, payload, { background });
   revalidatePath("/automation");
   revalidatePath("/");
+  if (background) return { ok: `「${JOB_TYPES[type]}」を開始しました。終わるまで他の画面を使えます（実行中はキャンセルできます）` };
+  const job = await prisma.automationJob.findUnique({ where: { id } });
   if (job?.status === "failed") return { error: `「${JOB_TYPES[type]}」に失敗しました：${job.errorMessage}` };
   return { ok: job?.status === "awaiting_review" ? `「${JOB_TYPES[type]}」ができました。内容を確認して承認してください` : `「${JOB_TYPES[type]}」が完了しました` };
+}
+
+const BACKGROUND = new Set<JobType>(["content_draft", "improvement", "weekly_report"]);
+
+export async function cancelJobAction(fd: FormData) {
+  await requireProfile();
+  cancelJob(String(fd.get("id")));
+  // 中断処理が DB に書き込むのを少し待ってから再描画する
+  await new Promise((r) => setTimeout(r, 300));
+  revalidatePath("/automation");
+}
+
+export async function rerunJobAction(fd: FormData) {
+  await requireProfile();
+  const job = await prisma.automationJob.findUnique({ where: { id: String(fd.get("id")) } });
+  if (!job) return;
+  await rerunJob(job.id, { background: BACKGROUND.has(job.jobType as JobType) });
+  revalidatePath("/automation");
 }
 
 /** 承認：改善案は提案とタスクに、週次レポートは振り返りとして反映する */
