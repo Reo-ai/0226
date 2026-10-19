@@ -369,6 +369,12 @@ function toast(msg) { document.querySelectorAll(".toast").forEach((x) => x.remov
 async function copy(text) { try { await navigator.clipboard.writeText(text); toast("コピーしました"); } catch (e) { const ta = $("g-body") || document.createElement("textarea"); if (!ta.isConnected) { ta.value = text; document.body.appendChild(ta); } ta.select(); toast("選択しました。Ctrl+C / ⌘C でコピーしてください"); } }
 function bind(v) {
   v.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
+  // 送信イベントが発火しない環境（埋め込み表示など）でも動くよう、ボタンのクリックで直接処理する
+  setTimeout(() => v.querySelectorAll("form").forEach((f) => {
+    const run = () => { if (f.reportValidity() && typeof f.onsubmit === "function") f.onsubmit(new Event("submit", { cancelable: true })); };
+    f.querySelectorAll('button[type="submit"]').forEach((b) => { b.type = "button"; b.onclick = run; });
+    f.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); run(); } });
+  }), 0);
   v.querySelectorAll("[data-course]").forEach((b) => b.onclick = () => go("learn", b.dataset.course));
   v.querySelectorAll("[data-lesson]").forEach((b) => b.onclick = () => go("lesson", b.dataset.lesson));
   v.querySelectorAll("[data-term]").forEach((b) => b.onclick = (e) => showTerm(b, e));
