@@ -1,4 +1,4 @@
-import { ArrowRight, CircleCheck, Flame, GraduationCap, Lightbulb, MessageCircleQuestion, PartyPopper, SkipForward } from "lucide-react";
+import { ArrowRight, CircleCheck, Flame, GraduationCap, Lightbulb, MessageCircleQuestion, PartyPopper, SkipForward, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { setTaskStatus } from "@/lib/actions/tasks";
 import { minutesLabel, pct, yen } from "@/lib/format";
@@ -97,8 +97,9 @@ export function HomeSimple({ tasks, stage, stageLabels, confirmed, target, strea
         </Card>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/academy" className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-card transition-colors hover:border-primary"><GraduationCap className="size-6 text-primary" /><span><strong className="block">学ぶ</strong><span className="text-xs text-muted-foreground">用語や手順が分からないとき</span></span></Link>
+        <Link href="/offers/recommend" className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-card transition-colors hover:border-primary"><Sparkles className="size-6 text-primary" /><span><strong className="block">おすすめ案件を提案</strong><span className="text-xs text-muted-foreground">サイトやSNSのURLから</span></span></Link>
         <Link href="/coach" className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-card transition-colors hover:border-primary"><MessageCircleQuestion className="size-6 text-primary" /><span><strong className="block">AIに相談</strong><span className="text-xs text-muted-foreground">次に何をするか迷ったとき</span></span></Link>
         <Link href="/roadmap" className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-card transition-colors hover:border-primary"><ArrowRight className="size-6 text-primary" /><span><strong className="block">90日ロードマップ</strong><span className="text-xs text-muted-foreground">全体の道のりを見る</span></span></Link>
       </div>

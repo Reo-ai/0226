@@ -39,6 +39,7 @@ export const SIMPLE_LABEL: Record<string, string> = {
   "/accounts/assessment": "アカウント診断",
   "/academy": "学ぶ",
   "/offers": "紹介する商品を選ぶ",
+  "/offers/recommend": "おすすめ案件を提案",
   "/content": "投稿を作る",
   "/automation": "おまかせ機能",
   "/analytics": "成果を記録",
@@ -47,6 +48,7 @@ export const SIMPLE_LABEL: Record<string, string> = {
 
 /** パンくず用のラベル */
 export const SEGMENT_LABEL: Record<string, string> = {
+  recommend: "おすすめ案件を提案",
   coach: "AI司令塔",
   roadmap: "90日ロードマップ",
   challenge: "初月5万円チャレンジ",

@@ -55,6 +55,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
         description="ASP案件を登録・比較します。報酬額や条件はASPで確認した値だけを入力し、推測では埋めません。"
         actions={
           <>
+            <Link href="/offers/recommend" className={buttonVariants()}>サイト・SNSからおすすめ案件を提案</Link>
             <Link href="/offers/asp" className={buttonVariants({ variant: "outline" })}>ASP一覧</Link>
             <Link href="/offers/compare" className={buttonVariants({ variant: "outline" })}>案件を比較する</Link>
             <a href="/api/offers/export" className={buttonVariants({ variant: "ghost" })}>CSVエクスポート</a>

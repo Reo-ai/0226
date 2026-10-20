@@ -267,3 +267,12 @@ test("かんたん表示：今日の1歩と段階、くわしい表示への切�
   await page.getByRole("button", { name: "かんたん表示にする" }).click();
   await expect(page.getByText("今日の1歩")).toBeVisible();
 });
+
+test("サイト・SNSからおすすめ案件を提案（テキスト貼り付け）", async ({ page }) => {
+  await page.goto("/offers/recommend");
+  await page.getByLabel("プロフィール文・投稿本文・記事のテキスト（任意。SNSは推奨）").fill("30代未経験から転職。転職エージェントに登録して面接対策をした記録。職務経歴書の書き方や年収交渉の流れをまとめています。".repeat(6));
+  await page.getByRole("button", { name: "おすすめ案件を提案する" }).click();
+  await expect(page.getByRole("heading", { name: "1. 転職・キャリア に合う案件" })).toBeVisible();
+  await expect(page.getByText("転職エージェント（無料面談予約）")).toBeVisible();
+  await expect(page.getByText(/判定の確からしさ：(高|中)/)).toBeVisible();
+});
