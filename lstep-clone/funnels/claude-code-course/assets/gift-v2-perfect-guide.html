@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>スキルクエスト２ パーフェクトガイド</title>
+<title>パソコン・AI初心者パーフェクトガイド｜スキルクエスト２</title>
 <!-- スキルクエスト２（公式LINE @775qgexi）の登録特典。PDFにして public/gift/skillquest2-perfect-guide.pdf で配る -->
 <style>
   @page { size: A4; margin: 15mm 15mm 16mm; }
@@ -10,14 +10,20 @@
   * { box-sizing: border-box; }
   body { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.62; margin: 0; }
   h1, h2, h3 { line-height: 1.35; }
-  .cover { height: 262mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always;
-           background: linear-gradient(160deg, #f59a3c 0%, #e2620f 55%, #b8480a 100%); color: #fff; border-radius: 6mm; padding: 22mm 18mm; }
-  .cover .tag { display: inline-block; background: rgba(255,255,255,.2); padding: 2mm 4.5mm; border-radius: 99px; font-size: 10pt; width: fit-content; }
-  .cover h1 { font-size: 32pt; margin: 9mm 0 3mm; letter-spacing: .02em; }
-  .cover .lead { font-size: 14pt; margin: 0; font-weight: 700; }
-  .cover p { font-size: 11.5pt; margin: 6mm 0 0; opacity: .95; }
-  .cover .toc { margin-top: 14mm; background: rgba(255,255,255,.14); border-radius: 4mm; padding: 6mm 7mm; font-size: 11pt; line-height: 2; }
-  .cover .who { margin-top: 10mm; font-size: 10pt; opacity: .85; }
+  @page :first { margin: 0; }
+  .cover { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; color: #fff;
+           background: linear-gradient(165deg, #f7a34a 0%, #e8691a 48%, #b9480b 100%); padding: 26mm 22mm 20mm; display: flex; flex-direction: column; }
+  .cover .sword { position: absolute; right: 4mm; top: 60mm; width: 104mm; opacity: .16; }
+  .cover .tag { display: inline-block; border: 1px solid rgba(255,255,255,.7); padding: 1.6mm 5mm; border-radius: 99px; font-size: 10pt; letter-spacing: .08em; width: fit-content; }
+  .cover .series { margin-top: 30mm; font-size: 13pt; font-weight: 700; letter-spacing: .12em; opacity: .9; }
+  .cover h1 { font-size: 44pt; line-height: 1.15; margin: 2mm 0 0; letter-spacing: .02em; }
+  .cover .bar { width: 22mm; height: 1.6mm; background: #fff; border-radius: 1mm; margin: 9mm 0 7mm; }
+  .cover .lead { font-size: 15pt; font-weight: 700; line-height: 1.6; margin: 0; }
+  .cover p { font-size: 11pt; line-height: 1.8; margin: 4mm 0 0; opacity: .95; }
+  .cover .toc { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm 8mm; font-size: 10.5pt; line-height: 1.7;
+                border-top: 1px solid rgba(255,255,255,.45); padding-top: 6mm; }
+  .cover .toc b { display: inline-block; width: 6mm; opacity: .8; }
+  .cover .who { margin-top: 8mm; font-size: 9pt; opacity: .8; }
   .chap { page-break-before: always; }
   h2 { font-size: 16pt; color: var(--deep); border-left: 2.4mm solid var(--main); padding-left: 3.5mm; margin: 0 0 4mm; break-after: avoid; }
   h2 small { display: block; font-size: 10pt; color: var(--sub); font-weight: 400; margin-top: 1mm; }
@@ -57,19 +63,22 @@
 <body>
 
 <section class="cover">
+  <img class="sword" src="guide-sword.png" alt="">
   <div class="tag">LINE友だち限定　登録特典</div>
-  <h1>スキルクエスト２<br>パーフェクトガイド</h1>
-  <div class="lead">パソコンもAIも初めてでも、迷わず「最初の応募」までたどり着く本</div>
+  <div class="series">スキルクエスト２</div>
+  <h1>パソコン・AI初心者<br>パーフェクトガイド</h1>
+  <div class="bar"></div>
+  <div class="lead">パソコンもAIも初めてでも、<br>迷わず「最初の応募」までたどり着く本</div>
   <p>「どこを押せばいいの？」「この言葉は何？」を、先回りして全部つぶしました。<br>困ったら、目次から開いてください。</p>
   <div class="toc">
-    1　始める前に用意するもの<br>
-    2　パソコンの基本操作（これだけ覚えればOK）<br>
-    3　AIとのつき合い方<br>
-    4　講座の始め方（ログイン〜1回目の会話）<br>
-    5　QUEST 1〜5 の進め方とつまずきポイント<br>
-    6　安全に進めるための約束<br>
-    7　困ったとき集<br>
-    8　講師への聞き方
+    <div><b>1</b>始める前に用意するもの</div>
+    <div><b>5</b>QUEST 1〜5 の進め方</div>
+    <div><b>2</b>パソコンの基本操作</div>
+    <div><b>6</b>安全に進めるための約束</div>
+    <div><b>3</b>AIとのつき合い方</div>
+    <div><b>7</b>困ったとき集</div>
+    <div><b>4</b>講座の始め方</div>
+    <div><b>8</b>講師への聞き方</div>
   </div>
   <div class="who">AIと一緒に進める講座「スキルクエスト２｜案件獲得の章」　作成 スキルクエスト運営</div>
 </section>
