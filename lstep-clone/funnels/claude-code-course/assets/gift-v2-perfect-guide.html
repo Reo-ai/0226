@@ -12,8 +12,11 @@
   h1, h2, h3 { line-height: 1.35; }
   @page :first { margin: 0; }
   .cover { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; color: #fff;
-           background: linear-gradient(165deg, #f7a34a 0%, #e8691a 48%, #b9480b 100%); padding: 26mm 22mm 20mm; display: flex; flex-direction: column; }
-  .cover .sword { position: absolute; right: 4mm; top: 60mm; width: 104mm; opacity: .16; }
+           background: linear-gradient(180deg, rgba(243,154,67,.90) 0%, rgba(232,105,26,.90) 42%, rgba(176,66,10,.93) 68%, rgba(74,26,4,.96) 100%), url(richmenu-art/map.png) center/cover, #7a2d06; padding: 26mm 22mm 20mm; display: flex; flex-direction: column; }
+  .cover .sword { position: absolute; right: 4mm; top: 118mm; width: 104mm; opacity: .14; }
+  /* 金色の細い二重の枠（古地図の額縁） */
+  .cover::after { content:""; position:absolute; inset:9mm; border:1px solid rgba(255,236,200,.75); border-radius:2mm; pointer-events:none; }
+  .cover::before { content:""; position:absolute; inset:11mm; border:.4px solid rgba(255,236,200,.45); border-radius:1.5mm; pointer-events:none; }
   .cover .tag { display: inline-block; border: 1px solid rgba(255,255,255,.7); padding: 1.6mm 5mm; border-radius: 99px; font-size: 10pt; letter-spacing: .08em; width: fit-content; }
   .cover .series { margin-top: 30mm; font-size: 13pt; font-weight: 700; letter-spacing: .12em; opacity: .9; }
   .cover h1 { font-size: 44pt; line-height: 1.15; margin: 2mm 0 0; letter-spacing: .02em; }
