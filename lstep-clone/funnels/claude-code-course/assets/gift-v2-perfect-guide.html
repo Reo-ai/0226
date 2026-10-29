@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>スキルクエスト２ パーフェクトガイド</title>
+<!-- スキルクエスト２（公式LINE @775qgexi）の登録特典。PDFにして public/gift/skillquest2-perfect-guide.pdf で配る -->
+<style>
+  @page { size: A4; margin: 15mm 15mm 16mm; }
+  :root { --main:#e2620f; --deep:#9a3d06; --pale:#fff3ea; --line:#f6d3bb; --ink:#1f2430; --sub:#5d6474; --ok:#1f8a4c; --ng:#c8372d; }
+  * { box-sizing: border-box; }
+  body { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.62; margin: 0; }
+  h1, h2, h3 { line-height: 1.35; }
+  .cover { height: 262mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always;
+           background: linear-gradient(160deg, #f59a3c 0%, #e2620f 55%, #b8480a 100%); color: #fff; border-radius: 6mm; padding: 22mm 18mm; }
+  .cover .tag { display: inline-block; background: rgba(255,255,255,.2); padding: 2mm 4.5mm; border-radius: 99px; font-size: 10pt; width: fit-content; }
+  .cover h1 { font-size: 32pt; margin: 9mm 0 3mm; letter-spacing: .02em; }
+  .cover .lead { font-size: 14pt; margin: 0; font-weight: 700; }
+  .cover p { font-size: 11.5pt; margin: 6mm 0 0; opacity: .95; }
+  .cover .toc { margin-top: 14mm; background: rgba(255,255,255,.14); border-radius: 4mm; padding: 6mm 7mm; font-size: 11pt; line-height: 2; }
+  .cover .who { margin-top: 10mm; font-size: 10pt; opacity: .85; }
+  .chap { page-break-before: always; }
+  h2 { font-size: 16pt; color: var(--deep); border-left: 2.4mm solid var(--main); padding-left: 3.5mm; margin: 0 0 4mm; break-after: avoid; }
+  h2 small { display: block; font-size: 10pt; color: var(--sub); font-weight: 400; margin-top: 1mm; }
+  h3 { font-size: 12pt; color: var(--deep); margin: 4.5mm 0 1.5mm; break-after: avoid; }
+  p { margin: 1.5mm 0; }
+  .card { background: var(--pale); border: 1px solid var(--line); border-radius: 3mm; padding: 3.5mm 5mm; margin: 3mm 0; break-inside: avoid; }
+  .warn { background: #fdeceb; border-color: #f3c4c0; }
+  .warn b:first-child { color: var(--ng); }
+  .tip b:first-child { color: var(--ok); }
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 2mm 0; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 1.1mm 0 1.1mm 10mm; border-bottom: 1px dashed var(--line); break-inside: avoid; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 1.2mm; width: 6.5mm; height: 6.5mm; border-radius: 50%;
+                          background: var(--main); color: #fff; font-weight: 700; font-size: 9.5pt; text-align: center; line-height: 6.5mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2.5mm 0; font-size: 10pt; break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 1.2mm 2.3mm; text-align: left; vertical-align: top; }
+  th { background: var(--pale); color: var(--deep); }
+  kbd { display: inline-block; border: 1px solid #c9ccd4; border-bottom-width: 2px; border-radius: 1.2mm; padding: 0 1.6mm; font-family: inherit; font-size: 9.5pt; background: #fff; white-space: nowrap; }
+  .btn { display: inline-block; background: #fff; border: 1px solid var(--main); color: var(--deep); border-radius: 1.5mm; padding: 0 2mm; font-weight: 700; white-space: nowrap; }
+  .quest { border: 1.5px solid var(--main); border-radius: 3.5mm; padding: 3.5mm 5mm; margin: 4mm 0; break-inside: avoid; }
+  .quest .qh { font-weight: 800; color: var(--deep); font-size: 12.5pt; margin-bottom: 1mm; }
+  .quest .qh span { background: var(--main); color: #fff; border-radius: 99px; padding: 0 3mm; font-size: 9.5pt; margin-right: 2mm; }
+  .quest dl { display: grid; grid-template-columns: 27mm 1fr; gap: 1mm 3mm; margin: 1.5mm 0 0; }
+  .quest dt { color: var(--sub); font-weight: 700; }
+  .quest dd { margin: 0; }
+  .faq { break-inside: avoid; margin: 2.5mm 0; padding-bottom: 2mm; border-bottom: 1px dashed var(--line); }
+  .faq .q { font-weight: 700; color: var(--deep); }
+  .faq .q::before { content: "Q. "; color: var(--main); }
+  .faq .a::before { content: "→ "; color: var(--main); font-weight: 700; }
+  .note { color: var(--sub); font-size: 9pt; }
+  .check li { list-style: none; position: relative; padding-left: 6mm; }
+  .check li::before { content: "□"; position: absolute; left: 0; color: var(--main); font-weight: 700; }
+  ul { margin: 1.5mm 0; padding-left: 5.5mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .tmpl { font-family: inherit; background: #fff; border: 1px solid var(--line); border-radius: 2mm; padding: 3mm 4mm; white-space: pre-wrap; margin: 2mm 0; break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="tag">LINE友だち限定　登録特典</div>
+  <h1>スキルクエスト２<br>パーフェクトガイド</h1>
+  <div class="lead">パソコンもAIも初めてでも、迷わず「最初の応募」までたどり着く本</div>
+  <p>「どこを押せばいいの？」「この言葉は何？」を、先回りして全部つぶしました。<br>困ったら、目次から開いてください。</p>
+  <div class="toc">
+    1　始める前に用意するもの<br>
+    2　パソコンの基本操作（これだけ覚えればOK）<br>
+    3　AIとのつき合い方<br>
+    4　講座の始め方（ログイン〜1回目の会話）<br>
+    5　QUEST 1〜5 の進め方とつまずきポイント<br>
+    6　安全に進めるための約束<br>
+    7　困ったとき集<br>
+    8　講師への聞き方
+  </div>
+  <div class="who">AIと一緒に進める講座「スキルクエスト２｜案件獲得の章」　作成 スキルクエスト運営</div>
+</section>
+
+<!-- 1 -->
+<section class="chap">
+  <h2>1　始める前に用意するもの<small>ぜんぶ無料でそろいます（執筆時点）</small></h2>
+  <ul class="check">
+    <li><b>パソコン</b>（Windows・Mac どちらでも）。講座の画面はスマホでも見られますが、進めるのはパソコンが楽です</li>
+    <li><b>ブラウザ</b>（インターネットを見るアプリ）。Google Chrome・Safari・Edge など、ふだん使っているもので大丈夫です</li>
+    <li><b>Googleアカウント</b>（Gmailのアドレス）。講座へのログインに使います。講座はGoogleでしかログインできません</li>
+    <li><b>AIのアカウント</b>（Claude か ChatGPT のどちらか1つ）。講座の画面には「無料のアカウントでも使えます」とあります</li>
+    <li><b>1回30分ほどの時間</b>。一度に全部やらなくても、途中で閉じれば次は続きから始まります</li>
+  </ul>
+
+  <div class="card tip"><b>おすすめ：</b>講座の画面とAIの画面を、ブラウザの<b>別々のタブ</b>で開いておくと、行ったり来たりが楽です（タブの開き方は2章）。</div>
+
+  <h3>「Claude Code・Codex」は無くても大丈夫</h3>
+  <p>講座には「この画面で話す」と「Claude Code・Codexで話す」の2つの進め方があります。<b>初めての方は「この画面で話す」で全部進められます。</b></p>
+  <p>Claude Code・Codex は、パソコンの中で動くAIのアプリです。使う場合は次が要ります（執筆時点）。</p>
+  <ul>
+    <li>Claude Code：Claude の有料プラン／Codex：ChatGPT の有料プラン</li>
+    <li>Node.js（18以上）というソフト。無ければ、Claude Code・Codex に「Node.jsを入れて」と頼めば入れてくれます</li>
+  </ul>
+  <p class="note">料金やプラン名は変わることがあります。契約する前に、各サービスの公式ページで確かめてください。講座の会費と、AIの利用料は別です。</p>
+
+  <h3>言葉の早見表</h3>
+  <table>
+    <tr><th style="width:30%">言葉</th><th>意味</th></tr>
+    <tr><td>ブラウザ</td><td>ホームページを見るためのアプリ（Chrome・Safari など）</td></tr>
+    <tr><td>タブ</td><td>ブラウザの上に並ぶ「見出し」。1つのブラウザで複数のページを開ける</td></tr>
+    <tr><td>URL（ユーアールエル）</td><td>ページの住所。「https://」で始まる文字</td></tr>
+    <tr><td>ログイン</td><td>「自分です」と名乗って入ること。講座はGoogleで入る</td></tr>
+    <tr><td>プロンプト／依頼文</td><td>AIへのお願いの文章。講座ではコピーするだけで用意されている</td></tr>
+    <tr><td>コピー／貼り付け</td><td>文字を写し取る／写した文字を別の場所に入れる</td></tr>
+    <tr><td>スクショ</td><td>スクリーンショット。画面を写真のように保存すること</td></tr>
+    <tr><td>案件</td><td>仕事の依頼。クラウドワークスなどのサイトに募集が出ている</td></tr>
+  </table>
+</section>
+
+<!-- 2 -->
+<section class="chap">
+  <h2>2　パソコンの基本操作<small>この表のキーだけ覚えれば、講座は進められます</small></h2>
+  <table>
+    <tr><th style="width:28%">やりたいこと</th><th style="width:26%">Windows</th><th style="width:26%">Mac</th><th>メモ</th></tr>
+    <tr><td><b>コピー</b></td><td><kbd>Ctrl</kbd>＋<kbd>C</kbd></td><td><kbd>⌘</kbd>＋<kbd>C</kbd></td><td>先に文字をなぞって選ぶ</td></tr>
+    <tr><td><b>貼り付け</b></td><td><kbd>Ctrl</kbd>＋<kbd>V</kbd></td><td><kbd>⌘</kbd>＋<kbd>V</kbd></td><td>入れたい欄を先にクリック</td></tr>
+    <tr><td>全部を選ぶ</td><td><kbd>Ctrl</kbd>＋<kbd>A</kbd></td><td><kbd>⌘</kbd>＋<kbd>A</kbd></td><td>長いAIの答えを丸ごと写す時に</td></tr>
+    <tr><td>1つ前に戻す</td><td><kbd>Ctrl</kbd>＋<kbd>Z</kbd></td><td><kbd>⌘</kbd>＋<kbd>Z</kbd></td><td>消しすぎた時の味方</td></tr>
+    <tr><td>新しいタブ</td><td><kbd>Ctrl</kbd>＋<kbd>T</kbd></td><td><kbd>⌘</kbd>＋<kbd>T</kbd></td><td>開いたら上の欄にURLを貼る</td></tr>
+    <tr><td>ページを読み込み直す</td><td><kbd>F5</kbd></td><td><kbd>⌘</kbd>＋<kbd>R</kbd></td><td>画面が固まった時にまず試す</td></tr>
+    <tr><td>画面を大きく／小さく</td><td><kbd>Ctrl</kbd>＋<kbd>＋</kbd>／<kbd>－</kbd></td><td><kbd>⌘</kbd>＋<kbd>＋</kbd>／<kbd>－</kbd></td><td>文字が小さくて読めない時</td></tr>
+    <tr><td><b>スクショ</b>（一部だけ）</td><td><kbd>Windows</kbd>＋<kbd>Shift</kbd>＋<kbd>S</kbd></td><td><kbd>⌘</kbd>＋<kbd>Shift</kbd>＋<kbd>4</kbd></td><td>範囲をなぞって撮る</td></tr>
+    <tr><td>日本語⇔英字の切替</td><td><kbd>半角/全角</kbd></td><td><kbd>かな</kbd>／<kbd>英数</kbd></td><td>URLやメールは英字で</td></tr>
+  </table>
+  <p class="note">Windows の <kbd>Ctrl</kbd> は、Mac では <kbd>⌘</kbd>（command）に置きかわると覚えるとラクです。</p>
+
+  <h3>コピー＆貼り付けを、1回練習しておきましょう</h3>
+  <ol class="steps">
+    <li>写したい文字の始まりで、マウスのボタンを押したままにする</li>
+    <li>そのまま文字の終わりまでなぞって、色が変わったら指を離す</li>
+    <li><kbd>Ctrl</kbd>＋<kbd>C</kbd>（Mac は <kbd>⌘</kbd>＋<kbd>C</kbd>）を押す。見た目は何も変わりませんが、これで写せています</li>
+    <li>貼りたい欄を1回クリックして、点滅する縦線（カーソル）を出す</li>
+    <li><kbd>Ctrl</kbd>＋<kbd>V</kbd>（Mac は <kbd>⌘</kbd>＋<kbd>V</kbd>）を押す</li>
+  </ol>
+  <div class="card tip"><b>講座では、なぞる必要はほとんどありません。</b>依頼文や応募文の横にある <span class="btn">コピー</span> ボタンを押すだけで写せます。</div>
+
+  <h3>スクショの撮り方と送り方</h3>
+  <ol class="steps">
+    <li>困っている画面を出したまま、上の表の「スクショ」のキーを押す</li>
+    <li>十字の印が出たら、写したい範囲をなぞる</li>
+    <li>Windows：右下に出る通知を押すと保存できます／Mac：デスクトップに画像ができます</li>
+    <li>LINEのトーク画面の「＋」や画像のマークから、その画像を選んで送る</li>
+  </ol>
+  <div class="card warn"><b>送る前に：</b>パスワード・メールアドレス・住所・電話番号が写っていないか確かめてください。写っていたら、その部分を外して撮り直しましょう。</div>
+</section>
+
+<!-- 3 -->
+<section class="chap">
+  <h2>3　AIとのつき合い方<small>AIは「とても物知りな新人さん」だと思ってください</small></h2>
+  <h3>AIにできること・苦手なこと</h3>
+  <div class="two">
+    <div class="card tip"><b>得意なこと</b><br>文章の下書き、言い換え、要点のまとめ、手順の説明、たくさんの案を出すこと</div>
+    <div class="card warn"><b>苦手なこと</b><br>まちがいを自信満々に言うことがある／あなたのことは教えないと分からない／最新の情報を知らないことがある</div>
+  </div>
+
+  <h3>うまく頼む3つのコツ</h3>
+  <ol class="steps">
+    <li><b>目的を言う</b>：「クラウドワークスの応募文を作りたい」のように、何のためかを先に書く</li>
+    <li><b>材料を渡す</b>：募集の文や自分の経験など、AIが知らないことは貼って渡す</li>
+    <li><b>形を決める</b>：「300字で」「箇条書きで」「3つ案を出して」と、欲しい形を書く</li>
+  </ol>
+  <p>講座の依頼文には、この3つが最初から入っています。あなたは<b>コピーして送り、質問に答えるだけ</b>です。</p>
+
+  <h3>AIの答えは、必ず自分の目で確かめる</h3>
+  <ul>
+    <li>自分の経験と違うこと（やっていないこと・持っていない資格）が書かれていたら、消すか直してもらう</li>
+    <li>数字（金額・日付・文字数）は、もとの情報と見比べる</li>
+    <li>直してほしい時は「〇〇の部分を△△に直して」と、場所と直し方を伝える</li>
+  </ul>
+
+  <h3>AIの答えが変になった時の3つの言葉</h3>
+  <table>
+    <tr><th style="width:38%">こんな時</th><th>こう送る</th></tr>
+    <tr><td>話が長くて分からない</td><td>「もっと短く、中学生にも分かる言葉で」</td></tr>
+    <tr><td>質問の意味が分からない</td><td>「例を3つ出して」</td></tr>
+    <tr><td>話がずれてきた</td><td>「最初の目的に戻って、次にやることを1つだけ教えて」</td></tr>
+  </table>
+
+  <div class="card warn"><b>AIに絶対に送らないもの：</b>パスワード、認証コード（SMSなどで届く数字）、クレジットカードや口座の番号、マイナンバー。講座でこれらを聞くことはありません。</div>
+</section>
+
+<!-- 4 -->
+<section class="chap">
+  <h2>4　講座の始め方<small>ログインから、1回目の会話を保存するまで</small></h2>
+  <h3>ログインする（はじめの1回だけ）</h3>
+  <ol class="steps">
+    <li>LINEの「冒険を始める」を押して、講座の画面を開く</li>
+    <li>画面の左下にある「押してGoogleでログイン」を押す</li>
+    <li>Googleのアカウントを選ぶ画面が出たら、使いたいアドレスを押す</li>
+    <li>講座の画面に戻り、左下が「Googleでログイン中」になっていれば完了です</li>
+  </ol>
+  <p class="note">新しく会員登録をする手順はありません。ログインした時点で、あなた専用の記録が始まります。ログインは30日間続きます。</p>
+
+  <h3>「どこで話しますか？」→「この画面で話す」を選ぶ</h3>
+  <ol class="steps">
+    <li><span class="btn">この画面で話す</span> を押す（次からは、選んだ方が自動で選ばれます）</li>
+    <li><span class="btn">Claudeを開く</span> か <span class="btn">ChatGPTを開く</span> の、ふだん使う方を押す。AIが新しいタブで開きます</li>
+    <li>講座の画面に戻り、依頼文の <span class="btn">コピー</span> を押す</li>
+    <li>AIのタブで、入力欄に貼り付けて送る</li>
+    <li>AIからの質問に答えていく。分からない質問は「分からない」と答えて大丈夫です</li>
+    <li>AIが最後に結果をまとめたら、その答えを丸ごとコピーする</li>
+    <li>講座の画面に戻り、「AIの最後の答えを貼る」欄に貼り付ける</li>
+    <li><span class="btn">結果として保存する</span> を押す。これでQUESTの結果が画面に残ります</li>
+  </ol>
+
+  <div class="card tip"><b>つまずきやすい所：</b>6で「最後の答え」だけを写すのがポイントです。途中の質問まで混ぜると「結果の形が読み取れませんでした」と出ることがあります（7章）。</div>
+
+  <h3>Claude Code・Codex を使う人は</h3>
+  <ol class="steps">
+    <li><span class="btn">Claude Code・Codexで話す</span> を押し、出てきた依頼文を <span class="btn">コピー</span> する</li>
+    <li>Claude Code か Codex に貼って送る。必要な道具はAIが自動で入れます</li>
+    <li>「Claude Code・Codex とつなぐ」画面が開いたら、Googleでログインする</li>
+    <li>画面に出る確認の4文字が、AIの画面の4文字と同じか見比べる</li>
+    <li>同じなら <span class="btn">このアカウントでつなぐ</span> を押す。「つなぎました」と出れば完了です</li>
+  </ol>
+  <p class="note">つなぐ画面は10分以内に1回だけ使えます。時間が切れたら、もう一度AIに「スキルクエストの続き」と頼めば出し直せます。話した内容は、数秒〜10秒ほどで講座の画面に映ります。</p>
+</section>
+
+<!-- 5 -->
+<section class="chap">
+  <h2>5　QUEST 1〜5 の進め方<small>1つずつクリアすれば、最初の応募までたどり着きます</small></h2>
+
+  <div class="quest">
+    <div class="qh"><span>QUEST 1</span>スキル診断｜あなたの売り物を見つける</div>
+    <dl>
+      <dt>やること</dt><dd>これまでの仕事や経験、得意なこと、やりたくないことを、質問に答えて話す</dd>
+      <dt>手に入るもの</dt><dd>「売り物の正本」：スキルのレベル（Lv1〜5）、メインの売り物1つとサブ最大2つ、値段の目安、受けない仕事、提案文のひな形</dd>
+      <dt>つまずき</dt><dd>「自分には売り物なんて無い」と思っても大丈夫。家事・接客・趣味の経験も材料になります。思い出せる範囲で答えましょう</dd>
+    </dl>
+  </div>
+
+  <div class="quest">
+    <div class="qh"><span>QUEST 2</span>プロフィール作成｜選ばれる自己紹介を作る</div>
+    <dl>
+      <dt>やること</dt><dd>6つの段に分かれた質問に答える（目安30分）</dd>
+      <dt>手に入るもの</dt><dd>長さ違いの自己紹介文（160〜3000字）と、サイトごとに貼るだけの入力内容</dd>
+      <dt>自分でやる</dt><dd>クラウドワークスなど各サイトへの<b>会員登録</b>と、プロフィールの<b>保存ボタン</b>。登録のパスワードは自分で決めて、自分で控えます（AIには送らない）</dd>
+      <dt>つまずき</dt><dd>実績が少なくても、事実だけを書けば大丈夫。盛った内容は後で自分が困ります</dd>
+    </dl>
+  </div>
+
+  <div class="quest">
+    <div class="qh"><span>QUEST 3</span>案件探し｜条件に合う仕事を集める</div>
+    <dl>
+      <dt>やること</dt><dd>最低の単価、1か月に使える時間、在宅だけか、などの条件を答える</dd>
+      <dt>クリアの合図</dt><dd>気になる案件で <span class="btn">応募する候補に入れる</span> → <span class="btn">この◯件に応募する</span></dd>
+      <dt>知っておくこと</dt><dd>自動で集めるのはクラウドワークス・ランサーズ・ココナラ・Workship。ほかのサイトは、講座のボタンで検索画面を開き、自分で見て足します（Wantedly は手で書き写します）</dd>
+      <dt>つまずき</dt><dd>「スプシに反映」でGoogleの確認画面が出たら、「ファイル」の許可にチェックを入れてから進みます</dd>
+    </dl>
+  </div>
+
+  <div class="quest">
+    <div class="qh"><span>QUEST 4</span>応募文づくり｜案件ごとに応募文を作って送る</div>
+    <dl>
+      <dt>やること</dt><dd>案件ごとに ① <span class="btn">応募文をコピー</span> → ② <span class="btn">募集ページへ</span> → サイトで貼って送る → ③ <span class="btn">応募する</span></dd>
+      <dt>クリアの合図</dt><dd>全部送れたら <span class="btn">応募は全部送り終わった</span></dd>
+      <dt>自分でやる</dt><dd><b>応募の送信ボタンを押すのは、必ず自分</b>です。送る前に、募集の条件と応募文を一度読み比べましょう</dd>
+    </dl>
+  </div>
+
+  <div class="quest">
+    <div class="qh"><span>QUEST 5</span>やり取り管理｜返信から面談までを整える</div>
+    <dl>
+      <dt>やること</dt><dd>相手から届いたメッセージを「相手から届いたメッセージを貼る」に貼ると、返信の下書きが出ます。送ったら <span class="btn">送った</span> を押す</dd>
+      <dt>面談</dt><dd>Googleカレンダーとつなぐと、空いている時間を一緒に探せます。予定の登録ボタンは自分で押します</dd>
+      <dt>知っておくこと</dt><dd>このQUESTに終わりはありません。<span class="btn">スカウト・問い合わせが来た</span>・<span class="btn">今日の新着を見た</span> で、毎日の動きを記録していきます</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="chap">
+  <h2>6　安全に進めるための約束<small>あなたの身を守るためのルールです</small></h2>
+  <h3>AI・講座・LINE、どこにも送らないもの</h3>
+  <ul>
+    <li>パスワード、認証コード</li>
+    <li>クレジットカード・銀行口座の番号、マイナンバー</li>
+  </ul>
+  <p class="note">講座が文面を取り込む時は、メールアドレスや電話番号を「（連絡先）」に置きかえて扱います。</p>
+
+  <h3>押すのは、いつも自分</h3>
+  <p>応募の送信・会員登録・ログイン・支払い・申込は、AIが代わりに押すことはありません。最後のボタンは、内容を確かめてから自分で押します。</p>
+
+  <h3>怪しい案件の見分け方</h3>
+  <table>
+    <tr><th style="width:40%">こんな案件は</th><th>見送るのが安全です</th></tr>
+    <tr><td>LINEなど、サイトの外へ連絡を誘う</td><td>トラブルが起きてもサイトが守ってくれません</td></tr>
+    <tr><td>始める前にお金がかかる（教材費・登録料）</td><td>仕事を受ける側がお金を払うことは、ふつうありません</td></tr>
+    <tr><td>報酬が相場より極端に高い・低い</td><td>高すぎる話は疑う。安すぎる仕事は続きません</td></tr>
+    <tr><td>仕事の中身があいまい</td><td>「誰でも簡単」「すぐ稼げる」だけの募集は避ける</td></tr>
+  </table>
+
+  <h3>手数料のこと</h3>
+  <p>案件サイトは、報酬から手数料を引きます。講座内の記載では、クラウドワークス・ココナラは約22%、ランサーズは約16.5%です（執筆時点・変わることがあるので各サイトで確かめてください）。値段を決める時は、手取りで考えましょう。</p>
+
+  <div class="card"><b>大事なこと：</b>この講座は、案件を取るための手順と道具をお渡しするものです。収入を約束するものではありません。続けるほど、応募の数と質は上がっていきます。</div>
+</section>
+
+<!-- 7 -->
+<section class="chap">
+  <h2>7　困ったとき集<small>画面に出た言葉で探してください</small></h2>
+
+  <div class="faq"><div class="q">「保存するにはログインが必要です」と出た</div><div class="a">左下の「押してGoogleでログイン」からログインしてから、もう一度保存してください。</div></div>
+  <div class="faq"><div class="q">「結果の形が読み取れませんでした」と出た</div><div class="a">AIの「最後の答え」だけを、始めから終わりまで全部コピーし直して貼ってください。足りない時は、AIに「最後の結果を、もう一度まとめて出して」と頼みます。</div></div>
+  <div class="faq"><div class="q">「このアカウントでは、この画面からAIは動きません」と出た</div><div class="a"><span class="btn">Claudeを開く</span> か <span class="btn">ChatGPTを開く</span> を押して、自分のAIで話す進め方を使ってください（4章）。</div></div>
+  <div class="faq"><div class="q">Googleの確認画面のあと、許可が足りないと言われた</div><div class="a">もう一度ボタンを押し、確認画面で「ファイル」（カレンダーの時は「カレンダー」）の横にチェックを入れてから進んでください。</div></div>
+  <div class="faq"><div class="q">「Google の回数の上限に当たりました」と出た</div><div class="a">壊れたわけではありません。1分ほど待ってから、もう一度押してください。</div></div>
+  <div class="faq"><div class="q">ボタンを押しても画面が変わらない・固まった</div><div class="a">ページを読み込み直してください（Windows <kbd>F5</kbd>／Mac <kbd>⌘</kbd>＋<kbd>R</kbd>）。進めた内容は、保存した所まで残っています。</div></div>
+  <div class="faq"><div class="q">途中でやめてしまった。最初からやり直し？</div><div class="a">いいえ。講座を開くと「つづきからはじめる」が出ます。終わったQUESTも <span class="btn">修正する</span> から直せます。</div></div>
+  <div class="faq"><div class="q">Claude Code・Codex の「つなぐ」画面が開かない・時間切れになった</div><div class="a">つなぐ画面は10分以内に1回だけ使えます。AIに「スキルクエストの続き」と送ると、もう一度出してくれます。</div></div>
+  <div class="faq"><div class="q">AIの質問が難しくて答えられない</div><div class="a">「分からない」「例を3つ出して」と送れば、答えやすい形にしてくれます。</div></div>
+  <div class="faq"><div class="q">スマホでもできる？</div><div class="a">画面を見ることはできます。文章のコピーや貼り付けが多いので、進めるのはパソコンがおすすめです。</div></div>
+</section>
+
+<!-- 8 -->
+<section class="chap">
+  <h2>8　講師への聞き方<small>ひとりで30分悩んだら、聞いてください</small></h2>
+  <ol class="steps">
+    <li>公式LINEのメニューから「講師に相談」を押す</li>
+    <li>届いたフォームに、下のひな形をコピーして書き込む</li>
+    <li>困っている画面のスクショがあれば、トークにも送る（パスワードなどが写っていないか確かめてから）</li>
+  </ol>
+  <div class="tmpl">【いまのQUEST】QUEST ○（例：QUEST 2 プロフィール作成）
+【やりたいこと】（例：クラウドワークスにプロフィールを保存したい）
+【やったこと】（例：コピーを押して、AIに貼って送った）
+【起きたこと】（例：「結果の形が読み取れませんでした」と出た）
+【使っているもの】パソコン（Windows／Mac）・AI（Claude／ChatGPT）</div>
+  <p>この5つがそろっていると、1回のやり取りで解決しやすくなります。うまく書けなくても大丈夫です。分かる所だけ書いて送ってください。</p>
+
+  <div class="card tip" style="margin-top:8mm"><b>さあ、冒険へ。</b>LINEのメニューの「冒険を始める」を押して、QUEST 1「スキル診断」から始めましょう。</div>
+</section>
+
+</body>
+</html>
