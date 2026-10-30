@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // - 友だちが開くページ（フォーム・計測リンク・記録ページ・予約ページ・画像・購入者特典・流入経路）： URL の ?w=<ワークスペースID>（無ければ main）
 // - 管理画面： ログイン時に保存した Cookie「ws」
 const WS = /^[a-z0-9]{10}$/;
-const PUBLIC = /^\/(f|r|h|b|i|p|join)\/|^\/api\/(join|stripe|line\/webhook)(\/|$)/;
+const PUBLIC = /^\/(f|r|h|b|i|p|join)\/|^\/api\/(join|stripe|coach|line\/webhook)(\/|$)/;
 
 export function proxy(req: NextRequest) {
   const headers = new Headers(req.headers);

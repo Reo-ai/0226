@@ -367,6 +367,8 @@ const MIGRATIONS = [
   "ALTER TABLE scenarios ADD COLUMN next_label TEXT NOT NULL DEFAULT '次へ進む'",
   "ALTER TABLE scenarios ADD COLUMN nudge_hours INTEGER NOT NULL DEFAULT 24",
   "ALTER TABLE enrollments ADD COLUMN await_tap INTEGER NOT NULL DEFAULT 0",
+  // 生徒管理ツール：講座の画面から届いた案件の番号（同じ案件を二重に入れないため）
+  "ALTER TABLE coach_jobs ADD COLUMN ext_id TEXT",
 ];
 
 /** main だけの表への追加 */

@@ -2,7 +2,9 @@
 // - 質問は「質問フォームの回答」と「自動で返せなかったLINEのメッセージ」から自動で集める
 // - LINEへの返信はまだ行わない（回答は記録として残す）
 import { all, get, run } from "./db";
+import type { Outbox } from "./delivery";
 import { jstDateKey } from "./format";
+import type { Friend } from "./types";
 
 export type QuestionStatus = "open" | "answered" | "resolved" | "hidden";
 export type JobStatus = "applied" | "interview" | "won" | "lost";
@@ -181,4 +183,113 @@ export async function studentDetail(friendId: number) {
     ),
   ]);
   return { jobs, earnings, applies };
+}
+
+// ---- LINEからの報告 ----
+const REPORT_HELP =
+  "📝 このトークで、次のように送ると記録できます\n\n・今月の収入：「収入 30000」\n・応募した案件：「応募しました 案件名」\n・面談が決まった：「面談 案件名」\n・受注した：「受注しました 案件名」";
+
+/** 同じ題名の案件があれば状況を更新し、無ければ足す */
+async function upsertJobByTitle(friendId: number, title: string, status: JobStatus) {
+  const hit = await get<{ id: number }>("SELECT id FROM coach_jobs WHERE friend_id = ? AND title = ?", friendId, title);
+  if (hit) await run("UPDATE coach_jobs SET status = ? WHERE id = ?", status, hit.id);
+  else
+    await run(
+      "INSERT INTO coach_jobs (friend_id, title, status, applied_on, created_at) VALUES (?, ?, ?, ?, ?)",
+      friendId,
+      title,
+      status,
+      jstDateKey(Date.now()),
+      Date.now(),
+    );
+}
+
+/** 「収入 30000」「応募しました 案件名」「面談 案件名」「受注しました」などを記録する。扱ったら true */
+export async function handleCoachReport(box: Outbox, friend: Friend, raw: string): Promise<boolean> {
+  const text = raw.normalize("NFKC").trim();
+  if (/^(報告|報告のしかた|報告の仕方)$/.test(text)) {
+    box.add(REPORT_HELP, "auto");
+    return true;
+  }
+  const income = text.match(/^(?:今月の)?(?:収入|売上)[\s:]*([\d,]+)\s*(万)?\s*円?$/);
+  if (income) {
+    const amount = Number(income[1].replace(/,/g, "")) * (income[2] ? 10000 : 1);
+    if (!amount) return false;
+    const month = monthKey();
+    // LINEからの報告は月に1つ（送り直したら上書き）
+    await run("DELETE FROM coach_earnings WHERE friend_id = ? AND month = ? AND note = 'LINEの報告'", friend.id, month);
+    await run(
+      "INSERT INTO coach_earnings (friend_id, month, amount, note, created_at) VALUES (?, ?, ?, 'LINEの報告', ?)",
+      friend.id,
+      month,
+      amount,
+      Date.now(),
+    );
+    box.add(`💰 今月の収入を ¥${amount.toLocaleString("ja-JP")} で記録しました。\n金額が変わったら、もう一度送れば上書きされます。`, "auto");
+    return true;
+  }
+  const job = text.match(/^(応募|面談|受注)(?:しました|決定|が決まりました)?(?:[\s:]+(.+))?$/);
+  if (!job) return false;
+  const status: JobStatus = job[1] === "応募" ? "applied" : job[1] === "面談" ? "interview" : "won";
+  const title = job[2]?.trim().slice(0, 200);
+  const label = JOB_STATUS[status];
+  if (title) {
+    if (/^\d+$/.test(title)) return false; // 「応募 3」のような数だけのものは案件名にしない
+    await upsertJobByTitle(friend.id, title, status);
+    box.add(`📌 「${title}」を【${label}】で記録しました。${status === "won" ? "\n🎉 おめでとうございます！" : ""}`, "auto");
+    return true;
+  }
+  // 案件名なし：いちばん新しい案件を更新する
+  if (status === "applied") {
+    box.add("案件名も一緒に送ってください。\n例：「応募しました SEO記事の作成」", "auto");
+    return true;
+  }
+  const last = await get<{ id: number; title: string }>(
+    "SELECT id, title FROM coach_jobs WHERE friend_id = ? AND status NOT IN ('won', 'lost') ORDER BY id DESC LIMIT 1",
+    friend.id,
+  );
+  if (!last) {
+    box.add(`案件名も一緒に送ってください。\n例：「${job[1]}しました SEO記事の作成」`, "auto");
+    return true;
+  }
+  await run("UPDATE coach_jobs SET status = ? WHERE id = ?", status, last.id);
+  box.add(`📌 「${last.title}」を【${label}】で記録しました。${status === "won" ? "\n🎉 おめでとうございます！" : ""}\n別の案件なら、案件名も一緒に送ってください。`, "auto");
+  return true;
+}
+
+// ---- 講座の画面からの同期 ----
+const JOB_RANK: Record<string, number> = { applied: 1, interview: 2, won: 3, lost: 0 };
+
+/** 講座の画面の案件を取り込む。同じ案件は二重に入れず、状況は進んだ時だけ変える（手で直した分を戻さない） */
+export async function syncJobsFromCourse(
+  friendId: number,
+  jobs: { id: string; title: string; site: string; url: string; status: JobStatus; appliedOn: string }[],
+) {
+  let changed = 0;
+  for (const j of jobs) {
+    const hit = await get<{ id: number; status: string }>(
+      "SELECT id, status FROM coach_jobs WHERE friend_id = ? AND (ext_id = ? OR title = ?)",
+      friendId,
+      j.id,
+      j.title,
+    );
+    if (!hit) {
+      await run(
+        "INSERT INTO coach_jobs (friend_id, title, site, url, status, applied_on, created_at, ext_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        friendId,
+        j.title,
+        j.site,
+        j.url,
+        j.status,
+        j.appliedOn,
+        Date.now(),
+        j.id,
+      );
+      changed++;
+    } else if (JOB_RANK[j.status] > (JOB_RANK[hit.status] ?? 0) || (j.status === "lost" && hit.status !== "won" && hit.status !== "lost")) {
+      await run("UPDATE coach_jobs SET status = ?, ext_id = ? WHERE id = ?", j.status, j.id, hit.id);
+      changed++;
+    }
+  }
+  return changed;
 }

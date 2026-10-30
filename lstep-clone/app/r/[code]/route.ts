@@ -3,6 +3,7 @@ import { getFriendByToken } from "@/lib/friends";
 import { addScore } from "@/lib/score";
 import { addTag } from "@/lib/tags";
 import type { Link } from "@/lib/types";
+import { currentWorkspace, MAIN } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,15 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
       const courseOrigins = (process.env.COURSE_ORIGINS || "https://skillquest-v2.pages.dev,https://sho-claude-code-course.pages.dev").split(",");
       if (courseOrigins.map((o) => o.trim()).includes(u.origin)) {
         u.searchParams.set("sq", friend.token);
+        dest = u.toString();
+      }
+      // 新しい講座（案件獲得の章）：応募した案件を生徒管理ツールへ送れるよう、友だちと公式LINEの目印を渡す。
+      // LINEの中のブラウザではGoogleログインができないので、外のブラウザで開く
+      if (/^anken-navi-v\d+\.sns-studio\.workers\.dev$/.test(u.hostname)) {
+        u.searchParams.set("sq", friend.token);
+        const ws = await currentWorkspace();
+        if (ws !== MAIN) u.searchParams.set("sw", ws);
+        u.searchParams.set("openExternalBrowser", "1");
         dest = u.toString();
       }
     } catch {
