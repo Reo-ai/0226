@@ -11,5 +11,7 @@ export async function GET(req: Request) {
   const mine = await workspacesOf(user);
   if (!ws || !mine.some((m) => m.id === ws)) redirect("/login?line=denied");
   await setWorkspaceCookie(ws);
-  redirect("/dashboard");
+  // 生徒管理ツールから切り替えたときは、そのツールに戻す
+  const next = new URL(req.url).searchParams.get("next");
+  redirect(next === "/coach" ? "/coach" : "/dashboard");
 }

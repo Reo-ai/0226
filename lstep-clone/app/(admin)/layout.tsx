@@ -15,6 +15,7 @@ const NAV_GROUPS: { title: string; items: (readonly [string, string])[] }[] = [
     items: [
       ["/dashboard", "ダッシュボード"],
       ["/inbox", "未返信"],
+      ["/coach", "生徒管理"],
       ["/friends", "友だち"],
       ["/bookings", "予約の受付"],
     ],

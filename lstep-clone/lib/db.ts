@@ -291,6 +291,40 @@ CREATE TABLE IF NOT EXISTS apply_goals (
   last_night_date TEXT,
   created_at INTEGER NOT NULL
 );
+-- 生徒管理ツール：質問と回答（source = form / line。ref_id は回答・メッセージのID）
+CREATE TABLE IF NOT EXISTS coach_questions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  friend_id INTEGER,
+  source TEXT NOT NULL,
+  ref_id INTEGER NOT NULL,
+  body TEXT NOT NULL,
+  answer TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open',
+  quest TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,
+  answered_at INTEGER,
+  UNIQUE (source, ref_id)
+);
+-- 生徒管理ツール：応募した案件（status = applied / interview / won / lost）
+CREATE TABLE IF NOT EXISTS coach_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  friend_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  site TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'applied',
+  applied_on TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+-- 生徒管理ツール：月ごとの収入（month = YYYY-MM）
+CREATE TABLE IF NOT EXISTS coach_earnings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  friend_id INTEGER NOT NULL,
+  month TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS apply_logs (
   friend_id INTEGER NOT NULL,
   date TEXT NOT NULL,

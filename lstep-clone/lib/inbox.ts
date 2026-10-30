@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { all, get, getSetting, run, setSetting } from "./db";
 import type { Outbox } from "./delivery";
 import { pushToFriend } from "./delivery";
+import { captureLineQuestion } from "./coach";
 import { baseUrl } from "./env";
 import type { Friend } from "./types";
 
@@ -64,6 +65,7 @@ export async function markNeedsReply(friend: Friend, text: string) {
   const targets = await notifyTargets();
   if (targets.includes(friend.id)) return; // 運用者自身のメッセージは対象外
   await run("UPDATE friends SET needs_reply = 1, needs_reply_at = ? WHERE id = ?", Date.now(), friend.id);
+  await captureLineQuestion(friend.id, text);
   if (targets.length === 0) return;
   const lastKey = `notify.last.${friend.id}`;
   if (Date.now() - Number(await getSetting(lastKey, "0")) < COOLDOWN_MS) return;
