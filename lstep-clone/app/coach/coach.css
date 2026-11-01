@@ -73,3 +73,7 @@
   .st-grid { grid-template-columns: minmax(0, 1fr); }
   .coach-search { flex-wrap: wrap; }
 }
+
+.proofs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.proofs a { display: flex; flex-direction: column; gap: 2px; text-decoration: none; }
+.proofs img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }

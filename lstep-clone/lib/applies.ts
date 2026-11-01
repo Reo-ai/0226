@@ -4,7 +4,9 @@
 import { all, get, run } from "./db";
 import { pushToFriend, queuePending } from "./delivery";
 import { jstDateKey } from "./format";
+import { getImageContent } from "./line";
 import { QuotaError } from "./quota";
+import { currentWorkspace, MAIN } from "./workspace";
 import type { Outbox } from "./delivery";
 import type { Friend } from "./types";
 
@@ -16,6 +18,10 @@ const NIGHT = "今日は20件応募できましたか？";
 /** 夜に送る文（「はい／いいえ」のボタン付き） */
 const NIGHT_MSG = `${NIGHT}\n選択肢: はい / いいえ`;
 const GOAL = 20;
+/** 写真1枚の上限（これより大きい時は縮小版を保存する） */
+const PROOF_MAX_BYTES = 3 * 1024 * 1024;
+const PROOF_ASK =
+  "📸 最後にひとつ。応募を送ったページの写真（スクショ）を、このトークに送ってください。\n1枚で大丈夫です。パスワードや住所などは写さないようにしてください。";
 /** 「いいえ」の後に出す件数ボタン（ボタンは最大13個。13件以上は数字で送ってもらう） */
 const COUNT_CHOICES = Array.from({ length: 13 }, (_, i) => `${i}件`).join(" / ");
 
@@ -24,6 +30,7 @@ interface ApplyGoal {
   remind_enabled: number;
   last_noon_date: string | null;
   last_night_date: string | null;
+  proof_date: string | null;
 }
 
 const jstHour = (ms: number) => new Date(ms + 9 * 3600_000).getUTCHours();
@@ -74,6 +81,41 @@ async function handleNightAnswer(box: Outbox, friend: Friend, text: string): Pro
   const n = yes ? GOAL : Number(num![1]);
   await recordApplies(friend.id, date, n);
   box.add(countReply(n), "auto");
+  // スキルクエスト２だけ：応募した証拠の写真をお願いする（0件の日は聞かない）
+  if (n > 0 && (await currentWorkspace()) !== MAIN) {
+    await run("UPDATE apply_goals SET proof_date = ? WHERE friend_id = ?", date, friend.id);
+    box.add(PROOF_ASK, "auto");
+  }
+  return true;
+}
+
+/** 写真をお願いした後に届いた画像を、応募の証拠として残す。扱ったら true（それ以外の画像は今までどおり） */
+export async function handleProofImage(box: Outbox, friend: Friend, messageId: string): Promise<boolean> {
+  const goal = await get<ApplyGoal>("SELECT * FROM apply_goals WHERE friend_id = ?", friend.id);
+  const date = answerDate(goal, Date.now());
+  if (!goal?.proof_date || goal.proof_date !== date) return false;
+  try {
+    const img = await getImageContent(messageId, PROOF_MAX_BYTES);
+    if (!img) throw new Error("画像を取得できません");
+    // 続けて複数枚送られた時に返事を重ねない（1分以内の2枚目以降は黙って受け取る）
+    const recent = await get<{ n: number }>(
+      "SELECT COUNT(*) n FROM coach_proofs WHERE friend_id = ? AND created_at > ?",
+      friend.id,
+      Date.now() - 60_000,
+    );
+    await run(
+      "INSERT INTO coach_proofs (friend_id, date, mime, data, created_at) VALUES (?, ?, ?, ?, ?)",
+      friend.id,
+      date,
+      img.mime,
+      img.data.toString("base64"),
+      Date.now(),
+    );
+    if (!recent?.n) box.add("📸 受け取りました。今日もおつかれさまでした！\nほかにもあれば、続けて送ってください。", "auto");
+  } catch (e) {
+    console.error("応募の写真を保存できませんでした", e);
+    box.add("写真をうまく受け取れませんでした。すみませんが、もう一度送ってください。", "auto");
+  }
   return true;
 }
 

@@ -6,7 +6,7 @@ import { collectPending, logIncoming, Outbox } from "./delivery";
 import { getFriendByLineId, markUnfollowed, upsertFriend } from "./friends";
 import { habitWelcome, handleHabitText } from "./habits";
 import { handleChapterReport } from "./nudge";
-import { handleApplyText } from "./applies";
+import { handleApplyText, handleProofImage } from "./applies";
 import { handleCoachReport } from "./coach";
 import { fieldValuesOf } from "./fields";
 import { handleNotifyCommand, markNeedsReply } from "./inbox";
@@ -22,7 +22,7 @@ export interface LineEvent {
   type: string;
   replyToken?: string;
   source?: { type: string; userId?: string };
-  message?: { type: string; text?: string };
+  message?: { type: string; text?: string; id?: string };
   postback?: { data: string };
 }
 
@@ -126,7 +126,10 @@ export async function handleEvent(ev: LineEvent) {
   const box = new Outbox(friend, ev.replyToken, await currentWorkspace(), await fieldValuesOf(friend.id));
   if (ev.type === "message") {
     if (ev.message?.type === "text" && ev.message.text) await handleText(box, ev.message.text);
-    else await logIncoming(friend.id, `[${ev.message?.type ?? "unknown"}]`);
+    else {
+      await logIncoming(friend.id, `[${ev.message?.type ?? "unknown"}]`);
+      if (ev.message?.type === "image" && ev.message.id) await handleProofImage(box, friend, ev.message.id);
+    }
   } else if (ev.type === "postback") {
     await handlePostback(box, ev.postback?.data ?? "");
   } else if (ev.type === "follow") {

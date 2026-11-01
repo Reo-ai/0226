@@ -103,6 +103,22 @@ export default async function Student({ params }: { params: Promise<{ id: string
             </details>
           </div>
 
+          <h2 className="coach-h2">応募の写真（{d.proofs.length}）</h2>
+          <div className="box">
+            {d.proofs.length > 0 ? (
+              <div className="proofs">
+                {d.proofs.map((p) => (
+                  <a key={p.id} href={`/coach/proof/${p.id}`} target="_blank" rel="noreferrer">
+                    <img src={`/coach/proof/${p.id}`} alt={`${p.date}の応募の写真`} loading="lazy" />
+                    <span className="q-meta">{p.date}</span>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="q-meta">まだ届いていません</p>
+            )}
+          </div>
+
           <h2 className="coach-h2">月の収入</h2>
           <div className="box">
             {[...byMonth.entries()].map(([m, v]) => (

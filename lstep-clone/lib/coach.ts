@@ -174,15 +174,16 @@ export async function listStudents(search?: string): Promise<StudentRow[]> {
 }
 
 export async function studentDetail(friendId: number) {
-  const [jobs, earnings, applies] = await Promise.all([
+  const [jobs, earnings, applies, proofs] = await Promise.all([
     all<Job>("SELECT * FROM coach_jobs WHERE friend_id = ? ORDER BY applied_on DESC, id DESC", friendId),
     all<Earning>("SELECT * FROM coach_earnings WHERE friend_id = ? ORDER BY month DESC, id DESC", friendId),
     all<{ month: string; n: number }>(
       "SELECT substr(date, 1, 7) month, SUM(count) n FROM apply_logs WHERE friend_id = ? GROUP BY month ORDER BY month DESC LIMIT 12",
       friendId,
     ),
+    all<{ id: number; date: string }>("SELECT id, date FROM coach_proofs WHERE friend_id = ? ORDER BY id DESC LIMIT 30", friendId),
   ]);
-  return { jobs, earnings, applies };
+  return { jobs, earnings, applies, proofs };
 }
 
 // ---- LINEからの報告 ----

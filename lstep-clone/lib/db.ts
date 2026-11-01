@@ -305,6 +305,15 @@ CREATE TABLE IF NOT EXISTS coach_questions (
   answered_at INTEGER,
   UNIQUE (source, ref_id)
 );
+-- 生徒管理ツール：応募した証拠の写真（個人情報が写ることがあるので、公開の images とは分けてログイン必須で見せる）
+CREATE TABLE IF NOT EXISTS coach_proofs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  friend_id INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
 -- 生徒管理ツール：応募した案件（status = applied / interview / won / lost）
 CREATE TABLE IF NOT EXISTS coach_jobs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -369,6 +378,8 @@ const MIGRATIONS = [
   "ALTER TABLE enrollments ADD COLUMN await_tap INTEGER NOT NULL DEFAULT 0",
   // 生徒管理ツール：講座の画面から届いた案件の番号（同じ案件を二重に入れないため）
   "ALTER TABLE coach_jobs ADD COLUMN ext_id TEXT",
+  // 応募リマインド：応募したページの写真を待っている日（夜の問いかけの日付）
+  "ALTER TABLE apply_goals ADD COLUMN proof_date TEXT",
 ];
 
 /** main だけの表への追加 */

@@ -91,6 +91,20 @@ export interface LineProfile {
   statusMessage?: string;
 }
 
+/** 届いた画像の中身を取る。大きすぎる時は LINE が用意した縮小版にする（無ければ null） */
+export async function getImageContent(messageId: string, maxBytes: number): Promise<{ mime: string; data: Buffer } | null> {
+  const t = await accessToken();
+  if (!t) return null;
+  const headers = { Authorization: `Bearer ${t}` };
+  for (const suffix of ["", "/preview"]) {
+    const res = await fetch(`${DATA_API}/message/${messageId}/content${suffix}`, { headers });
+    if (!res.ok) continue;
+    const data = Buffer.from(await res.arrayBuffer());
+    if (data.length <= maxBytes) return { mime: res.headers.get("content-type") || "image/jpeg", data };
+  }
+  return null;
+}
+
 export async function getProfile(userId: string): Promise<LineProfile | null> {
   try {
     return (await call(`/profile/${encodeURIComponent(userId)}`)) as LineProfile | null;
